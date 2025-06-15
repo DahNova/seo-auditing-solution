@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Auditing Solution - Dexa Agency</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="bi bi-graph-up"></i> SEO Auditing - Dexa</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-section="dashboard">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="clients">
+                            <i class="bi bi-people"></i> Clienti
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="websites">
+                            <i class="bi bi-globe"></i> Siti Web
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="scans">
+                            <i class="bi bi-search"></i> Scansioni
+                        </a>
+                    </li>
+                </ul>
+                <span class="navbar-text">
+                    <i class="bi bi-person-circle"></i> Admin
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="content-section">
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+                </div>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="total-clients">0</h4>
+                                    <p class="mb-0">Clienti Totali</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-people h1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="total-websites">0</h4>
+                                    <p class="mb-0">Siti Web</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-globe h1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="total-scans">0</h4>
+                                    <p class="mb-0">Scansioni</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-search h1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="active-issues">0</h4>
+                                    <p class="mb-0">Problemi Attivi</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-exclamation-triangle h1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-clock-history"></i> Attività Recente</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-activity">
+                                <p class="text-muted">Caricamento attività recente...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-list-check"></i> Azioni Rapide</h5>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-primary w-100 mb-2" onclick="showAddClientModal()">
+                                <i class="bi bi-person-plus"></i> Aggiungi Cliente
+                            </button>
+                            <button class="btn btn-success w-100 mb-2" onclick="showAddWebsiteModal()">
+                                <i class="bi bi-globe-europe-africa"></i> Aggiungi Sito
+                            </button>
+                            <button class="btn btn-warning w-100" onclick="startNewScan()">
+                                <i class="bi bi-play-circle"></i> Nuova Scansione
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clients Section -->
+        <div id="clients-section" class="content-section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="bi bi-people"></i> Gestione Clienti</h2>
+                        <button class="btn btn-primary" onclick="showAddClientModal()">
+                            <i class="bi bi-person-plus"></i> Aggiungi Cliente
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Clients Filter -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" id="client-search" placeholder="Cerca clienti...">
+                </div>
+                <div class="col-md-6">
+                    <select class="form-select" id="client-filter">
+                        <option value="">Tutti i clienti</option>
+                        <option value="active">Clienti attivi</option>
+                        <option value="inactive">Clienti inattivi</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Clients Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Siti Web</th>
+                                    <th>Ultimo Aggiornamento</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Websites Section -->
+        <div id="websites-section" class="content-section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="bi bi-globe"></i> Gestione Siti Web</h2>
+                        <button class="btn btn-primary" onclick="showAddWebsiteModal()">
+                            <i class="bi bi-globe-europe-africa"></i> Aggiungi Sito Web
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Websites Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dominio</th>
+                                    <th>Nome</th>
+                                    <th>Cliente</th>
+                                    <th>Frequenza Scansione</th>
+                                    <th>Ultima Scansione</th>
+                                    <th>Stato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="websites-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scans Section -->
+        <div id="scans-section" class="content-section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="bi bi-search"></i> Monitoraggio Scansioni</h2>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Sito Web</th>
+                                    <th>Data Inizio</th>
+                                    <th>Stato</th>
+                                    <th>Pagine Scansionate</th>
+                                    <th>Problemi Trovati</th>
+                                    <th>Punteggio SEO</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scans-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Client Modal -->
+    <div class="modal fade" id="addClientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aggiungi Nuovo Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addClientForm">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label">Nome Cliente</label>
+                            <input type="text" class="form-control" id="clientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="clientEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientDescription" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="clientDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="addClient()">Salva Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Website Modal -->
+    <div class="modal fade" id="addWebsiteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aggiungi Nuovo Sito Web</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addWebsiteForm">
+                        <div class="mb-3">
+                            <label for="websiteDomain" class="form-label">Dominio</label>
+                            <input type="url" class="form-control" id="websiteDomain" placeholder="https://example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="websiteName" class="form-label">Nome Sito</label>
+                            <input type="text" class="form-control" id="websiteName">
+                        </div>
+                        <div class="mb-3">
+                            <label for="websiteClient" class="form-label">Cliente</label>
+                            <select class="form-select" id="websiteClient" required>
+                                <option value="">Seleziona cliente...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="websiteDescription" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="websiteDescription" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="scanFrequency" class="form-label">Frequenza Scansione</label>
+                                <select class="form-select" id="scanFrequency">
+                                    <option value="daily">Giornaliera</option>
+                                    <option value="weekly">Settimanale</option>
+                                    <option value="monthly" selected>Mensile</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="maxPages" class="form-label">Max Pagine</label>
+                                <input type="number" class="form-control" id="maxPages" value="1000">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="addWebsite()">Salva Sito Web</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
