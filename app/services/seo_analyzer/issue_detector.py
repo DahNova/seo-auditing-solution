@@ -34,6 +34,9 @@ class IssueDetector:
             
             # Check content issues
             issues.extend(self._check_content_issues(word_count))
+            
+            # Check heading structure issues
+            issues.extend(self._check_heading_issues(crawl_result))
         
         # Check image-specific issues for image files
         elif content_type == 'image':
@@ -141,6 +144,93 @@ class IssueDetector:
                 'recommendation': f'Add more valuable content (minimum {seo_config.min_word_count} words)',
                 'score_impact': seo_config.scoring_weights['thin_content']
             })
+        
+        return issues
+    
+    def _check_heading_issues(self, crawl_result) -> List[Dict[str, Any]]:
+        """Check heading structure for SEO issues"""
+        issues = []
+        
+        try:
+            # Get HTML content to analyze headings
+            html_content = getattr(crawl_result, 'cleaned_html', '') or getattr(crawl_result, 'html', '')
+            
+            if not html_content:
+                return issues
+            
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Find all heading tags
+            h1_tags = soup.find_all('h1')
+            h2_tags = soup.find_all('h2')
+            h3_tags = soup.find_all('h3')
+            
+            # Check for missing H1
+            if len(h1_tags) == 0:
+                issues.append({
+                    'type': 'missing_h1',
+                    'category': 'on_page',
+                    'severity': 'high',
+                    'title': 'Missing H1 Tag',
+                    'description': 'Page is missing an H1 heading tag',
+                    'recommendation': 'Add a single, descriptive H1 tag that includes the main keyword',
+                    'score_impact': seo_config.scoring_weights.get('missing_h1', -8.0)
+                })
+            
+            # Check for multiple H1 tags
+            elif len(h1_tags) > 1:
+                issues.append({
+                    'type': 'multiple_h1',
+                    'category': 'on_page',
+                    'severity': 'medium',
+                    'title': 'Multiple H1 Tags',
+                    'description': f'Page has {len(h1_tags)} H1 tags (should have exactly one)',
+                    'recommendation': 'Use only one H1 tag per page, convert others to H2-H6',
+                    'score_impact': seo_config.scoring_weights.get('multiple_h1', -4.0)
+                })
+            
+            # Check for empty H1
+            elif h1_tags and not h1_tags[0].get_text(strip=True):
+                issues.append({
+                    'type': 'empty_h1',
+                    'category': 'on_page',
+                    'severity': 'high',
+                    'title': 'Empty H1 Tag',
+                    'description': 'H1 tag is present but empty',
+                    'recommendation': 'Add descriptive text to the H1 tag',
+                    'score_impact': seo_config.scoring_weights.get('empty_h1', -6.0)
+                })
+            
+            # Check heading hierarchy (H2 without H1, H3 without H2, etc.)
+            if len(h1_tags) == 0 and len(h2_tags) > 0:
+                issues.append({
+                    'type': 'broken_heading_hierarchy',
+                    'category': 'on_page',
+                    'severity': 'medium',
+                    'title': 'Broken Heading Hierarchy',
+                    'description': f'Page has H2 tags ({len(h2_tags)}) but no H1',
+                    'recommendation': 'Ensure proper heading hierarchy: H1 > H2 > H3',
+                    'score_impact': seo_config.scoring_weights.get('broken_heading_hierarchy', -3.0)
+                })
+            
+            # Check for too many headings (content structure issue)
+            total_headings = len(h1_tags) + len(h2_tags) + len(h3_tags)
+            if total_headings > 15:  # Arbitrary threshold
+                issues.append({
+                    'type': 'excessive_headings',
+                    'category': 'content',
+                    'severity': 'low',
+                    'title': 'Excessive Headings',
+                    'description': f'Page has {total_headings} heading tags (may be over-structured)',
+                    'recommendation': 'Consider simplifying content structure',
+                    'score_impact': seo_config.scoring_weights.get('excessive_headings', -1.0)
+                })
+                
+        except Exception as e:
+            # Log error but don't fail the whole analysis
+            import logging
+            logging.getLogger(__name__).warning(f"Error analyzing headings: {str(e)}")
         
         return issues
     

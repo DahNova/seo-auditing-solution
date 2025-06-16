@@ -14,7 +14,8 @@
       "Bash(docker image rm:*)",
       "Bash(docker exec:*)",
       "Bash(find:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "mcp__puppeteer__puppeteer_navigate"
     ],
     "deny": []
   }

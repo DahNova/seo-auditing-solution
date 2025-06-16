@@ -52,6 +52,16 @@ class SEOAuditingApp {
         if (newScanModal) {
             newScanModal.addEventListener('hidden.bs.modal', () => this.resetNewScanModal());
         }
+
+        const scheduleModal = document.getElementById('scheduleModal');
+        if (scheduleModal) {
+            scheduleModal.addEventListener('hidden.bs.modal', () => this.resetScheduleModal());
+        }
+
+        const editScheduleModal = document.getElementById('editScheduleModal');
+        if (editScheduleModal) {
+            editScheduleModal.addEventListener('hidden.bs.modal', () => this.resetEditScheduleModal());
+        }
     }
 
     showSection(sectionName) {
@@ -84,6 +94,9 @@ class SEOAuditingApp {
                 break;
             case 'scans':
                 this.loadScans();
+                break;
+            case 'scheduler':
+                this.loadSchedulerData();
                 break;
         }
     }
@@ -343,13 +356,297 @@ class SEOAuditingApp {
     }
 
     updateDashboard() {
+        // Basic stats
         document.getElementById('total-clients').textContent = this.clients.length;
         document.getElementById('total-websites').textContent = this.websites.length;
         document.getElementById('total-scans').textContent = this.scans.length;
         
-        // Calculate active issues (placeholder)
-        const activeIssues = this.scans.reduce((total, scan) => total + (scan.total_issues || 0), 0);
-        document.getElementById('active-issues').textContent = activeIssues;
+        // Enhanced metrics
+        const activeWebsites = this.websites.filter(w => w.is_active).length;
+        const activeWebsitesElement = document.getElementById('active-websites');
+        if (activeWebsitesElement) {
+            activeWebsitesElement.textContent = activeWebsites;
+        }
+        
+        // Calculate critical issues across all scans
+        const criticalIssues = this.scans.reduce((total, scan) => {
+            return total + (scan.critical_issues || 0);
+        }, 0);
+        const criticalElement = document.getElementById('critical-issues-total');
+        if (criticalElement) {
+            criticalElement.textContent = criticalIssues;
+        }
+        
+        // Last scan time
+        const lastScan = this.scans.length > 0 ? 
+            new Date(this.scans[0].started_at).toLocaleDateString('it-IT') : '-';
+        const lastScanElement = document.getElementById('last-scan-time');
+        if (lastScanElement) {
+            lastScanElement.textContent = lastScan;
+        }
+        
+        // Growth metrics (mock data for now)
+        const growthElement = document.getElementById('clients-growth');
+        if (growthElement) {
+            growthElement.textContent = '+' + Math.max(0, this.clients.length - 5);
+        }
+        
+        // Render enhanced dashboard components
+        this.renderRecentScansList();
+        this.renderDashboardHealthChart();
+        this.renderCriticalAlerts();
+        this.renderActivityFeed();
+        this.renderHealthInsights();
+    }
+    
+    renderRecentScansList() {
+        const container = document.getElementById('recent-scans-list');
+        if (!container) return;
+        
+        const recentScans = this.scans.slice(0, 5); // Last 5 scans
+        
+        if (recentScans.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center py-3">Nessuna scansione recente</p>';
+            return;
+        }
+        
+        container.innerHTML = recentScans.map(scan => {
+            const website = this.websites.find(w => w.id === scan.website_id);
+            const statusClass = {
+                'completed': 'success',
+                'running': 'primary',
+                'failed': 'danger',
+                'pending': 'warning'
+            }[scan.status] || 'secondary';
+            
+            return `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">${website?.domain || 'N/A'}</h6>
+                        <small class="text-muted">
+                            ${new Date(scan.started_at).toLocaleDateString('it-IT')} • 
+                            ${scan.pages_scanned || 0} pagine • 
+                            ${scan.total_issues || 0} problemi
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-${statusClass} mb-1">${this.formatScanStatus(scan.status)}</span>
+                        ${scan.status === 'completed' ? 
+                            `<br><button class="btn btn-sm btn-outline-primary" onclick="app.viewScanResults(${scan.id})">
+                                <i class="bi bi-eye"></i>
+                            </button>` : ''
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    renderDashboardHealthChart() {
+        const ctx = document.getElementById('dashboardHealthChart');
+        if (!ctx) return;
+        
+        // Aggregate health data across all scans
+        const healthData = this.calculateOverallHealth();
+        
+        if (this.dashboardChart) {
+            this.dashboardChart.destroy();
+        }
+        
+        this.dashboardChart = new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Siti Sani', 'Problemi Moderati', 'Problemi Critici'],
+                datasets: [{
+                    data: [healthData.healthy, healthData.moderate, healthData.critical],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    calculateOverallHealth() {
+        let healthy = 0, moderate = 0, critical = 0;
+        
+        this.scans.forEach(scan => {
+            const criticalIssues = scan.critical_issues || 0;
+            const totalIssues = scan.total_issues || 0;
+            
+            if (criticalIssues > 0) {
+                critical++;
+            } else if (totalIssues > 5) {
+                moderate++;
+            } else {
+                healthy++;
+            }
+        });
+        
+        return { healthy, moderate, critical };
+    }
+    
+    renderCriticalAlerts() {
+        const container = document.getElementById('critical-alerts');
+        if (!container) return;
+        
+        const criticalScans = this.scans.filter(scan => 
+            (scan.critical_issues || 0) > 0 || scan.status === 'failed'
+        ).slice(0, 3);
+        
+        if (criticalScans.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-3">
+                    <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                    <div class="mt-2">
+                        <h6 class="text-success">Nessun Alert Critico</h6>
+                        <small class="text-muted">Tutti i siti sono in buone condizioni</small>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = criticalScans.map(scan => {
+            const website = this.websites.find(w => w.id === scan.website_id);
+            return `
+                <div class="alert alert-danger alert-dismissible fade show p-3 mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>${website?.domain || 'N/A'}</strong>
+                            <br><small>${scan.critical_issues || 0} problemi critici rilevati</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="app.viewScanResults(${scan.id})">
+                            Risolvi
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    renderActivityFeed() {
+        const container = document.getElementById('activity-feed');
+        if (!container) return;
+        
+        // Generate activity feed from recent actions
+        const activities = this.generateActivityFeed();
+        
+        container.innerHTML = activities.map(activity => `
+            <div class="d-flex mb-3">
+                <div class="flex-shrink-0">
+                    <div class="bg-${activity.color} bg-opacity-10 p-2 rounded-circle">
+                        <i class="bi ${activity.icon} text-${activity.color}"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1 small">${activity.title}</h6>
+                    <p class="text-muted small mb-1">${activity.description}</p>
+                    <small class="text-muted">${activity.time}</small>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    generateActivityFeed() {
+        const activities = [];
+        
+        // Recent scans
+        this.scans.slice(0, 3).forEach(scan => {
+            const website = this.websites.find(w => w.id === scan.website_id);
+            activities.push({
+                icon: 'bi-search',
+                color: scan.status === 'completed' ? 'success' : 'warning',
+                title: 'Scansione completata',
+                description: `${website?.domain || 'N/A'} - ${scan.total_issues || 0} problemi trovati`,
+                time: new Date(scan.started_at).toLocaleDateString('it-IT')
+            });
+        });
+        
+        // Recent websites
+        this.websites.slice(0, 2).forEach(website => {
+            activities.push({
+                icon: 'bi-globe',
+                color: 'info',
+                title: 'Nuovo sito aggiunto',
+                description: website.domain,
+                time: new Date(website.created_at || Date.now()).toLocaleDateString('it-IT')
+            });
+        });
+        
+        return activities.slice(0, 5);
+    }
+    
+    renderHealthInsights() {
+        const container = document.getElementById('health-insights');
+        if (!container) return;
+        
+        const totalScans = this.scans.length;
+        const completedScans = this.scans.filter(s => s.status === 'completed').length;
+        const totalIssues = this.scans.reduce((sum, scan) => sum + (scan.total_issues || 0), 0);
+        const avgIssuesPerSite = totalScans > 0 ? (totalIssues / totalScans).toFixed(1) : 0;
+        
+        const insights = [
+            {
+                title: 'Tasso di Completamento',
+                value: totalScans > 0 ? Math.round((completedScans / totalScans) * 100) : 0,
+                suffix: '%',
+                color: 'success'
+            },
+            {
+                title: 'Media Problemi per Sito',
+                value: avgIssuesPerSite,
+                suffix: '',
+                color: avgIssuesPerSite < 3 ? 'success' : avgIssuesPerSite < 7 ? 'warning' : 'danger'
+            },
+            {
+                title: 'Siti Attivi',
+                value: this.websites.filter(w => w.is_active).length,
+                suffix: `/${this.websites.length}`,
+                color: 'info'
+            }
+        ];
+        
+        container.innerHTML = insights.map(insight => `
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">${insight.title}</span>
+                    <span class="fw-bold text-${insight.color}">${insight.value}${insight.suffix}</span>
+                </div>
+                <div class="progress mt-1" style="height: 4px;">
+                    <div class="progress-bar bg-${insight.color}" style="width: ${Math.min(insight.value, 100)}%"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    formatScanStatus(status) {
+        const statusMap = {
+            'completed': 'Completata',
+            'running': 'In corso',
+            'pending': 'In attesa',
+            'failed': 'Fallita',
+            'cancelled': 'Annullata'
+        };
+        return statusMap[status] || status;
+    }
+    
+    viewAllReports() {
+        this.showSection('scans');
     }
 
     populateClientDropdown() {
@@ -699,6 +996,22 @@ class SEOAuditingApp {
         this.populateWebsiteDropdownForScan();
     }
 
+    resetScheduleModal() {
+        document.getElementById('scheduleForm').reset();
+        document.getElementById('scheduleFrequency').value = 'monthly';
+        document.getElementById('scheduleMaxPages').value = 1000;
+        document.getElementById('scheduleMaxDepth').value = 5;
+        document.getElementById('scheduleRobotsRespect').checked = true;
+        document.getElementById('scheduleIncludeExternal').checked = false;
+        document.getElementById('scheduleStartNow').checked = false;
+    }
+
+    resetEditScheduleModal() {
+        document.getElementById('editScheduleForm').reset();
+        document.getElementById('editWebsiteId').value = '';
+        document.getElementById('editWebsiteDomain').value = '';
+    }
+
     async startScan(websiteId) {
         const website = this.websites.find(w => w.id === websiteId);
         if (!website) {
@@ -916,6 +1229,9 @@ class SEOAuditingApp {
             // Generate nested accordions for each severity level
             this.generateNestedAccordions();
             
+            // Generate professional insights
+            this.generateKeyInsights();
+            
             // Store all issues for filtering
             this.allIssues = issues;
             
@@ -1060,6 +1376,11 @@ class SEOAuditingApp {
             'meta_desc_too_short': '📐',
             'meta_desc_too_long': '📐',
             'thin_content': '📄',
+            'missing_h1': '🔤',
+            'multiple_h1': '🔀',
+            'empty_h1': '⭕',
+            'broken_heading_hierarchy': '📊',
+            'excessive_headings': '📚',
             'images_missing_alt': '🖼️',
             'images_bad_filename': '🏷️',
             'oversized_images': '📷',
@@ -1092,6 +1413,199 @@ class SEOAuditingApp {
         return colorMap[severity] || 'secondary';
     }
     
+    generateKeyInsights() {
+        const insightsContainer = document.getElementById('key-insights');
+        const actionsContainer = document.getElementById('priority-actions');
+        
+        if (!insightsContainer || !actionsContainer) return;
+        
+        // Calculate insights based on issue data
+        const insights = this.calculateProfessionalInsights();
+        const priorityActions = this.generatePriorityActions();
+        
+        // Render insights
+        insightsContainer.innerHTML = insights.map(insight => `
+            <div class="alert alert-${insight.type} border-start border-4 border-${insight.type}">
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <i class="bi ${insight.icon} fs-5"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="alert-heading mb-1">${insight.title}</h6>
+                        <p class="mb-0 small">${insight.description}</p>
+                        ${insight.impact ? `<small class="text-muted">💡 ${insight.impact}</small>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Render priority actions
+        actionsContainer.innerHTML = priorityActions.map(action => `
+            <li class="mb-2">
+                <strong>${action.title}</strong>
+                <div class="small text-muted">${action.description}</div>
+                <span class="badge bg-${action.priority === 'high' ? 'danger' : action.priority === 'medium' ? 'warning' : 'info'} me-1">${action.pages} pagine</span>
+                <span class="badge bg-outline-secondary">${action.effort}</span>
+            </li>
+        `).join('');
+    }
+    
+    calculateProfessionalInsights() {
+        const insights = [];
+        const totalIssues = this.issueCounts.critical + this.issueCounts.high + this.issueCounts.medium + this.issueCounts.low + this.issueCounts.minor;
+        const pagesCount = this.currentScanData?.scan?.pages_found || 1;
+        
+        // Critical Issues Analysis
+        if (this.issueCounts.critical > 0) {
+            const criticalPercent = Math.round((this.issueCounts.critical / totalIssues) * 100);
+            insights.push({
+                type: 'danger',
+                icon: 'bi-exclamation-triangle-fill',
+                title: 'Problemi Critici Rilevati',
+                description: `${this.issueCounts.critical} problemi critici trovati (${criticalPercent}% del totale). Questi richiedono intervento immediato.`,
+                impact: 'Impatto alto sulla visibilità nei motori di ricerca'
+            });
+        } else {
+            insights.push({
+                type: 'success',
+                icon: 'bi-check-circle-fill',
+                title: 'Nessun Problema Critico',
+                description: 'Ottimo! Il sito non presenta problemi critici che compromettono la SEO.',
+                impact: 'Fondamenta SEO solide'
+            });
+        }
+        
+        // Content Quality Analysis
+        const hasContentIssues = this.hasIssueType('thin_content') || this.hasIssueType('missing_h1') || this.hasIssueType('multiple_h1');
+        if (hasContentIssues) {
+            insights.push({
+                type: 'warning',
+                icon: 'bi-file-text',
+                title: 'Opportunità di Miglioramento Contenuti',
+                description: 'Alcune pagine necessitano ottimizzazioni nella struttura e qualità del contenuto.',
+                impact: 'Migliorare la struttura contenuti può aumentare l\'engagement'
+            });
+        }
+        
+        // Technical Issues Analysis
+        const hasTechnicalIssues = this.hasIssueType('http_error_404') || this.hasIssueType('http_error_500') || this.hasIssueType('oversized_images');
+        if (hasTechnicalIssues) {
+            insights.push({
+                type: 'info',
+                icon: 'bi-gear-fill',
+                title: 'Aspetti Tecnici da Ottimizzare',
+                description: 'Sono stati rilevati alcuni problemi tecnici che influiscono sulle performance.',
+                impact: 'Risolvere migliora velocità e user experience'
+            });
+        }
+        
+        // Overall Health Assessment
+        const issuesPerPage = totalIssues / pagesCount;
+        if (issuesPerPage < 2) {
+            insights.push({
+                type: 'success',
+                icon: 'bi-star-fill',
+                title: 'Stato SEO Complessivo Buono',
+                description: `Media di ${issuesPerPage.toFixed(1)} problemi per pagina. Il sito è in buone condizioni SEO.`,
+                impact: 'Poche ottimizzazioni mirate per risultati eccellenti'
+            });
+        } else if (issuesPerPage < 5) {
+            insights.push({
+                type: 'warning',
+                icon: 'bi-speedometer2',
+                title: 'Stato SEO da Migliorare',
+                description: `Media di ${issuesPerPage.toFixed(1)} problemi per pagina. Opportunità di ottimizzazione evidenti.`,
+                impact: 'Potenziale di miglioramento significativo'
+            });
+        } else {
+            insights.push({
+                type: 'danger',
+                icon: 'bi-exclamation-octagon-fill',
+                title: 'Attenzione: Molti Problemi Rilevati',
+                description: `Media di ${issuesPerPage.toFixed(1)} problemi per pagina. È necessaria una strategia di ottimizzazione sistemica.`,
+                impact: 'Priorità alta per recuperare ranking persi'
+            });
+        }
+        
+        return insights;
+    }
+    
+    generatePriorityActions() {
+        const actions = [];
+        
+        // Analyze most common issues and generate actions
+        Object.entries(this.issuesBySeverity).forEach(([severity, types]) => {
+            Object.entries(types).forEach(([type, data]) => {
+                if (data.count >= 3) { // Only show actions for issues affecting 3+ pages
+                    const action = this.getActionForIssueType(type, data.count, severity);
+                    if (action) actions.push(action);
+                }
+            });
+        });
+        
+        // Sort by priority and impact
+        return actions.sort((a, b) => {
+            const priorityOrder = { high: 3, medium: 2, low: 1 };
+            return priorityOrder[b.priority] - priorityOrder[a.priority];
+        }).slice(0, 5); // Top 5 actions
+    }
+    
+    getActionForIssueType(type, count, severity) {
+        const actionMap = {
+            'missing_title': {
+                title: 'Aggiungi Title Tags',
+                description: 'Ottimizza title tags per migliorare CTR nei risultati di ricerca',
+                priority: severity === 'critical' ? 'high' : 'medium',
+                effort: 'Basso'
+            },
+            'missing_meta_description': {
+                title: 'Aggiungi Meta Descriptions',
+                description: 'Migliora snippets nei risultati di ricerca con descrizioni accattivanti',
+                priority: 'medium',
+                effort: 'Basso'
+            },
+            'missing_h1': {
+                title: 'Struttura Heading H1',
+                description: 'Aggiungi tag H1 per migliorare struttura e keyword targeting',
+                priority: 'high',
+                effort: 'Medio'
+            },
+            'thin_content': {
+                title: 'Espandi Contenuti Scarsi',
+                description: 'Arricchisci pagine con contenuto di valore per migliorare ranking',
+                priority: 'medium',
+                effort: 'Alto'
+            },
+            'images_missing_alt': {
+                title: 'Ottimizza Alt Text Immagini',
+                description: 'Migliora accessibilità e ranking immagini con alt text descriptivi',
+                priority: 'medium',
+                effort: 'Basso'
+            },
+            'http_error_404': {
+                title: 'Correggi Errori 404',
+                description: 'Ripara link rotti o implementa redirect per mantenere link equity',
+                priority: 'high',
+                effort: 'Medio'
+            }
+        };
+        
+        const action = actionMap[type];
+        if (action) {
+            return {
+                ...action,
+                pages: count
+            };
+        }
+        return null;
+    }
+    
+    hasIssueType(type) {
+        return Object.values(this.issuesBySeverity).some(severity => 
+            severity[type] && severity[type].count > 0
+        );
+    }
+    
     formatIssueType(type) {
         const typeMap = {
             'missing_title': 'Title Mancante',
@@ -1101,6 +1615,11 @@ class SEOAuditingApp {
             'meta_desc_too_short': 'Meta Description Corta',
             'meta_desc_too_long': 'Meta Description Lunga',
             'thin_content': 'Contenuto Scarso',
+            'missing_h1': 'H1 Mancante',
+            'multiple_h1': 'H1 Multiple',
+            'empty_h1': 'H1 Vuoto',
+            'broken_heading_hierarchy': 'Gerarchia Heading Rotta',
+            'excessive_headings': 'Troppi Heading',
             'images_missing_alt': 'Immagini Senza Alt',
             'images_bad_filename': 'Nome File Immagini',
             'oversized_images': 'Immagini Troppo Grandi',
@@ -1200,6 +1719,16 @@ class SEOAuditingApp {
                 return `Meta description troppo lunga (${issue.description.match(/\d+/)?.[0] || 'N/A'} caratteri)`;
             case 'thin_content':
                 return `Contenuto scarso (${issue.description.match(/\d+/)?.[0] || 'N/A'} parole)`;
+            case 'missing_h1':
+                return 'Nessun tag H1 presente';
+            case 'multiple_h1':
+                return `${issue.description.match(/\d+/)?.[0] || 'N/A'} tag H1 presenti`;
+            case 'empty_h1':
+                return 'Tag H1 presente ma vuoto';
+            case 'broken_heading_hierarchy':
+                return 'Gerarchia heading non rispettata';
+            case 'excessive_headings':
+                return `${issue.description.match(/\d+/)?.[0] || 'N/A'} heading tags (troppi)`;
             case 'images_missing_alt':
                 return `${issue.description.match(/\d+/)?.[0] || 'N/A'} immagini senza alt text`;
             case 'images_bad_filename':
@@ -1232,6 +1761,16 @@ class SEOAuditingApp {
                 return 'Riduci a 120-160 caratteri';
             case 'thin_content':
                 return 'Aggiungi contenuto di valore (min 300 parole)';
+            case 'missing_h1':
+                return 'Aggiungi tag H1 con keyword principale';
+            case 'multiple_h1':
+                return 'Mantieni solo un H1, converti altri in H2-H6';
+            case 'empty_h1':
+                return 'Aggiungi testo descriptivo al tag H1';
+            case 'broken_heading_hierarchy':
+                return 'Rispetta gerarchia H1 > H2 > H3';
+            case 'excessive_headings':
+                return 'Semplifica struttura contenuto';
             case 'images_missing_alt':
                 return 'Aggiungi testo alt descriptivo alle immagini';
             case 'images_bad_filename':
@@ -1736,6 +2275,554 @@ class SEOAuditingApp {
                 this.showAlert(`Errore durante l'annullamento della scansione: ${error.message}`, 'danger');
             }
         }
+    }
+
+    // ================================
+    // SCHEDULER MANAGEMENT
+    // ================================
+
+    async loadSchedulerData() {
+        try {
+            await Promise.all([
+                this.loadWorkerStats(),
+                this.loadQueueStats(),
+                this.loadScheduledScans(),
+                this.loadActiveTasks(),
+                this.loadRecentTasksLog()
+            ]);
+        } catch (error) {
+            console.error('Error loading scheduler data:', error);
+            this.showAlert('Errore nel caricamento dei dati dello scheduler', 'danger');
+        }
+    }
+
+    async refreshSchedulerData() {
+        await this.loadSchedulerData();
+        this.showAlert('Dati scheduler aggiornati', 'success');
+    }
+
+    async loadWorkerStats() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/status`);
+            const stats = await response.json();
+
+            const statusElement = document.getElementById('worker-status');
+            const countElement = document.getElementById('worker-count');
+
+            if (stats.worker_status === 'online') {
+                statusElement.innerHTML = '<span class="text-success">Online</span>';
+            } else {
+                statusElement.innerHTML = '<span class="text-danger">Offline</span>';
+            }
+
+            if (countElement) {
+                countElement.querySelector('span').textContent = stats.worker_count;
+            }
+        } catch (error) {
+            console.error('Error loading worker stats:', error);
+            // Fallback to offline state
+            document.getElementById('worker-status').innerHTML = '<span class="text-danger">Offline</span>';
+            document.getElementById('worker-count').querySelector('span').textContent = '0';
+        }
+    }
+
+    async loadQueueStats() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/status`);
+            const stats = await response.json();
+
+            const queueLengthElement = document.getElementById('queue-length');
+            if (queueLengthElement) {
+                queueLengthElement.textContent = stats.queue_length;
+            }
+        } catch (error) {
+            console.error('Error loading queue stats:', error);
+            document.getElementById('queue-length').textContent = '0';
+        }
+    }
+
+    async loadScheduledScans() {
+        try {
+            const [scheduledResponse, statsResponse] = await Promise.all([
+                fetch(`${this.apiBase}/scheduler/scheduled-scans`),
+                fetch(`${this.apiBase}/scheduler/stats`)
+            ]);
+            
+            const scheduledScans = await scheduledResponse.json();
+            const stats = await statsResponse.json();
+            
+            const tableBody = document.getElementById('scheduled-scans-table');
+            if (!tableBody) return;
+
+            const rows = scheduledScans.map(scan => {
+                const lastScan = scan.last_scan_at ? new Date(scan.last_scan_at) : null;
+                const nextScan = new Date(scan.next_scan_time);
+
+                const status = scan.is_overdue ? 
+                    '<span class="badge bg-danger">In Ritardo</span>' : 
+                    '<span class="badge bg-success">Programmata</span>';
+
+                return `
+                    <tr>
+                        <td>
+                            <strong>${scan.domain}</strong>
+                            <br><small class="text-muted">${scan.name || 'N/A'}</small>
+                        </td>
+                        <td><span class="badge bg-info">${this.formatFrequency(scan.scan_frequency)}</span></td>
+                        <td>${lastScan ? this.formatDateTime(lastScan) : '<span class="text-muted">Mai</span>'}</td>
+                        <td>${this.formatDateTime(nextScan)}</td>
+                        <td>${status}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="app.runImmediateScan(${scan.website_id})">
+                                <i class="bi bi-play-circle"></i> Avvia Ora
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="app.editSchedule(${scan.website_id})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tableBody.innerHTML = rows;
+
+            // Update stats
+            document.getElementById('scans-today').textContent = stats.scans_completed_today;
+
+            if (stats.next_scan_time && stats.next_scan_website) {
+                const nextScanTime = new Date(stats.next_scan_time);
+                document.getElementById('next-scan-time').textContent = this.formatDateTime(nextScanTime);
+                document.getElementById('next-scan-website').innerHTML = `<i class="bi bi-clock"></i> ${stats.next_scan_website}`;
+            }
+
+        } catch (error) {
+            console.error('Error loading scheduled scans:', error);
+        }
+    }
+
+    async loadActiveTasks() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/active-tasks`);
+            const activeTasks = await response.json();
+
+            const container = document.getElementById('active-tasks-list');
+            if (!container) return;
+
+            if (activeTasks.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Nessun task attivo al momento</p>';
+                return;
+            }
+
+            const tasksHtml = activeTasks.map(task => {
+                const startedAt = task.started_at ? new Date(task.started_at) : new Date();
+                const taskName = task.name.includes('scan_tasks') ? 
+                    `Website Scan: ${task.args[0] || 'Unknown'}` : 
+                    task.name;
+
+                return `
+                    <div class="card border-start border-3 border-info mb-3">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">${taskName}</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-cpu"></i> ${task.worker} • 
+                                        Avviato ${this.formatTimeAgo(startedAt)}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary">In Corso</span>
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = tasksHtml;
+
+        } catch (error) {
+            console.error('Error loading active tasks:', error);
+            document.getElementById('active-tasks-list').innerHTML = '<p class="text-muted text-center">Errore nel caricamento task attivi</p>';
+        }
+    }
+
+    async loadRecentTasksLog() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/recent-tasks?limit=10`);
+            const recentTasks = await response.json();
+
+            const container = document.getElementById('recent-tasks-log');
+            if (!container) return;
+
+            if (recentTasks.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center small">Nessun task recente</p>';
+                return;
+            }
+
+            const logHtml = recentTasks.map(task => {
+                const statusBadge = task.status === 'completed' ? 
+                    '<span class="badge bg-success">Completato</span>' :
+                    '<span class="badge bg-danger">Fallito</span>';
+
+                const durationText = task.duration ? 
+                    `${task.duration}s` : 
+                    (task.error ? `Errore: ${task.error}` : '-');
+
+                const completedAt = task.completed_at ? new Date(task.completed_at) : new Date();
+
+                return `
+                    <div class="border-bottom py-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <small class="fw-medium">${task.task_name}</small>
+                                <div class="text-muted small">
+                                    ${this.formatTimeAgo(completedAt)} • ${durationText}
+                                </div>
+                            </div>
+                            <div>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = logHtml;
+
+        } catch (error) {
+            console.error('Error loading recent tasks log:', error);
+            document.getElementById('recent-tasks-log').innerHTML = '<p class="text-muted text-center small">Errore nel caricamento log</p>';
+        }
+    }
+
+    // Scheduler Actions
+    async purgeQueue() {
+        if (confirm('Sei sicuro di voler pulire completamente la queue? Questa azione non può essere annullata.')) {
+            try {
+                const response = await fetch(`${this.apiBase}/scheduler/actions/purge-queue`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    this.showAlert('Queue pulita con successo', 'success');
+                    await this.loadQueueStats();
+                } else {
+                    throw new Error('Errore durante la pulizia della queue');
+                }
+            } catch (error) {
+                console.error('Error purging queue:', error);
+                this.showAlert('Errore durante la pulizia della queue', 'danger');
+            }
+        }
+    }
+
+    async pauseScheduler() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/actions/pause`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                this.showAlert('Scheduler messo in pausa', 'warning');
+            } else {
+                throw new Error('Errore durante la pausa dello scheduler');
+            }
+        } catch (error) {
+            console.error('Error pausing scheduler:', error);
+            this.showAlert('Errore durante la pausa dello scheduler', 'danger');
+        }
+    }
+
+    async resumeScheduler() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/actions/resume`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                this.showAlert('Scheduler riavviato', 'success');
+            } else {
+                throw new Error('Errore durante il riavvio dello scheduler');
+            }
+        } catch (error) {
+            console.error('Error resuming scheduler:', error);
+            this.showAlert('Errore durante il riavvio dello scheduler', 'danger');
+        }
+    }
+
+    async showWorkerStats() {
+        try {
+            const response = await fetch(`${this.apiBase}/scheduler/worker-stats`);
+            const stats = await response.json();
+            
+            if (stats.workers && stats.workers.length > 0) {
+                const worker = stats.workers[0];
+                alert(`Statistiche Worker:\n\n` +
+                      `Worker Attivi: ${stats.total_workers}\n` +
+                      `Task Processati: ${worker.total_tasks}\n` +
+                      `Task Attivi: ${worker.active_tasks}\n` +
+                      `Processi Pool: ${worker.pool_processes}\n` +
+                      `Ultimo Aggiornamento: ${new Date(stats.last_updated).toLocaleString()}`);
+            } else {
+                alert('Nessun worker attivo al momento');
+            }
+        } catch (error) {
+            console.error('Error loading worker stats:', error);
+            alert('Errore nel caricamento delle statistiche worker');
+        }
+    }
+
+    async runImmediateScan(websiteId) {
+        try {
+            const response = await fetch(`${this.apiBase}/scans/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    website_id: websiteId
+                })
+            });
+
+            if (response.ok) {
+                this.showAlert('Scansione avviata con successo', 'success');
+                await this.loadScheduledScans();
+            } else {
+                throw new Error('Errore durante l\'avvio della scansione');
+            }
+        } catch (error) {
+            console.error('Error starting immediate scan:', error);
+            this.showAlert('Errore durante l\'avvio della scansione', 'danger');
+        }
+    }
+
+    async editSchedule(websiteId) {
+        try {
+            // Find the website in our data
+            const website = this.websites.find(w => w.id === websiteId);
+            if (!website) {
+                this.showAlert('Sito web non trovato', 'danger');
+                return;
+            }
+
+            // Populate the edit form
+            document.getElementById('editWebsiteId').value = website.id;
+            document.getElementById('editWebsiteDomain').value = website.domain;
+            document.getElementById('editScheduleFrequency').value = website.scan_frequency || 'monthly';
+            document.getElementById('editScheduleMaxPages').value = website.max_pages || 1000;
+            document.getElementById('editScheduleMaxDepth').value = website.max_depth || 5;
+            document.getElementById('editScheduleRobotsRespect').checked = website.robots_respect !== false;
+            document.getElementById('editScheduleIncludeExternal').checked = website.include_external || false;
+            document.getElementById('editScheduleActive').checked = website.is_active !== false;
+
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+            modal.show();
+        } catch (error) {
+            console.error('Error opening edit schedule modal:', error);
+            this.showAlert('Errore nell\'apertura del modal di modifica', 'danger');
+        }
+    }
+
+    showScheduleModal() {
+        // Populate the website dropdown
+        this.populateScheduleWebsiteDropdown();
+        
+        // Reset form
+        document.getElementById('scheduleForm').reset();
+        document.getElementById('scheduleFrequency').value = 'monthly';
+        document.getElementById('scheduleMaxPages').value = 1000;
+        document.getElementById('scheduleMaxDepth').value = 5;
+        document.getElementById('scheduleRobotsRespect').checked = true;
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+        modal.show();
+    }
+
+    populateScheduleWebsiteDropdown() {
+        const dropdown = document.getElementById('scheduleWebsite');
+        if (!dropdown) return;
+
+        // Clear existing options except the first one
+        dropdown.innerHTML = '<option value="">Seleziona sito web...</option>';
+
+        // Add websites
+        this.websites.forEach(website => {
+            const option = document.createElement('option');
+            option.value = website.id;
+            option.textContent = `${website.domain} - ${website.name || 'N/A'}`;
+            dropdown.appendChild(option);
+        });
+    }
+
+    async createSchedule() {
+        try {
+            const websiteId = document.getElementById('scheduleWebsite').value;
+            const frequency = document.getElementById('scheduleFrequency').value;
+            const maxPages = parseInt(document.getElementById('scheduleMaxPages').value);
+            const maxDepth = parseInt(document.getElementById('scheduleMaxDepth').value);
+            const robotsRespect = document.getElementById('scheduleRobotsRespect').checked;
+            const includeExternal = document.getElementById('scheduleIncludeExternal').checked;
+            const startNow = document.getElementById('scheduleStartNow').checked;
+
+            if (!websiteId) {
+                this.showAlert('Seleziona un sito web', 'warning');
+                return;
+            }
+
+            // Update website settings
+            const response = await fetch(`${this.apiBase}/websites/${websiteId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    scan_frequency: frequency,
+                    max_pages: maxPages,
+                    max_depth: maxDepth,
+                    robots_respect: robotsRespect,
+                    include_external: includeExternal,
+                    is_active: true
+                })
+            });
+
+            if (response.ok) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+                modal.hide();
+
+                // Start immediate scan if requested
+                if (startNow) {
+                    await this.runImmediateScan(parseInt(websiteId));
+                }
+
+                // Refresh data
+                await this.loadWebsites();
+                await this.loadScheduledScans();
+                
+                this.showAlert('Programmazione creata con successo!', 'success');
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Errore durante la creazione della programmazione');
+            }
+        } catch (error) {
+            console.error('Error creating schedule:', error);
+            this.showAlert(`Errore durante la creazione della programmazione: ${error.message}`, 'danger');
+        }
+    }
+
+    async updateSchedule() {
+        try {
+            const websiteId = document.getElementById('editWebsiteId').value;
+            const frequency = document.getElementById('editScheduleFrequency').value;
+            const maxPages = parseInt(document.getElementById('editScheduleMaxPages').value);
+            const maxDepth = parseInt(document.getElementById('editScheduleMaxDepth').value);
+            const robotsRespect = document.getElementById('editScheduleRobotsRespect').checked;
+            const includeExternal = document.getElementById('editScheduleIncludeExternal').checked;
+            const isActive = document.getElementById('editScheduleActive').checked;
+
+            const response = await fetch(`${this.apiBase}/websites/${websiteId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    scan_frequency: frequency,
+                    max_pages: maxPages,
+                    max_depth: maxDepth,
+                    robots_respect: robotsRespect,
+                    include_external: includeExternal,
+                    is_active: isActive
+                })
+            });
+
+            if (response.ok) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editScheduleModal'));
+                modal.hide();
+
+                // Refresh data
+                await this.loadWebsites();
+                await this.loadScheduledScans();
+                
+                this.showAlert('Programmazione aggiornata con successo!', 'success');
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Errore durante l\'aggiornamento della programmazione');
+            }
+        } catch (error) {
+            console.error('Error updating schedule:', error);
+            this.showAlert(`Errore durante l'aggiornamento della programmazione: ${error.message}`, 'danger');
+        }
+    }
+
+    async deleteSchedule() {
+        const websiteId = document.getElementById('editWebsiteId').value;
+        const website = this.websites.find(w => w.id == websiteId);
+        
+        if (!website) {
+            this.showAlert('Sito web non trovato', 'danger');
+            return;
+        }
+
+        if (confirm(`Sei sicuro di voler disattivare la programmazione per ${website.domain}?\n\nIl sito web non verrà più scansionato automaticamente.`)) {
+            try {
+                const response = await fetch(`${this.apiBase}/websites/${websiteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        is_active: false
+                    })
+                });
+
+                if (response.ok) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editScheduleModal'));
+                    modal.hide();
+
+                    // Refresh data
+                    await this.loadWebsites();
+                    await this.loadScheduledScans();
+                    
+                    this.showAlert('Programmazione disattivata con successo!', 'success');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Errore durante la disattivazione della programmazione');
+                }
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+                this.showAlert(`Errore durante la disattivazione della programmazione: ${error.message}`, 'danger');
+            }
+        }
+    }
+
+    // Helper methods for scheduler
+    formatFrequency(frequency) {
+        const frequencyMap = {
+            'daily': 'Giornaliera',
+            'weekly': 'Settimanale', 
+            'monthly': 'Mensile'
+        };
+        return frequencyMap[frequency] || frequency;
+    }
+
+    formatTimeAgo(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+
+        if (diffMins < 1) return 'ora';
+        if (diffMins < 60) return `${diffMins}m fa`;
+        if (diffHours < 24) return `${diffHours}h fa`;
+        return `${Math.floor(diffHours / 24)}g fa`;
     }
 }
 
