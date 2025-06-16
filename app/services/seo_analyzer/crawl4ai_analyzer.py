@@ -11,12 +11,15 @@ class Crawl4AIAnalyzer:
     def extract_seo_data(self, crawl_result, domain: str) -> Dict[str, Any]:
         """Extract SEO data from Crawl4AI result"""
         
-        # Get extracted content from Crawl4AI
-        extracted = crawl_result.extracted_content or {}
+        # Get metadata from Crawl4AI (this contains title, description, etc.)
+        metadata = getattr(crawl_result, 'metadata', {}) or {}
         
-        # Extract title and meta description
-        title = extracted.get('title', '')
-        meta_desc = extracted.get('meta_description', '')
+        # Extract title and meta description from metadata (NOT extracted_content)
+        title = metadata.get('title', '')
+        meta_desc = metadata.get('description', '') or metadata.get('meta_description', '')
+        
+        # Calculate word count from markdown content
+        word_count = self._calculate_word_count(crawl_result)
         
         # Extract headings from structured data
         headings = self._extract_headings_from_crawl4ai(crawl_result)
@@ -26,9 +29,6 @@ class Crawl4AIAnalyzer:
         
         # Analyze links using Crawl4AI's link extraction
         link_data = self._analyze_links_from_crawl4ai(crawl_result, domain)
-        
-        # Get word count from Crawl4AI
-        word_count = extracted.get('word_count', 0)
         
         return {
             'title': title,
@@ -166,3 +166,35 @@ class Crawl4AIAnalyzer:
             return True
         
         return False
+    
+    def _calculate_word_count(self, crawl_result) -> int:
+        """Calculate word count from Crawl4AI markdown content"""
+        try:
+            # Try to get word count from markdown content
+            if hasattr(crawl_result, 'markdown') and crawl_result.markdown:
+                # Get raw markdown text
+                if hasattr(crawl_result.markdown, 'raw_markdown'):
+                    text = crawl_result.markdown.raw_markdown
+                else:
+                    text = str(crawl_result.markdown)
+                
+                if text:
+                    # Simple word count (split by whitespace, filter empty strings)
+                    words = [word for word in text.split() if word.strip()]
+                    return len(words)
+            
+            # Fallback to cleaned HTML if markdown not available
+            if hasattr(crawl_result, 'cleaned_html') and crawl_result.cleaned_html:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(crawl_result.cleaned_html, 'html.parser')
+                text = soup.get_text(separator=' ', strip=True)
+                words = [word for word in text.split() if word.strip()]
+                return len(words)
+                
+            return 0
+            
+        except Exception as e:
+            # Log error but don't fail the whole analysis
+            import logging
+            logging.getLogger(__name__).warning(f"Error calculating word count: {str(e)}")
+            return 0

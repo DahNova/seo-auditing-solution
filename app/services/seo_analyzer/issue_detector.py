@@ -8,11 +8,13 @@ class IssueDetector:
         """Detect all SEO issues for a page"""
         issues = []
         
-        # Extract data from crawl result
-        extracted = crawl_result.extracted_content or {}
-        title = extracted.get('title', '')
-        meta_desc = extracted.get('meta_description', '')
-        word_count = extracted.get('word_count', 0)
+        # Extract data from crawl result metadata (not extracted_content)
+        metadata = getattr(crawl_result, 'metadata', {}) or {}
+        title = metadata.get('title', '')
+        meta_desc = metadata.get('description', '') or metadata.get('meta_description', '')
+        
+        # Calculate word count from markdown
+        word_count = self._calculate_word_count_from_crawl_result(crawl_result)
         
         # Get URL and content type
         url = getattr(crawl_result, 'url', '')
@@ -325,3 +327,35 @@ class IssueDetector:
         })
         
         return issues
+    
+    def _calculate_word_count_from_crawl_result(self, crawl_result) -> int:
+        """Calculate word count from Crawl4AI result"""
+        try:
+            # Try to get word count from markdown content
+            if hasattr(crawl_result, 'markdown') and crawl_result.markdown:
+                # Get raw markdown text
+                if hasattr(crawl_result.markdown, 'raw_markdown'):
+                    text = crawl_result.markdown.raw_markdown
+                else:
+                    text = str(crawl_result.markdown)
+                
+                if text:
+                    # Simple word count (split by whitespace, filter empty strings)
+                    words = [word for word in text.split() if word.strip()]
+                    return len(words)
+            
+            # Fallback to cleaned HTML if markdown not available
+            if hasattr(crawl_result, 'cleaned_html') and crawl_result.cleaned_html:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(crawl_result.cleaned_html, 'html.parser')
+                text = soup.get_text(separator=' ', strip=True)
+                words = [word for word in text.split() if word.strip()]
+                return len(words)
+                
+            return 0
+            
+        except Exception as e:
+            # Log error but don't fail the whole analysis
+            import logging
+            logging.getLogger(__name__).warning(f"Error calculating word count in issue detector: {str(e)}")
+            return 0
