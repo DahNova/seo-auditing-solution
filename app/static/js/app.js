@@ -867,16 +867,41 @@ class SEOAuditingApp {
             
             const issues = await response.json();
             
-            // Count issues by severity
+            // Organize issues by severity and type
+            this.issuesBySeverity = {
+                critical: {},
+                high: {},
+                medium: {},
+                low: {}
+            };
+            
             this.issueCounts = { critical: 0, high: 0, medium: 0, low: 0, minor: 0 };
-            this.issueTypes = new Set();
             
             issues.forEach(issue => {
-                const severity = issue.severity;
-                if (this.issueCounts.hasOwnProperty(severity)) {
+                let severity = issue.severity;
+                
+                // Group 'minor' with 'low' for display purposes
+                if (severity === 'minor') {
+                    severity = 'low';
+                    this.issueCounts.minor++;
+                } else if (this.issueCounts.hasOwnProperty(severity)) {
                     this.issueCounts[severity]++;
                 }
-                this.issueTypes.add(issue.type);
+                
+                // Create nested structure: severity -> issue type -> issues
+                if (!this.issuesBySeverity[severity]) {
+                    this.issuesBySeverity[severity] = {};
+                }
+                
+                if (!this.issuesBySeverity[severity][issue.type]) {
+                    this.issuesBySeverity[severity][issue.type] = {
+                        count: 0,
+                        issues: []
+                    };
+                }
+                
+                this.issuesBySeverity[severity][issue.type].count++;
+                this.issuesBySeverity[severity][issue.type].issues.push(issue);
             });
             
             // Update accordion badges
@@ -888,8 +913,8 @@ class SEOAuditingApp {
             // Create issues distribution chart
             this.createIssuesDistributionChart();
             
-            // Populate filter dropdowns
-            this.populateIssueTypeFilters();
+            // Generate nested accordions for each severity level
+            this.generateNestedAccordions();
             
             // Store all issues for filtering
             this.allIssues = issues;
@@ -953,18 +978,118 @@ class SEOAuditingApp {
         });
     }
     
-    populateIssueTypeFilters() {
-        const filterIds = ['critical-type-filter', 'high-type-filter', 'medium-type-filter', 'low-type-filter'];
+    generateNestedAccordions() {
+        const severityLevels = ['critical', 'high', 'medium', 'low'];
         
-        filterIds.forEach(filterId => {
-            const filter = document.getElementById(filterId);
-            if (filter) {
-                filter.innerHTML = '<option value="">Tutti i tipi</option>' +
-                    Array.from(this.issueTypes).map(type => 
-                        `<option value="${type}">${this.formatIssueType(type)}</option>`
-                    ).join('');
+        severityLevels.forEach(severity => {
+            const container = document.getElementById(`${severity}SubAccordion`);
+            if (!container) return;
+            
+            const issueTypes = this.issuesBySeverity[severity];
+            if (!issueTypes || Object.keys(issueTypes).length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-3">Nessun problema trovato in questa categoria</p>';
+                return;
             }
+            
+            // Generate nested accordion items for each issue type
+            container.innerHTML = Object.entries(issueTypes).map(([type, data], index) => {
+                const issueIcon = this.getIssueTypeIcon(type);
+                const issueTitle = this.formatIssueType(type);
+                const collapseId = `${severity}-${type}-collapse`;
+                const accordionId = `${severity}SubAccordion`;
+                
+                return `
+                    <div class="accordion-item border-start border-3 border-${this.getSeverityBorderColor(severity)}">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed fs-6" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#${collapseId}" 
+                                    aria-expanded="false" onclick="app.loadIssueTypeData('${severity}', '${type}')">
+                                <span class="me-2">${issueIcon}</span>
+                                <strong>${issueTitle}</strong>
+                                <span class="badge bg-${this.getSeverityColor(severity)} ms-auto">${data.count} ${data.count === 1 ? 'pagina' : 'pagine'}</span>
+                            </button>
+                        </h3>
+                        <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#${accordionId}">
+                            <div class="accordion-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control form-control-sm" 
+                                               id="${severity}-${type}-search" 
+                                               placeholder="Cerca in ${issueTitle.toLowerCase()}...">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-outline-primary btn-sm" 
+                                                onclick="app.exportIssueType('${severity}', '${type}')" 
+                                                title="Esporta lista pagine">
+                                            <i class="bi bi-download"></i> Esporta Lista
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th width="30%">Pagina</th>
+                                                <th width="25%">Titolo Pagina</th>
+                                                <th width="25%">Dettagli Problema</th>
+                                                <th width="20%">Azione Raccomandata</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="${severity}-${type}-table">
+                                            <!-- Populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="${severity}-${type}-pagination" class="d-flex justify-content-center mt-3">
+                                    <!-- Pagination -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         });
+    }
+    
+    getIssueTypeIcon(type) {
+        const iconMap = {
+            'missing_title': '📋',
+            'title_too_short': '📏',
+            'title_too_long': '📏',
+            'missing_meta_description': '📝',
+            'meta_desc_too_short': '📐',
+            'meta_desc_too_long': '📐',
+            'thin_content': '📄',
+            'images_missing_alt': '🖼️',
+            'images_bad_filename': '🏷️',
+            'oversized_images': '📷',
+            'http_error_404': '🚨',
+            'http_error_500': '💥',
+            'image_bad_filename': '🏷️',
+            'pdf_bad_filename': '📄',
+            'pdf_accessibility': '♿'
+        };
+        return iconMap[type] || '⚠️';
+    }
+    
+    getSeverityColor(severity) {
+        const colorMap = {
+            'critical': 'danger',
+            'high': 'warning',
+            'medium': 'info',
+            'low': 'secondary'
+        };
+        return colorMap[severity] || 'secondary';
+    }
+    
+    getSeverityBorderColor(severity) {
+        const colorMap = {
+            'critical': 'danger',
+            'high': 'warning', 
+            'medium': 'info',
+            'low': 'secondary'
+        };
+        return colorMap[severity] || 'secondary';
     }
     
     formatIssueType(type) {
@@ -985,10 +1110,192 @@ class SEOAuditingApp {
         return typeMap[type] || type;
     }
 
-    // Legacy function - no longer used with accordion interface
+    async loadIssueTypeData(severity, type) {
+        try {
+            if (!this.issuesBySeverity[severity] || !this.issuesBySeverity[severity][type]) {
+                console.warn(`No data found for ${severity} ${type}`);
+                return;
+            }
+            
+            const issueData = this.issuesBySeverity[severity][type];
+            let issues = [...issueData.issues];
+            
+            // Apply search filter if present
+            const searchInput = document.getElementById(`${severity}-${type}-search`);
+            if (searchInput) {
+                searchInput.addEventListener('input', () => this.filterIssueTypeData(severity, type));
+                
+                const searchTerm = searchInput.value.toLowerCase();
+                if (searchTerm.trim()) {
+                    issues = issues.filter(issue => 
+                        (issue.page?.url || '').toLowerCase().includes(searchTerm) ||
+                        (issue.page?.title || '').toLowerCase().includes(searchTerm) ||
+                        issue.description.toLowerCase().includes(searchTerm)
+                    );
+                }
+            }
+            
+            // For now, show all issues (we can add pagination later if needed)
+            this.renderIssueTypeTable(severity, type, issues);
+            
+        } catch (error) {
+            console.error(`Error loading ${severity} ${type} data:`, error);
+        }
+    }
+    
+    renderIssueTypeTable(severity, type, issues) {
+        const tableBody = document.getElementById(`${severity}-${type}-table`);
+        if (!tableBody) return;
+        
+        tableBody.innerHTML = '';
+        
+        if (issues.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nessun problema trovato</td></tr>';
+            return;
+        }
+        
+        issues.forEach(issue => {
+            const row = document.createElement('tr');
+            
+            // Get specific details based on issue type
+            const problemDetails = this.getIssueSpecificDetails(type, issue);
+            const actionRecommendation = this.getActionableRecommendation(type, issue);
+            
+            row.innerHTML = `
+                <td>
+                    <a href="${issue.page?.url || '#'}" target="_blank" class="text-decoration-none">
+                        ${this.truncateUrl(issue.page?.url || 'N/A', 35)}
+                    </a>
+                </td>
+                <td>
+                    <div class="text-truncate" style="max-width: 200px;" title="${issue.page?.title || 'N/A'}">
+                        ${issue.page?.title || '<em class="text-muted">Nessun titolo</em>'}
+                    </div>
+                </td>
+                <td>
+                    <small class="text-muted">${problemDetails}</small>
+                </td>
+                <td>
+                    <small class="text-primary">${actionRecommendation}</small>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+    
+    getIssueSpecificDetails(type, issue) {
+        switch(type) {
+            case 'missing_title':
+                return 'Nessun tag title presente';
+            case 'title_too_short':
+                return `Titolo troppo corto (${issue.description.match(/\d+/)?.[0] || 'N/A'} caratteri)`;
+            case 'title_too_long':
+                return `Titolo troppo lungo (${issue.description.match(/\d+/)?.[0] || 'N/A'} caratteri)`;
+            case 'missing_meta_description':
+                return 'Nessuna meta description presente';
+            case 'meta_desc_too_short':
+                return `Meta description troppo corta (${issue.description.match(/\d+/)?.[0] || 'N/A'} caratteri)`;
+            case 'meta_desc_too_long':
+                return `Meta description troppo lunga (${issue.description.match(/\d+/)?.[0] || 'N/A'} caratteri)`;
+            case 'thin_content':
+                return `Contenuto scarso (${issue.description.match(/\d+/)?.[0] || 'N/A'} parole)`;
+            case 'images_missing_alt':
+                return `${issue.description.match(/\d+/)?.[0] || 'N/A'} immagini senza alt text`;
+            case 'images_bad_filename':
+            case 'image_bad_filename':
+                return 'Nome file non SEO-friendly';
+            case 'oversized_images':
+                return 'Immagini troppo grandi';
+            case 'http_error_404':
+                return 'Pagina non trovata (404)';
+            case 'http_error_500':
+                return 'Errore interno del server (500)';
+            default:
+                return issue.description;
+        }
+    }
+    
+    getActionableRecommendation(type, issue) {
+        switch(type) {
+            case 'missing_title':
+                return 'Aggiungi tag title 30-60 caratteri';
+            case 'title_too_short':
+                return 'Estendi a 30-60 caratteri';
+            case 'title_too_long':
+                return 'Riduci a 30-60 caratteri';
+            case 'missing_meta_description':
+                return 'Aggiungi meta description 120-160 caratteri';
+            case 'meta_desc_too_short':
+                return 'Estendi a 120-160 caratteri';
+            case 'meta_desc_too_long':
+                return 'Riduci a 120-160 caratteri';
+            case 'thin_content':
+                return 'Aggiungi contenuto di valore (min 300 parole)';
+            case 'images_missing_alt':
+                return 'Aggiungi testo alt descriptivo alle immagini';
+            case 'images_bad_filename':
+            case 'image_bad_filename':
+                return 'Rinomina con parole chiave descriptive';
+            case 'oversized_images':
+                return 'Ottimizza dimensioni e formato';
+            case 'http_error_404':
+                return 'Correggi link o aggiungi redirect 301';
+            case 'http_error_500':
+                return 'Correggi errori del server';
+            default:
+                return issue.recommendation || 'Vedi documentazione SEO';
+        }
+    }
+    
+    filterIssueTypeData(severity, type) {
+        // Reload data with current filter
+        this.loadIssueTypeData(severity, type);
+    }
+    
+    exportIssueType(severity, type) {
+        try {
+            if (!this.issuesBySeverity[severity] || !this.issuesBySeverity[severity][type]) {
+                this.showAlert('Nessun dato da esportare', 'warning');
+                return;
+            }
+            
+            const issues = this.issuesBySeverity[severity][type].issues;
+            const issueTitle = this.formatIssueType(type);
+            
+            // Create CSV content
+            const headers = ['URL Pagina', 'Titolo Pagina', 'Problema', 'Raccomandazione'];
+            const csvContent = [
+                headers.join(','),
+                ...issues.map(issue => [
+                    `"${issue.page?.url || 'N/A'}"`,
+                    `"${issue.page?.title || 'N/A'}"`,
+                    `"${issue.description}"`,
+                    `"${issue.recommendation || 'N/A'}"`
+                ].join(','))
+            ].join('\\n');
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${issueTitle.replace(/\s+/g, '_')}_${severity}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+        } catch (error) {
+            console.error('Error exporting issue type:', error);
+            this.showAlert("Errore durante l\\'esportazione', 'danger'");
+        }
+    }
+    
+    // Legacy function - no longer used with nested accordion interface
     renderIssuesTable(issues) {
-        // This function is deprecated in favor of renderAccordionIssuesTable
-        console.warn('renderIssuesTable is deprecated, use renderAccordionIssuesTable instead');
+        // This function is deprecated in favor of renderIssueTypeTable
+        console.warn('renderIssuesTable is deprecated, use renderIssueTypeTable instead');
     }
 
     renderPagesTable(pages) {
@@ -1093,22 +1400,7 @@ class SEOAuditingApp {
     }
 
     setupAccordionFiltering() {
-        // Setup filtering for each severity level
-        const severityLevels = ['critical', 'high', 'medium', 'low'];
-        
-        severityLevels.forEach(severity => {
-            const typeFilter = document.getElementById(`${severity}-type-filter`);
-            const searchInput = document.getElementById(`${severity}-search`);
-            
-            if (typeFilter) {
-                typeFilter.addEventListener('change', () => this.filterAccordionIssues(severity));
-            }
-            if (searchInput) {
-                searchInput.addEventListener('input', () => this.filterAccordionIssues(severity));
-            }
-        });
-        
-        // Pages filtering
+        // Pages filtering only (issue filtering is now handled per issue type)
         const pageFilters = {
             status: document.getElementById('page-status-filter'),
             search: document.getElementById('page-search'),
@@ -1121,165 +1413,9 @@ class SEOAuditingApp {
                 filter.addEventListener('input', () => this.filterPages());
             }
         });
-        
-        // Setup accordion expand listeners to load data when opened
-        const accordionButtons = document.querySelectorAll('#issuesAccordion .accordion-button');
-        accordionButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const target = e.target.dataset.bsTarget;
-                if (target) {
-                    const severity = this.getSeverityFromTarget(target);
-                    if (severity) {
-                        setTimeout(() => this.loadAccordionIssues(severity, 1), 100);
-                    }
-                }
-            });
-        });
     }
     
-    getSeverityFromTarget(target) {
-        if (target.includes('critical')) return 'critical';
-        if (target.includes('high')) return 'high';
-        if (target.includes('medium')) return 'medium';
-        if (target.includes('low')) return 'low';
-        return null;
-    }
-    
-    async loadAccordionIssues(severity, page = 1) {
-        try {
-            const { limit } = this.accordionPagination[severity];
-            
-            // Filter issues by severity
-            let filteredIssues = this.allIssues.filter(issue => {
-                if (severity === 'low') {
-                    return issue.severity === 'low' || issue.severity === 'minor';
-                }
-                return issue.severity === severity;
-            });
-            
-            // Apply additional filters
-            const typeFilter = document.getElementById(`${severity}-type-filter`);
-            const searchInput = document.getElementById(`${severity}-search`);
-            
-            if (typeFilter && typeFilter.value) {
-                filteredIssues = filteredIssues.filter(issue => issue.type === typeFilter.value);
-            }
-            
-            if (searchInput && searchInput.value.trim()) {
-                const searchTerm = searchInput.value.toLowerCase();
-                filteredIssues = filteredIssues.filter(issue => 
-                    issue.title.toLowerCase().includes(searchTerm) ||
-                    issue.description.toLowerCase().includes(searchTerm) ||
-                    (issue.page?.url || '').toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            // Pagination
-            const startIndex = (page - 1) * limit;
-            const paginatedIssues = filteredIssues.slice(startIndex, startIndex + limit);
-            
-            // Update pagination info
-            this.accordionPagination[severity].page = page;
-            this.accordionPagination[severity].total = filteredIssues.length;
-            
-            // Render issues table for this severity
-            this.renderAccordionIssuesTable(severity, paginatedIssues);
-            this.renderAccordionPagination(severity);
-            
-        } catch (error) {
-            console.error(`Error loading ${severity} issues:`, error);
-        }
-    }
-    
-    renderAccordionIssuesTable(severity, issues) {
-        const tableBody = document.getElementById(`${severity}-issues-table`);
-        if (!tableBody) return;
-        
-        tableBody.innerHTML = '';
-        
-        issues.forEach(issue => {
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
-                <td>
-                    <strong>${issue.title || 'N/A'}</strong>
-                    <br><small class="text-muted">${this.formatIssueType(issue.type)}</small>
-                </td>
-                <td>${issue.description || 'N/A'}</td>
-                <td>
-                    <a href="${issue.page?.url || '#'}" target="_blank" class="text-decoration-none">
-                        ${this.truncateUrl(issue.page?.url || 'N/A', 30)}
-                    </a>
-                    ${issue.page?.title ? `<br><small class="text-muted">${issue.page.title}</small>` : ''}
-                </td>
-                <td>
-                    <small class="text-muted">
-                        ${issue.recommendation ? issue.recommendation.substring(0, 100) + '...' : 'N/A'}
-                    </small>
-                    ${issue.element ? `<br><code style="font-size: 0.8em;">${issue.element}</code>` : ''}
-                </td>
-            `;
-            
-            tableBody.appendChild(row);
-        });
-        
-        if (issues.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nessun problema trovato</td></tr>';
-        }
-    }
-    
-    renderAccordionPagination(severity) {
-        const container = document.getElementById(`${severity}-pagination`);
-        if (!container) return;
-        
-        const { page, limit, total } = this.accordionPagination[severity];
-        const totalPages = Math.ceil(total / limit);
-        
-        if (totalPages <= 1) {
-            container.innerHTML = '';
-            return;
-        }
-        
-        let paginationHtml = '<nav><ul class="pagination pagination-sm justify-content-center">';
-        
-        // Previous button
-        paginationHtml += `
-            <li class="page-item ${page === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="app.loadAccordionIssues('${severity}', ${page - 1})" ${page === 1 ? 'tabindex="-1"' : ''}>
-                    Precedente
-                </a>
-            </li>
-        `;
-        
-        // Page numbers
-        const startPage = Math.max(1, page - 2);
-        const endPage = Math.min(totalPages, page + 2);
-        
-        for (let i = startPage; i <= endPage; i++) {
-            paginationHtml += `
-                <li class="page-item ${i === page ? 'active' : ''}">
-                    <a class="page-link" href="#" onclick="app.loadAccordionIssues('${severity}', ${i})">${i}</a>
-                </li>
-            `;
-        }
-        
-        // Next button
-        paginationHtml += `
-            <li class="page-item ${page === totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="app.loadAccordionIssues('${severity}', ${page + 1})" ${page === totalPages ? 'tabindex="-1"' : ''}>
-                    Successivo
-                </a>
-            </li>
-        `;
-        
-        paginationHtml += '</ul></nav>';
-        container.innerHTML = paginationHtml;
-    }
-    
-    filterAccordionIssues(severity) {
-        // Reload issues with current filters
-        this.loadAccordionIssues(severity, 1);
-    }
+    // Legacy functions removed - now using nested accordion structure
 
     renderIssuesPagination() {
         const container = document.getElementById('issues-pagination');

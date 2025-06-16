@@ -375,33 +375,9 @@
                                 <i class="bi bi-exclamation-triangle"></i>
                                 <strong>Attenzione!</strong> Questi problemi richiedono un intervento immediato poiché impattano significativamente sulla visibilità nei motori di ricerca.
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <select class="form-select" id="critical-type-filter">
-                                        <option value="">Tutti i tipi</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control" id="critical-search" placeholder="Cerca problemi critici...">
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th width="25%">Problema</th>
-                                            <th width="35%">Descrizione</th>
-                                            <th width="25%">Pagina</th>
-                                            <th width="15%">Raccomandazione</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="critical-issues-table">
-                                        <!-- Populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="critical-pagination" class="d-flex justify-content-center mt-3">
-                                <!-- Pagination -->
+                            <!-- Nested accordion for critical issue types -->
+                            <div class="accordion" id="criticalSubAccordion">
+                                <!-- Issue types will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -422,33 +398,9 @@
                                 <i class="bi bi-exclamation-circle"></i>
                                 <strong>Importante:</strong> Questi problemi dovrebbero essere risolti per migliorare le performance SEO.
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <select class="form-select" id="high-type-filter">
-                                        <option value="">Tutti i tipi</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control" id="high-search" placeholder="Cerca problemi alta priorità...">
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th width="25%">Problema</th>
-                                            <th width="35%">Descrizione</th>
-                                            <th width="25%">Pagina</th>
-                                            <th width="15%">Raccomandazione</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="high-issues-table">
-                                        <!-- Populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="high-pagination" class="d-flex justify-content-center mt-3">
-                                <!-- Pagination -->
+                            <!-- Nested accordion for high priority issue types -->
+                            <div class="accordion" id="highSubAccordion">
+                                <!-- Issue types will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -469,33 +421,9 @@
                                 <i class="bi bi-info-circle"></i>
                                 <strong>Nota:</strong> Questi problemi possono essere risolti nel medio termine per ottimizzare ulteriormente il sito.
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <select class="form-select" id="medium-type-filter">
-                                        <option value="">Tutti i tipi</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control" id="medium-search" placeholder="Cerca problemi media priorità...">
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th width="25%">Problema</th>
-                                            <th width="35%">Descrizione</th>
-                                            <th width="25%">Pagina</th>
-                                            <th width="15%">Raccomandazione</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="medium-issues-table">
-                                        <!-- Populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="medium-pagination" class="d-flex justify-content-center mt-3">
-                                <!-- Pagination -->
+                            <!-- Nested accordion for medium priority issue types -->
+                            <div class="accordion" id="mediumSubAccordion">
+                                <!-- Issue types will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -516,33 +444,9 @@
                                 <i class="bi bi-check-circle"></i>
                                 <strong>Opzionale:</strong> Questi sono miglioramenti che possono essere implementati quando il tempo lo permette.
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <select class="form-select" id="low-type-filter">
-                                        <option value="">Tutti i tipi</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control" id="low-search" placeholder="Cerca problemi bassa priorità...">
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th width="25%">Problema</th>
-                                            <th width="35%">Descrizione</th>
-                                            <th width="25%">Pagina</th>
-                                            <th width="15%">Raccomandazione</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="low-issues-table">
-                                        <!-- Populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="low-pagination" class="d-flex justify-content-center mt-3">
-                                <!-- Pagination -->
+                            <!-- Nested accordion for low priority issue types -->
+                            <div class="accordion" id="lowSubAccordion">
+                                <!-- Issue types will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
