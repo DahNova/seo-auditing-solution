@@ -278,6 +278,165 @@
                 </div>
             </div>
         </div>
+
+        <!-- Scan Results Section -->
+        <div id="scan-results-section" class="content-section" style="display: none;">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2><i class="bi bi-file-text"></i> Risultati Scansione</h2>
+                        <button class="btn btn-secondary" onclick="app.showSection('scans')">
+                            <i class="bi bi-arrow-left"></i> Torna alle Scansioni
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scan Summary -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">Pagine Scansionate</h5>
+                            <h3 id="scan-pages-count">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">Problemi Critici</h5>
+                            <h3 id="scan-critical-issues">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">Problemi Moderati</h5>
+                            <h3 id="scan-moderate-issues">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-info">Problemi Minori</h5>
+                            <h3 id="scan-minor-issues">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs for Issues and Pages -->
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="resultsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues-content" type="button" role="tab">
+                                <i class="bi bi-exclamation-triangle"></i> Problemi SEO
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pages-tab" data-bs-toggle="tab" data-bs-target="#pages-content" type="button" role="tab">
+                                <i class="bi bi-file-earmark"></i> Pagine Analizzate
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="resultsTabContent">
+                        <!-- Issues Tab -->
+                        <div class="tab-pane fade show active" id="issues-content" role="tabpanel">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <select class="form-select" id="issue-severity-filter">
+                                        <option value="">Tutti i Livelli</option>
+                                        <option value="critical">Critici</option>
+                                        <option value="moderate">Moderati</option>
+                                        <option value="minor">Minori</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" id="issue-type-filter">
+                                        <option value="">Tutti i Tipi</option>
+                                        <option value="meta">Meta Tags</option>
+                                        <option value="heading">Heading Structure</option>
+                                        <option value="image">Immagini</option>
+                                        <option value="link">Link</option>
+                                        <option value="content">Contenuto</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" id="issue-search" placeholder="Cerca nei problemi...">
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Livello</th>
+                                            <th>Tipo</th>
+                                            <th>Descrizione</th>
+                                            <th>Pagina</th>
+                                            <th>Elemento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="issues-table-body">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="issues-pagination" class="d-flex justify-content-center mt-3">
+                                <!-- Pagination buttons will be added by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Pages Tab -->
+                        <div class="tab-pane fade" id="pages-content" role="tabpanel">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="page-search" placeholder="Cerca nelle pagine...">
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="page-status-filter">
+                                        <option value="">Tutti gli Status</option>
+                                        <option value="200">200 - OK</option>
+                                        <option value="404">404 - Non Trovato</option>
+                                        <option value="500">500 - Errore Server</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-outline-primary" id="download-scan-report" onclick="app.downloadReport(app.currentScanId)">
+                                        <i class="bi bi-download"></i> Scarica Report
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>URL</th>
+                                            <th>Status</th>
+                                            <th>Title</th>
+                                            <th>Parole</th>
+                                            <th>Problemi</th>
+                                            <th>Tempo Risposta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pages-table-body">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="pages-pagination" class="d-flex justify-content-center mt-3">
+                                <!-- Pagination buttons will be added by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modals -->

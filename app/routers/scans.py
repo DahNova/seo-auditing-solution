@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+from datetime import datetime
+import tempfile
+import os
 
 from app.database import get_db
 from app.models import Scan, Website, Page, Issue
 from app.schemas import ScanCreate, ScanResponse, PageResponse, IssueResponse
 from app.tasks.scan_tasks import run_website_scan
+from app.services.report_service import ReportService
 from celery import current_app as celery_app
 
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -116,7 +121,9 @@ async def get_scan_issues(
             detail="Scan not found"
         )
     
-    query = select(Issue).join(Page).where(Page.scan_id == scan_id)
+    from sqlalchemy.orm import selectinload
+    
+    query = select(Issue).join(Page).where(Page.scan_id == scan_id).options(selectinload(Issue.page))
     if severity:
         query = query.where(Issue.severity == severity)
     
@@ -229,6 +236,75 @@ async def retry_scan(
     
     return scan
 
+@router.get("/{scan_id}/report")
+async def download_scan_report(
+    scan_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Generate and download a PDF report for a scan"""
+    # Get scan with related data
+    scan_result = await db.execute(
+        select(Scan).where(Scan.id == scan_id)
+    )
+    scan = scan_result.scalar_one_or_none()
+    
+    if scan is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Scan not found"
+        )
+    
+    if scan.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Report can only be generated for completed scans"
+        )
+    
+    # Get website
+    website_result = await db.execute(
+        select(Website).where(Website.id == scan.website_id)
+    )
+    website = website_result.scalar_one_or_none()
+    
+    if not website:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Associated website not found"
+        )
+    
+    # Get pages and issues
+    pages_result = await db.execute(
+        select(Page).where(Page.scan_id == scan_id)
+    )
+    pages = pages_result.scalars().all()
+    
+    issues_result = await db.execute(
+        select(Issue).join(Page).where(Page.scan_id == scan_id)
+    )
+    issues = issues_result.scalars().all()
+    
+    try:
+        # Generate PDF report
+        report_service = ReportService()
+        pdf_path = await report_service.generate_scan_report(scan, website, pages, issues)
+        
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"seo_report_{website.domain.replace('https://', '').replace('http://', '').replace('/', '_')}_{timestamp}.pdf"
+        
+        return FileResponse(
+            path=pdf_path,
+            filename=filename,
+            media_type="application/pdf",
+            background=None  # File will be deleted after response
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate report: {str(e)}"
+        )
+
 @router.post("/{scan_id}/cancel", response_model=ScanResponse)
 async def cancel_scan(
     scan_id: int,
@@ -270,3 +346,72 @@ async def cancel_scan(
     await db.refresh(scan)
     
     return scan
+
+@router.get("/{scan_id}/report")
+async def download_scan_report(
+    scan_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Generate and download a PDF report for a scan"""
+    # Get scan with related data
+    scan_result = await db.execute(
+        select(Scan).where(Scan.id == scan_id)
+    )
+    scan = scan_result.scalar_one_or_none()
+    
+    if scan is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Scan not found"
+        )
+    
+    if scan.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Report can only be generated for completed scans"
+        )
+    
+    # Get website
+    website_result = await db.execute(
+        select(Website).where(Website.id == scan.website_id)
+    )
+    website = website_result.scalar_one_or_none()
+    
+    if not website:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Associated website not found"
+        )
+    
+    # Get pages and issues
+    pages_result = await db.execute(
+        select(Page).where(Page.scan_id == scan_id)
+    )
+    pages = pages_result.scalars().all()
+    
+    issues_result = await db.execute(
+        select(Issue).join(Page).where(Page.scan_id == scan_id)
+    )
+    issues = issues_result.scalars().all()
+    
+    try:
+        # Generate PDF report
+        report_service = ReportService()
+        pdf_path = await report_service.generate_scan_report(scan, website, pages, issues)
+        
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"seo_report_{website.domain.replace('https://', '').replace('http://', '').replace('/', '_')}_{timestamp}.pdf"
+        
+        return FileResponse(
+            path=pdf_path,
+            filename=filename,
+            media_type="application/pdf",
+            background=None  # File will be deleted after response
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate report: {str(e)}"
+        )

@@ -778,12 +778,255 @@ class SEOAuditingApp {
         await this.startScan(websiteId);
     }
 
-    viewScanResults(scanId) {
-        this.showAlert('Visualizzazione risultati in sviluppo', 'info');
+    async viewScanResults(scanId) {
+        try {
+            this.currentScanId = scanId;
+            
+            // Fetch scan details
+            const scanResponse = await fetch(`${this.apiBase}/scans/${scanId}`);
+            if (!scanResponse.ok) throw new Error('Failed to fetch scan details');
+            const scan = await scanResponse.json();
+            
+            // Fetch scan issues and pages in parallel
+            const [issuesResponse, pagesResponse] = await Promise.all([
+                fetch(`${this.apiBase}/scans/${scanId}/issues`),
+                fetch(`${this.apiBase}/scans/${scanId}/pages`)
+            ]);
+            
+            if (!issuesResponse.ok || !pagesResponse.ok) {
+                throw new Error('Failed to fetch scan data');
+            }
+            
+            const issues = await issuesResponse.json();
+            const pages = await pagesResponse.json();
+            
+            // Store data for filtering
+            this.currentScanData = { scan, issues, pages };
+            
+            // Update UI
+            this.renderScanResults();
+            this.showSection('scan-results');
+            
+        } catch (error) {
+            console.error('Error viewing scan results:', error);
+            this.showAlert('Errore nel caricamento dei risultati della scansione', 'danger');
+        }
     }
 
-    downloadReport(scanId) {
-        this.showAlert('Download report in sviluppo', 'info');
+    renderScanResults() {
+        const { scan, issues, pages } = this.currentScanData;
+        
+        // Update summary cards
+        document.getElementById('scan-pages-count').textContent = pages.length;
+        
+        // Count issues by severity
+        const issuesBySeverity = issues.reduce((acc, issue) => {
+            acc[issue.severity] = (acc[issue.severity] || 0) + 1;
+            return acc;
+        }, {});
+        
+        document.getElementById('scan-critical-issues').textContent = issuesBySeverity.critical || 0;
+        document.getElementById('scan-moderate-issues').textContent = issuesBySeverity.moderate || 0;
+        document.getElementById('scan-minor-issues').textContent = issuesBySeverity.minor || 0;
+        
+        // Render issues table
+        this.renderIssuesTable(issues);
+        
+        // Render pages table
+        this.renderPagesTable(pages);
+        
+        // Setup filtering
+        this.setupScanResultsFiltering();
+    }
+
+    renderIssuesTable(issues) {
+        const tbody = document.getElementById('issues-table-body');
+        tbody.innerHTML = '';
+        
+        issues.forEach(issue => {
+            const row = document.createElement('tr');
+            
+            // Severity badge
+            const severityClass = {
+                'critical': 'danger',
+                'moderate': 'warning', 
+                'minor': 'info'
+            }[issue.severity] || 'secondary';
+            
+            const severityText = {
+                'critical': 'Critico',
+                'moderate': 'Moderato',
+                'minor': 'Minore'
+            }[issue.severity] || issue.severity;
+            
+            row.innerHTML = `
+                <td><span class="badge bg-${severityClass}">${severityText}</span></td>
+                <td>${issue.type || 'N/A'}</td>
+                <td>${issue.description || 'N/A'}</td>
+                <td><a href="${issue.page?.url || '#'}" target="_blank" class="text-decoration-none">
+                    ${this.truncateUrl(issue.page?.url || 'N/A')}
+                </a></td>
+                <td><code>${issue.element || 'N/A'}</code></td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    renderPagesTable(pages) {
+        const tbody = document.getElementById('pages-table-body');
+        tbody.innerHTML = '';
+        
+        pages.forEach(page => {
+            const row = document.createElement('tr');
+            
+            // Status badge
+            const statusClass = page.status_code === 200 ? 'success' : 
+                               page.status_code >= 400 ? 'danger' : 'warning';
+            
+            row.innerHTML = `
+                <td><a href="${page.url}" target="_blank" class="text-decoration-none">
+                    ${this.truncateUrl(page.url)}
+                </a></td>
+                <td><span class="badge bg-${statusClass}">${page.status_code}</span></td>
+                <td>${page.title || 'N/A'}</td>
+                <td>${page.word_count || 0}</td>
+                <td>${page.issues_count || 0}</td>
+                <td>${page.response_time ? `${page.response_time}ms` : 'N/A'}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    setupScanResultsFiltering() {
+        // Issues filtering
+        const issueFilters = {
+            severity: document.getElementById('issue-severity-filter'),
+            type: document.getElementById('issue-type-filter'),
+            search: document.getElementById('issue-search')
+        };
+        
+        // Pages filtering
+        const pageFilters = {
+            status: document.getElementById('page-status-filter'),
+            search: document.getElementById('page-search')
+        };
+        
+        // Add event listeners
+        Object.values(issueFilters).forEach(filter => {
+            filter.addEventListener('change', () => this.filterIssues());
+            filter.addEventListener('input', () => this.filterIssues());
+        });
+        
+        Object.values(pageFilters).forEach(filter => {
+            filter.addEventListener('change', () => this.filterPages());
+            filter.addEventListener('input', () => this.filterPages());
+        });
+    }
+
+    filterIssues() {
+        const severity = document.getElementById('issue-severity-filter').value;
+        const type = document.getElementById('issue-type-filter').value;
+        const search = document.getElementById('issue-search').value.toLowerCase();
+        
+        let filteredIssues = this.currentScanData.issues;
+        
+        if (severity) {
+            filteredIssues = filteredIssues.filter(issue => issue.severity === severity);
+        }
+        
+        if (type) {
+            filteredIssues = filteredIssues.filter(issue => issue.type === type);
+        }
+        
+        if (search) {
+            filteredIssues = filteredIssues.filter(issue => 
+                (issue.description || '').toLowerCase().includes(search) ||
+                (issue.element || '').toLowerCase().includes(search) ||
+                (issue.page?.url || '').toLowerCase().includes(search)
+            );
+        }
+        
+        this.renderIssuesTable(filteredIssues);
+    }
+
+    filterPages() {
+        const status = document.getElementById('page-status-filter').value;
+        const search = document.getElementById('page-search').value.toLowerCase();
+        
+        let filteredPages = this.currentScanData.pages;
+        
+        if (status) {
+            filteredPages = filteredPages.filter(page => page.status_code == status);
+        }
+        
+        if (search) {
+            filteredPages = filteredPages.filter(page => 
+                (page.url || '').toLowerCase().includes(search) ||
+                (page.title || '').toLowerCase().includes(search)
+            );
+        }
+        
+        this.renderPagesTable(filteredPages);
+    }
+
+    truncateUrl(url, maxLength = 60) {
+        if (!url || url.length <= maxLength) return url;
+        return url.substring(0, maxLength) + '...';
+    }
+
+    async downloadReport(scanId) {
+        try {
+            // Show loading indicator
+            const button = document.getElementById('download-scan-report');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generando...';
+            button.disabled = true;
+            
+            // Download the report
+            const response = await fetch(`${this.apiBase}/scans/${scanId}/report`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+            
+            // Get the filename from the response headers
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = 'seo_report.pdf';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            // Create blob and download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            this.showAlert('Report scaricato con successo!', 'success');
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            this.showAlert('Errore nel download del report', 'danger');
+        } finally {
+            // Reset button
+            const button = document.getElementById('download-scan-report');
+            if (button) {
+                button.innerHTML = '<i class="bi bi-download"></i> Scarica Report';
+                button.disabled = false;
+            }
+        }
     }
 
     async deleteScan(scanId) {
