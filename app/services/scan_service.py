@@ -70,7 +70,19 @@ class ScanService:
                     total_issues = 0
                     
                     # Process each crawled page
-                    for result in crawl_result.results:
+                    # Handle both CrawlResultContainer and list-like results
+                    logger.info(f"Crawl result type: {type(crawl_result)}, has results attr: {hasattr(crawl_result, 'results')}")
+                    
+                    if hasattr(crawl_result, 'results'):
+                        # CrawlResultContainer case
+                        results_to_process = crawl_result.results
+                        logger.info(f"Using crawl_result.results, found {len(results_to_process)} results")
+                    else:
+                        # Direct list or other iterable case
+                        results_to_process = crawl_result if hasattr(crawl_result, '__iter__') else [crawl_result]
+                        logger.info(f"Using crawl_result directly, found {len(results_to_process)} results")
+                    
+                    for result in results_to_process:
                         try:
                             # Analyze page using Crawl4AI data directly
                             page_data = await self.seo_analyzer.analyze_page_content(result, website.domain)
@@ -102,7 +114,7 @@ class ScanService:
                     # Update scan completion
                     scan.status = "completed"
                     scan.completed_at = datetime.utcnow()
-                    scan.pages_found = len(crawl_result.results)
+                    scan.pages_found = len(results_to_process)
                     scan.pages_scanned = pages_scanned
                     scan.pages_failed = pages_failed
                     scan.total_issues = total_issues
