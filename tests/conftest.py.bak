@@ -1,0 +1,264 @@
+"""
+Test configuration and fixtures for SEO Auditing Solution
+"""
+import pytest
+import asyncio
+import os
+from typing import AsyncGenerator, Generator
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from httpx import AsyncClient
+from fastapi.testclient import TestClient
+
+# Override settings for tests BEFORE any imports
+TEST_DATABASE_URL = "sqlite:///./test.db"
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+
+from app.database import Base, get_db
+from app.core.config import Settings
+from app.models import Client, Website, Scan, Page, Issue
+
+# Import app without celery tasks
+import sys
+from unittest.mock import patch
+
+# Mock celery before importing main
+with patch('app.tasks.scan_tasks.celery_app'):
+    from main import app
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator:
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest.fixture(scope="session")
+async def test_engine():
+    """Create test database engine"""
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        echo=False,
+        future=True
+    )
+    
+    # Create all tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    yield engine
+    
+    # Cleanup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+@pytest.fixture
+async def test_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
+    """Create test database session"""
+    async_session = sessionmaker(
+        test_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    
+    async with async_session() as session:
+        yield session
+        await session.rollback()
+
+@pytest.fixture
+async def test_client(test_session) -> AsyncGenerator[AsyncClient, None]:
+    """Create test HTTP client"""
+    
+    async def override_get_db():
+        yield test_session
+    
+    app.dependency_overrides[get_db] = override_get_db
+    
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+    
+    app.dependency_overrides.clear()
+
+@pytest.fixture
+def sync_client() -> TestClient:
+    """Create synchronous test client for simple tests"""
+    return TestClient(app)
+
+@pytest.fixture
+async def sample_client(test_session) -> Client:
+    """Create a sample client for testing"""
+    client = Client(
+        name="Test Client",
+        contact_email="test@example.com",
+        description="Test client for unit tests"
+    )
+    test_session.add(client)
+    await test_session.commit()
+    await test_session.refresh(client)
+    return client
+
+@pytest.fixture
+async def sample_website(test_session, sample_client) -> Website:
+    """Create a sample website for testing"""
+    website = Website(
+        client_id=sample_client.id,
+        domain="https://example.com",
+        name="Test Website",
+        description="Test website for unit tests",
+        scan_frequency="monthly",
+        max_pages=1000,
+        max_depth=5,
+        robots_respect=True,
+        include_external=False,
+        is_active=True
+    )
+    test_session.add(website)
+    await test_session.commit()
+    await test_session.refresh(website)
+    return website
+
+@pytest.fixture
+async def sample_scan(test_session, sample_website) -> Scan:
+    """Create a sample scan for testing"""
+    scan = Scan(
+        website_id=sample_website.id,
+        status="completed",
+        pages_found=10,
+        pages_scanned=10,
+        pages_failed=0,
+        total_issues=5,
+        config={"max_depth": 5, "max_pages": 1000}
+    )
+    test_session.add(scan)
+    await test_session.commit()
+    await test_session.refresh(scan)
+    return scan
+
+@pytest.fixture
+async def sample_page(test_session, sample_scan) -> Page:
+    """Create a sample page for testing"""
+    page = Page(
+        scan_id=sample_scan.id,
+        url="https://example.com/test-page",
+        title="Test Page Title",
+        meta_description="Test meta description",
+        status_code=200,
+        word_count=500,
+        load_time=1.5,
+        h1_count=1,
+        h2_count=3,
+        h3_count=5,
+        image_count=10,
+        link_count=20,
+        internal_links=15,
+        external_links=5
+    )
+    test_session.add(page)
+    await test_session.commit()
+    await test_session.refresh(page)
+    return page
+
+@pytest.fixture
+async def sample_issue(test_session, sample_page) -> Issue:
+    """Create a sample issue for testing"""
+    issue = Issue(
+        page_id=sample_page.id,
+        type="missing_meta_description",
+        category="on_page",
+        severity="medium",
+        title="Missing Meta Description",
+        description="Page is missing meta description",
+        recommendation="Add a meta description tag",
+        score_impact=-5.0,
+        status="open"
+    )
+    test_session.add(issue)
+    await test_session.commit()
+    await test_session.refresh(issue)
+    return issue
+
+# Mock Crawl4AI result for testing
+@pytest.fixture
+def mock_crawl_result():
+    """Mock Crawl4AI result for testing SEO analyzers"""
+    class MockCrawlResult:
+        def __init__(self):
+            self.url = "https://example.com/test"
+            self.status_code = 200
+            self.markdown = "# Test Title\n\nThis is test content with more than 500 words. " * 30
+            self.cleaned_html = """
+            <html>
+                <head>
+                    <title>Test Page Title</title>
+                    <meta name="description" content="Test meta description for SEO">
+                </head>
+                <body>
+                    <h1>Main Heading</h1>
+                    <h2>Subheading 1</h2>
+                    <h2>Subheading 2</h2>
+                    <p>This is test content with more than 500 words.</p>
+                    <img src="test.jpg" alt="Test image">
+                    <img src="image2.jpg" alt="">
+                    <a href="https://example.com/internal">Internal link</a>
+                    <a href="https://external.com">External link</a>
+                </body>
+            </html>
+            """
+            self.html = self.cleaned_html
+            self.metadata = {
+                'title': 'Test Page Title',
+                'description': 'Test meta description for SEO',
+                'robots': 'index,follow'
+            }
+            self.media = {
+                'images': [
+                    {'src': 'test.jpg', 'alt': 'Test image'},
+                    {'src': 'image2.jpg', 'alt': ''}
+                ]
+            }
+            self.links = {
+                'internal': ['https://example.com/internal'],
+                'external': ['https://external.com']
+            }
+    
+    return MockCrawlResult()
+
+@pytest.fixture
+def mock_crawl_result_with_issues():
+    """Mock Crawl4AI result with SEO issues for testing"""
+    class MockCrawlResultWithIssues:
+        def __init__(self):
+            self.url = "https://example.com/bad-page"
+            self.status_code = 200
+            self.markdown = "Short content"  # Thin content
+            self.cleaned_html = """
+            <html>
+                <head>
+                    <title>Short</title>
+                    <!-- Missing meta description -->
+                </head>
+                <body>
+                    <h1>Short</h1>  <!-- H1 identical to title -->
+                    <h1>Another H1</h1>  <!-- Multiple H1s -->
+                    <p>Short content</p>
+                    <img src="img123.jpg" alt="">  <!-- Missing alt text -->
+                    <img src="image456.png">  <!-- Missing alt attribute -->
+                </body>
+            </html>
+            """
+            self.html = self.cleaned_html
+            self.metadata = {
+                'title': 'Short',
+                'description': None  # Missing meta description
+            }
+            self.media = {
+                'images': [
+                    {'src': 'img123.jpg', 'alt': ''},
+                    {'src': 'image456.png'}
+                ]
+            }
+            self.links = {
+                'internal': [],
+                'external': []
+            }
+    
+    return MockCrawlResultWithIssues()

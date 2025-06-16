@@ -1,0 +1,117 @@
+# Development dependencies for SEO Auditing Solution
+
+# Testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-watch>=4.2.0
+pytest-benchmark>=4.0.0
+
+# Test utilities
+factory-boy>=3.3.0
+faker>=19.3.0
+freezegun>=1.2.2
+
+# Code quality
+black>=23.7.0
+isort>=5.12.0
+flake8>=6.0.0
+flake8-docstrings>=1.7.0
+flake8-import-order>=0.18.2
+mypy>=1.5.0
+
+# Security scanning
+bandit>=1.7.5
+safety>=2.3.5
+pip-audit>=2.6.1
+
+# Documentation
+sphinx>=7.1.2
+sphinx-rtd-theme>=1.3.0
+
+# Development tools
+pre-commit>=3.3.3
+commitizen>=3.6.0
+ipython>=8.14.0
+jupyter>=1.0.0
+
+# Debugging and profiling
+debugpy>=1.6.7
+memory-profiler>=0.61.0
+line-profiler>=4.1.1
+
+# Load testing
+locust>=2.16.1
+
+# Database tools
+alembic>=1.11.1
+
+# Development utilities
+python-dotenv>=1.0.0
+watchdog>=3.0.0
+rich>=13.4.2
+
+# HTTP client for testing
+httpx>=0.24.1
+
+# Dependency management
+pip-tools>=7.1.0
+
+# Coverage reporting
+coverage[toml]>=7.2.7
+
+# Type checking support
+types-requests>=2.31.0
+types-redis>=4.6.0
+types-beautifulsoup4>=4.12.0
+
+# Linting plugins
+flake8-bugbear>=23.7.10
+flake8-comprehensions>=3.14.0
+flake8-simplify>=0.20.0
+
+# Code formatting
+autopep8>=2.0.2
+
+# Git hooks
+gitlint>=0.19.1
+
+# Performance monitoring
+py-spy>=0.3.14
+
+# Async testing utilities
+asynctest>=0.13.0; python_version < "3.8"
+
+# Development server
+uvicorn[standard]>=0.23.2
+
+# Environment management
+python-decouple>=3.8
+
+# Mocking utilities
+responses>=0.23.3
+aioresponses>=0.7.4
+
+# Database testing
+pytest-postgresql>=5.0.0
+testing.postgresql>=1.3.0
+
+# Fixtures and test data
+mimesis>=10.1.0
+
+# Code analysis
+vulture>=2.9.1
+radon>=6.0.1
+
+# Import sorting with profiles
+isort[colors]>=5.12.0
+
+# Better error messages
+better-exceptions>=0.3.3
+
+# Development productivity
+icecream>=2.1.3
+
+# API testing
+tavern>=2.0.3
