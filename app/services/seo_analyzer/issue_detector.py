@@ -67,7 +67,7 @@ class IssueDetector:
                 'severity': 'critical',
                 'title': 'Missing Title Tag',
                 'description': 'Page is missing a title tag',
-                'recommendation': 'Add a descriptive title tag of 30-60 characters',
+                'recommendation': 'Add a descriptive title tag of 50-60 characters',
                 'score_impact': seo_config.scoring_weights['missing_title']
             })
         elif len(title) < seo_config.title_min_length:
@@ -77,7 +77,7 @@ class IssueDetector:
                 'severity': 'medium',
                 'title': 'Title Too Short',
                 'description': f'Title is too short ({len(title)} chars)',
-                'recommendation': f'Extend title to {seo_config.title_min_length}-{seo_config.title_max_length} characters',
+                'recommendation': f'Extend title to {seo_config.title_min_length}-{seo_config.title_max_length} characters - longer titles perform better in 2024+',
                 'score_impact': seo_config.scoring_weights['title_too_short']
             })
         elif len(title) > seo_config.title_max_length:
@@ -202,6 +202,35 @@ class IssueDetector:
                     'score_impact': seo_config.scoring_weights.get('empty_h1', -6.0)
                 })
             
+            # Check H1 quality if present
+            elif h1_tags:
+                h1_text = h1_tags[0].get_text(strip=True)
+                
+                # Check H1 length
+                if len(h1_text) < 10:
+                    issues.append({
+                        'type': 'h1_too_short',
+                        'category': 'on_page',
+                        'severity': 'medium',
+                        'title': 'H1 Too Short',
+                        'description': f'H1 tag is too short ({len(h1_text)} characters)',
+                        'recommendation': 'H1 should be 10-70 characters for optimal SEO',
+                        'score_impact': seo_config.scoring_weights.get('h1_too_short', -3.0)
+                    })
+                elif len(h1_text) > 70:
+                    issues.append({
+                        'type': 'h1_too_long',
+                        'category': 'on_page',
+                        'severity': 'medium',
+                        'title': 'H1 Too Long',
+                        'description': f'H1 tag is too long ({len(h1_text)} characters)',
+                        'recommendation': 'H1 should be 10-70 characters for optimal readability',
+                        'score_impact': seo_config.scoring_weights.get('h1_too_long', -2.0)
+                    })
+                
+                # Check H1 vs Title similarity
+                issues.extend(self._check_h1_title_similarity(h1_text, crawl_result))
+            
             # Check heading hierarchy (H2 without H1, H3 without H2, etc.)
             if len(h1_tags) == 0 and len(h2_tags) > 0:
                 issues.append({
@@ -231,6 +260,54 @@ class IssueDetector:
             # Log error but don't fail the whole analysis
             import logging
             logging.getLogger(__name__).warning(f"Error analyzing headings: {str(e)}")
+        
+        return issues
+    
+    def _check_h1_title_similarity(self, h1_text: str, crawl_result) -> List[Dict[str, Any]]:
+        """Check similarity between H1 and Title"""
+        issues = []
+        
+        # Get title from metadata
+        metadata = getattr(crawl_result, 'metadata', {}) or {}
+        title = metadata.get('title', '').strip()
+        
+        if not title:
+            return issues
+        
+        # Normalize texts for comparison
+        h1_normalized = h1_text.lower().strip()
+        title_normalized = title.lower().strip()
+        
+        # Check if H1 and Title are identical
+        if h1_normalized == title_normalized:
+            issues.append({
+                'type': 'duplicate_h1_title',
+                'category': 'on_page',
+                'severity': 'medium',
+                'title': 'H1 Identical to Title',
+                'description': 'H1 tag is identical to the page title',
+                'recommendation': 'Make H1 complementary to title with additional keywords or context',
+                'score_impact': seo_config.scoring_weights.get('duplicate_h1_title', -4.0)
+            })
+        else:
+            # Check similarity using word overlap
+            h1_words = set(h1_normalized.split())
+            title_words = set(title_normalized.split())
+            
+            if len(h1_words) > 0 and len(title_words) > 0:
+                overlap = len(h1_words.intersection(title_words))
+                similarity = overlap / max(len(h1_words), len(title_words))
+                
+                if similarity > 0.8:  # More than 80% word overlap
+                    issues.append({
+                        'type': 'h1_too_similar_title',
+                        'category': 'on_page',
+                        'severity': 'low',
+                        'title': 'H1 Too Similar to Title',
+                        'description': f'H1 and title share {int(similarity*100)}% of words',
+                        'recommendation': 'Diversify H1 and title to target different keyword variations',
+                        'score_impact': seo_config.scoring_weights.get('h1_too_similar_title', -2.0)
+                    })
         
         return issues
     
