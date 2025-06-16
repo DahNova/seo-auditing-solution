@@ -782,29 +782,28 @@ class SEOAuditingApp {
         try {
             this.currentScanId = scanId;
             
+            // Initialize pagination state
+            this.pagination = {
+                issues: { page: 1, limit: 50, total: 0 },
+                pages: { page: 1, limit: 50, total: 0 }
+            };
+            
             // Fetch scan details
             const scanResponse = await fetch(`${this.apiBase}/scans/${scanId}`);
             if (!scanResponse.ok) throw new Error('Failed to fetch scan details');
             const scan = await scanResponse.json();
             
-            // Fetch scan issues and pages in parallel
-            const [issuesResponse, pagesResponse] = await Promise.all([
-                fetch(`${this.apiBase}/scans/${scanId}/issues`),
-                fetch(`${this.apiBase}/scans/${scanId}/pages`)
+            // Store scan data
+            this.currentScanData = { scan };
+            
+            // Load initial data and show UI
+            await Promise.all([
+                this.loadIssuesPage(1),
+                this.loadPagesPage(1)
             ]);
             
-            if (!issuesResponse.ok || !pagesResponse.ok) {
-                throw new Error('Failed to fetch scan data');
-            }
-            
-            const issues = await issuesResponse.json();
-            const pages = await pagesResponse.json();
-            
-            // Store data for filtering
-            this.currentScanData = { scan, issues, pages };
-            
-            // Update UI
-            this.renderScanResults();
+            this.renderScanSummary();
+            this.setupScanResultsFiltering();
             this.showSection('scan-results');
             
         } catch (error) {
@@ -813,30 +812,54 @@ class SEOAuditingApp {
         }
     }
 
-    renderScanResults() {
-        const { scan, issues, pages } = this.currentScanData;
+    async loadIssuesPage(page) {
+        const { limit } = this.pagination.issues;
+        const skip = (page - 1) * limit;
         
-        // Update summary cards
-        document.getElementById('scan-pages-count').textContent = pages.length;
+        const response = await fetch(`${this.apiBase}/scans/${this.currentScanId}/issues?skip=${skip}&limit=${limit}`);
+        if (!response.ok) throw new Error('Failed to fetch issues');
         
-        // Count issues by severity
-        const issuesBySeverity = issues.reduce((acc, issue) => {
-            acc[issue.severity] = (acc[issue.severity] || 0) + 1;
-            return acc;
-        }, {});
+        const issues = await response.json();
+        this.currentScanData.issues = issues;
+        this.pagination.issues.page = page;
         
-        document.getElementById('scan-critical-issues').textContent = issuesBySeverity.critical || 0;
-        document.getElementById('scan-moderate-issues').textContent = issuesBySeverity.moderate || 0;
-        document.getElementById('scan-minor-issues').textContent = issuesBySeverity.minor || 0;
+        // Estimate total from scan data
+        if (this.currentScanData.scan && this.currentScanData.scan.total_issues) {
+            this.pagination.issues.total = this.currentScanData.scan.total_issues;
+        }
         
-        // Render issues table
         this.renderIssuesTable(issues);
+        this.renderIssuesPagination();
+    }
+
+    async loadPagesPage(page) {
+        const { limit } = this.pagination.pages;
+        const skip = (page - 1) * limit;
         
-        // Render pages table
+        const response = await fetch(`${this.apiBase}/scans/${this.currentScanId}/pages?skip=${skip}&limit=${limit}`);
+        if (!response.ok) throw new Error('Failed to fetch pages');
+        
+        const pages = await response.json();
+        this.currentScanData.pages = pages;
+        this.pagination.pages.page = page;
+        
+        // Estimate total from scan data
+        if (this.currentScanData.scan && this.currentScanData.scan.pages_found) {
+            this.pagination.pages.total = this.currentScanData.scan.pages_found;
+        }
+        
         this.renderPagesTable(pages);
+        this.renderPagesPagination();
+    }
+
+    renderScanSummary() {
+        const { scan } = this.currentScanData;
         
-        // Setup filtering
-        this.setupScanResultsFiltering();
+        // Update summary cards from scan metadata
+        document.getElementById('scan-pages-count').textContent = scan.pages_found || 0;
+        document.getElementById('scan-critical-issues').textContent = 0; // Will be updated when we fix analyzer
+        document.getElementById('scan-moderate-issues').textContent = scan.total_issues || 0;
+        document.getElementById('scan-minor-issues').textContent = 0; // Will be updated when we fix analyzer
     }
 
     renderIssuesTable(issues) {
@@ -923,6 +946,138 @@ class SEOAuditingApp {
             filter.addEventListener('change', () => this.filterPages());
             filter.addEventListener('input', () => this.filterPages());
         });
+    }
+
+    renderIssuesPagination() {
+        const container = document.getElementById('issues-pagination');
+        const { page, limit, total } = this.pagination.issues;
+        const totalPages = Math.ceil(total / limit);
+        
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        let paginationHtml = '<nav><ul class="pagination pagination-sm">';
+        
+        // Previous button
+        paginationHtml += `
+            <li class="page-item ${page === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="app.loadIssuesPage(${page - 1})" ${page === 1 ? 'tabindex="-1"' : ''}>
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        
+        // Page numbers (show 5 pages around current)
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(totalPages, page + 2);
+        
+        if (startPage > 1) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="app.loadIssuesPage(1)">1</a></li>`;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+                <li class="page-item ${i === page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="app.loadIssuesPage(${i})">${i}</a>
+                </li>
+            `;
+        }
+        
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="app.loadIssuesPage(${totalPages})">${totalPages}</a></li>`;
+        }
+        
+        // Next button
+        paginationHtml += `
+            <li class="page-item ${page === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="app.loadIssuesPage(${page + 1})" ${page === totalPages ? 'tabindex="-1"' : ''}>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        
+        paginationHtml += '</ul></nav>';
+        
+        // Add info
+        const startRecord = (page - 1) * limit + 1;
+        const endRecord = Math.min(page * limit, total);
+        paginationHtml += `<small class="text-muted">Mostrando ${startRecord}-${endRecord} di ${total} problemi</small>`;
+        
+        container.innerHTML = paginationHtml;
+    }
+
+    renderPagesPagination() {
+        const container = document.getElementById('pages-pagination');
+        const { page, limit, total } = this.pagination.pages;
+        const totalPages = Math.ceil(total / limit);
+        
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        let paginationHtml = '<nav><ul class="pagination pagination-sm">';
+        
+        // Previous button
+        paginationHtml += `
+            <li class="page-item ${page === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="app.loadPagesPage(${page - 1})" ${page === 1 ? 'tabindex="-1"' : ''}>
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        
+        // Page numbers (show 5 pages around current)
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(totalPages, page + 2);
+        
+        if (startPage > 1) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="app.loadPagesPage(1)">1</a></li>`;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+                <li class="page-item ${i === page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="app.loadPagesPage(${i})">${i}</a>
+                </li>
+            `;
+        }
+        
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="app.loadPagesPage(${totalPages})">${totalPages}</a></li>`;
+        }
+        
+        // Next button
+        paginationHtml += `
+            <li class="page-item ${page === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="app.loadPagesPage(${page + 1})" ${page === totalPages ? 'tabindex="-1"' : ''}>
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        
+        paginationHtml += '</ul></nav>';
+        
+        // Add info
+        const startRecord = (page - 1) * limit + 1;
+        const endRecord = Math.min(page * limit, total);
+        paginationHtml += `<small class="text-muted">Mostrando ${startRecord}-${endRecord} di ${total} pagine</small>`;
+        
+        container.innerHTML = paginationHtml;
     }
 
     filterIssues() {

@@ -14,24 +14,38 @@ class IssueDetector:
         meta_desc = extracted.get('meta_description', '')
         word_count = extracted.get('word_count', 0)
         
+        # Get URL and content type
+        url = getattr(crawl_result, 'url', '')
+        content_type = self._detect_content_type(url)
+        
         # Get additional data from media and links
         media = getattr(crawl_result, 'media', {})
         links = getattr(crawl_result, 'links', {})
         
-        # Check title issues
-        issues.extend(self._check_title_issues(title))
+        # Only check HTML content for content/meta issues
+        if content_type == 'html':
+            # Check title issues
+            issues.extend(self._check_title_issues(title))
+            
+            # Check meta description issues
+            issues.extend(self._check_meta_description_issues(meta_desc))
+            
+            # Check content issues
+            issues.extend(self._check_content_issues(word_count))
         
-        # Check meta description issues
-        issues.extend(self._check_meta_description_issues(meta_desc))
+        # Check image-specific issues for image files
+        elif content_type == 'image':
+            issues.extend(self._check_image_file_issues(url))
         
-        # Check content issues
-        issues.extend(self._check_content_issues(word_count))
+        # Check PDF-specific issues for PDFs
+        elif content_type == 'pdf':
+            issues.extend(self._check_pdf_file_issues(url))
         
-        # Check image issues
-        if media:
+        # Check image issues for HTML pages with images
+        if media and content_type == 'html':
             issues.extend(self._check_image_issues(media.get('images', [])))
         
-        # Check status code issues
+        # Check status code issues for all content types
         if hasattr(crawl_result, 'status_code'):
             issues.extend(self._check_status_code_issues(crawl_result.status_code))
         
@@ -229,3 +243,85 @@ class IssueDetector:
             return True
         
         return False
+    
+    def _detect_content_type(self, url: str) -> str:
+        """Detect content type based on URL extension"""
+        url_lower = url.lower()
+        
+        # Image extensions
+        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico']
+        if any(url_lower.endswith(ext) for ext in image_extensions):
+            return 'image'
+        
+        # PDF extensions
+        if url_lower.endswith('.pdf'):
+            return 'pdf'
+        
+        # Document extensions
+        doc_extensions = ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+        if any(url_lower.endswith(ext) for ext in doc_extensions):
+            return 'document'
+        
+        # Video/Audio extensions
+        media_extensions = ['.mp4', '.avi', '.mov', '.mp3', '.wav', '.ogg']
+        if any(url_lower.endswith(ext) for ext in media_extensions):
+            return 'media'
+        
+        # Default to HTML for pages and unknown content
+        return 'html'
+    
+    def _check_image_file_issues(self, url: str) -> List[Dict[str, Any]]:
+        """Check SEO issues specific to image files"""
+        issues = []
+        
+        # Extract filename from URL
+        filename = url.split('/')[-1].lower()
+        
+        # Check for bad filename patterns
+        if self._is_bad_filename(url):
+            issues.append({
+                'type': 'image_bad_filename',
+                'category': 'technical',
+                'severity': 'medium',
+                'title': 'Non-SEO Friendly Image Filename',
+                'description': f'Image filename "{filename}" is not SEO-friendly',
+                'recommendation': 'Use descriptive, keyword-rich filenames (e.g., "serramenti-alluminio.jpg")',
+                'score_impact': -3.0
+            })
+        
+        # Check if image has no alt text context (if it's a standalone image)
+        # Note: This is detected at the HTML level, not file level
+        
+        return issues
+    
+    def _check_pdf_file_issues(self, url: str) -> List[Dict[str, Any]]:
+        """Check SEO issues specific to PDF files"""
+        issues = []
+        
+        # Extract filename from URL
+        filename = url.split('/')[-1].lower()
+        
+        # Check for bad filename patterns
+        if self._is_bad_filename(url):
+            issues.append({
+                'type': 'pdf_bad_filename',
+                'category': 'technical',
+                'severity': 'medium',
+                'title': 'Non-SEO Friendly PDF Filename',
+                'description': f'PDF filename "{filename}" is not SEO-friendly',
+                'recommendation': 'Use descriptive, keyword-rich filenames for PDFs',
+                'score_impact': -2.0
+            })
+        
+        # PDFs should ideally be linked from HTML pages, not crawled directly
+        issues.append({
+            'type': 'pdf_accessibility',
+            'category': 'technical',
+            'severity': 'minor',
+            'title': 'PDF Accessibility',
+            'description': 'PDF file detected - ensure it has proper text content and is accessible',
+            'recommendation': 'Consider providing HTML alternatives or ensure PDF is screen-reader friendly',
+            'score_impact': -1.0
+        })
+        
+        return issues
