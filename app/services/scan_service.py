@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 import logging
 
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -44,13 +44,12 @@ class ScanService:
                 )
                 
                 crawl_config = CrawlerRunConfig(
-                    respect_robots_txt=website.robots_respect,
-                    cache_mode="bypass",
-                    process_iframes=True,
-                    extract_media=True,
+                    cache_mode=CacheMode.BYPASS,
                     word_count_threshold=10,
-                    excluded_tags=['script', 'style', 'nav', 'footer', 'aside'],
-                    screenshot=False
+                    screenshot=False,
+                    check_robots_txt=website.robots_respect,
+                    process_iframes=True,
+                    excluded_tags=['script', 'style', 'nav', 'footer', 'aside']
                 )
                 
                 # Start crawling
@@ -59,9 +58,9 @@ class ScanService:
                     verbose=True
                 ) as crawler:
                     
-                    # Use deep crawling
+                    # Use deep crawling with domain as-is (interface handles full URL)
                     crawl_result = await strategy.arun(
-                        start_url=f"https://{website.domain}",
+                        start_url=website.domain,
                         crawler=crawler,
                         config=crawl_config
                     )

@@ -15,44 +15,58 @@ def run_website_scan(self, website_id: int, scan_id: int = None):
     """Run SEO scan for a specific website"""
     try:
         import asyncio
+        import nest_asyncio
+        
+        # Allow nested event loops
+        nest_asyncio.apply()
         
         async def _run_scan():
             async with AsyncSessionLocal() as db:
-                # Get website
-                website_result = await db.execute(
-                    select(Website).where(Website.id == website_id)
-                )
-                website = website_result.scalar_one_or_none()
-                
-                if not website:
-                    raise ValueError(f"Website {website_id} not found")
-                
-                # Create or get scan
-                if scan_id:
-                    scan_result = await db.execute(
-                        select(Scan).where(Scan.id == scan_id)
+                try:
+                    # Get website
+                    website_result = await db.execute(
+                        select(Website).where(Website.id == website_id)
                     )
-                    scan = scan_result.scalar_one_or_none()
-                    if not scan:
-                        raise ValueError(f"Scan {scan_id} not found")
-                else:
-                    # Create new scan
-                    scan = Scan(website_id=website_id)
-                    db.add(scan)
-                    await db.commit()
-                    await db.refresh(scan)
-                
-                # Run scan
-                scan_service = ScanService()
-                await scan_service.run_scan(scan.id, website)
-                
-                return scan.id
+                    website = website_result.scalar_one_or_none()
+                    
+                    if not website:
+                        raise ValueError(f"Website {website_id} not found")
+                    
+                    # Create or get scan
+                    if scan_id:
+                        scan_result = await db.execute(
+                            select(Scan).where(Scan.id == scan_id)
+                        )
+                        scan = scan_result.scalar_one_or_none()
+                        if not scan:
+                            raise ValueError(f"Scan {scan_id} not found")
+                    else:
+                        # Create new scan
+                        scan = Scan(website_id=website_id)
+                        db.add(scan)
+                        await db.commit()
+                        await db.refresh(scan)
+                    
+                    # Run scan
+                    scan_service = ScanService()
+                    await scan_service.run_scan(scan.id, website)
+                    
+                    return scan.id
+                finally:
+                    # Ensure proper cleanup
+                    await db.close()
+        
+        # Try to get existing event loop, create new one if none exists
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                raise RuntimeError("Event loop is closed")
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         
         # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         result = loop.run_until_complete(_run_scan())
-        loop.close()
         
         logger.info(f"Scan completed successfully for website {website_id}")
         return {"status": "completed", "scan_id": result}
@@ -65,6 +79,29 @@ def run_website_scan(self, website_id: int, scan_id: int = None):
             raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
         except self.MaxRetriesExceededError:
             logger.error(f"Max retries exceeded for website {website_id}")
+            # Update scan status to failed
+            try:
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def mark_failed():
+                    async with AsyncSessionLocal() as db:
+                        if scan_id:
+                            scan_result = await db.execute(
+                                select(Scan).where(Scan.id == scan_id)
+                            )
+                            scan = scan_result.scalar_one_or_none()
+                            if scan:
+                                scan.status = "failed"
+                                scan.error_message = str(exc)
+                                await db.commit()
+                
+                loop.run_until_complete(mark_failed())
+                loop.close()
+            except:
+                pass
+                
             return {"status": "failed", "error": str(exc)}
 
 @celery_app.task

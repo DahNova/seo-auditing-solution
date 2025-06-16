@@ -3,13 +3,13 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 class ScanBase(BaseModel):
-    status: str = Field("pending", pattern="^(pending|running|completed|failed)$")
+    status: str = Field("pending", pattern="^(pending|running|completed|failed|cancelled)$")
 
 class ScanCreate(BaseModel):
     website_id: int
 
 class ScanUpdate(BaseModel):
-    status: Optional[str] = Field(None, pattern="^(pending|running|completed|failed)$")
+    status: Optional[str] = Field(None, pattern="^(pending|running|completed|failed|cancelled)$")
     completed_at: Optional[datetime] = None
     pages_found: Optional[int] = Field(None, ge=0)
     pages_scanned: Optional[int] = Field(None, ge=0)

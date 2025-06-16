@@ -9,7 +9,12 @@
       "Bash(pip install:*)",
       "Bash(curl:*)",
       "Bash(pkill:*)",
-      "Bash(echo)"
+      "Bash(echo)",
+      "Bash(grep:*)",
+      "Bash(docker image rm:*)",
+      "Bash(docker exec:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

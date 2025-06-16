@@ -144,13 +144,13 @@
                             <h5><i class="bi bi-list-check"></i> Azioni Rapide</h5>
                         </div>
                         <div class="card-body">
-                            <button class="btn btn-primary w-100 mb-2" onclick="showAddClientModal()">
+                            <button class="btn btn-primary w-100 mb-2" onclick="app.showAddClientModal()">
                                 <i class="bi bi-person-plus"></i> Aggiungi Cliente
                             </button>
-                            <button class="btn btn-success w-100 mb-2" onclick="showAddWebsiteModal()">
+                            <button class="btn btn-success w-100 mb-2" onclick="app.showAddWebsiteModal()">
                                 <i class="bi bi-globe-europe-africa"></i> Aggiungi Sito
                             </button>
-                            <button class="btn btn-warning w-100" onclick="startNewScan()">
+                            <button class="btn btn-warning w-100" onclick="app.showNewScanModal()">
                                 <i class="bi bi-play-circle"></i> Nuova Scansione
                             </button>
                         </div>
@@ -165,7 +165,7 @@
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2><i class="bi bi-people"></i> Gestione Clienti</h2>
-                        <button class="btn btn-primary" onclick="showAddClientModal()">
+                        <button class="btn btn-primary" onclick="app.showAddClientModal()">
                             <i class="bi bi-person-plus"></i> Aggiungi Cliente
                         </button>
                     </div>
@@ -215,7 +215,7 @@
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2><i class="bi bi-globe"></i> Gestione Siti Web</h2>
-                        <button class="btn btn-primary" onclick="showAddWebsiteModal()">
+                        <button class="btn btn-primary" onclick="app.showAddWebsiteModal()">
                             <i class="bi bi-globe-europe-africa"></i> Aggiungi Sito Web
                         </button>
                     </div>
@@ -307,7 +307,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-primary" onclick="addClient()">Salva Cliente</button>
+                    <button type="button" class="btn btn-primary" onclick="app.addClient()">Salva Cliente</button>
                 </div>
             </div>
         </div>
@@ -359,7 +359,36 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-primary" onclick="addWebsite()">Salva Sito Web</button>
+                    <button type="button" class="btn btn-primary" onclick="app.addWebsite()">Salva Sito Web</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Scan Modal -->
+    <div class="modal fade" id="newScanModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Avvia Nuova Scansione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newScanForm">
+                        <div class="mb-3">
+                            <label for="scanWebsite" class="form-label">Sito Web da Scansionare *</label>
+                            <select class="form-select" id="scanWebsite" required>
+                                <option value="">Seleziona sito web...</option>
+                            </select>
+                            <div class="form-text">Verranno scansionate solo i siti web attivi.</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-warning" onclick="app.startNewScan()">
+                        <i class="bi bi-play-circle"></i> Avvia Scansione
+                    </button>
                 </div>
             </div>
         </div>

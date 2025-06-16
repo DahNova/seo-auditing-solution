@@ -49,5 +49,5 @@ celery_app.conf.update(
             'schedule': 3600.0,  # 1 hour
         },
     },
-    beat_scheduler='django_celery_beat.schedulers:DatabaseScheduler',
+    # Use default beat scheduler (file-based)
 )

@@ -36,6 +36,22 @@ class SEOAuditingApp {
         if (clientFilter) {
             clientFilter.addEventListener('change', () => this.filterClients());
         }
+
+        // Modal reset listeners
+        const addClientModal = document.getElementById('addClientModal');
+        if (addClientModal) {
+            addClientModal.addEventListener('hidden.bs.modal', () => this.resetAddClientModal());
+        }
+
+        const addWebsiteModal = document.getElementById('addWebsiteModal');
+        if (addWebsiteModal) {
+            addWebsiteModal.addEventListener('hidden.bs.modal', () => this.resetAddWebsiteModal());
+        }
+
+        const newScanModal = document.getElementById('newScanModal');
+        if (newScanModal) {
+            newScanModal.addEventListener('hidden.bs.modal', () => this.resetNewScanModal());
+        }
     }
 
     showSection(sectionName) {
@@ -266,8 +282,14 @@ class SEOAuditingApp {
                 case 'running':
                     statusBadge = '<span class="badge bg-info">In corso</span>';
                     break;
+                case 'pending':
+                    statusBadge = '<span class="badge bg-warning">In attesa</span>';
+                    break;
                 case 'failed':
                     statusBadge = '<span class="badge bg-danger">Fallita</span>';
+                    break;
+                case 'cancelled':
+                    statusBadge = '<span class="badge bg-secondary">Annullata</span>';
                     break;
                 default:
                     statusBadge = '<span class="badge bg-secondary">Sconosciuto</span>';
@@ -289,11 +311,29 @@ class SEOAuditingApp {
                     <td>${seoScore}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-info" onclick="app.viewScanResults(${scan.id})" title="Visualizza risultati">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-outline-primary" onclick="app.downloadReport(${scan.id})" title="Scarica report">
-                                <i class="bi bi-download"></i>
+                            ${scan.status === 'completed' ? 
+                                `<button class="btn btn-outline-info" onclick="app.viewScanResults(${scan.id})" title="Visualizza risultati">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="app.downloadReport(${scan.id})" title="Scarica report">
+                                    <i class="bi bi-download"></i>
+                                </button>` : 
+                                ''
+                            }
+                            ${scan.status === 'failed' || scan.status === 'pending' ? 
+                                `<button class="btn btn-outline-warning" onclick="app.retryScan(${scan.id})" title="Riprova scansione">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>` : 
+                                ''
+                            }
+                            ${scan.status === 'running' || scan.status === 'pending' ? 
+                                `<button class="btn btn-outline-secondary" onclick="app.cancelScan(${scan.id})" title="Annulla scansione">
+                                    <i class="bi bi-stop-circle"></i>
+                                </button>` : 
+                                ''
+                            }
+                            <button class="btn btn-outline-danger" onclick="app.deleteScan(${scan.id})" title="Elimina scansione">
+                                <i class="bi bi-trash"></i>
                             </button>
                         </div>
                     </td>
@@ -654,12 +694,88 @@ class SEOAuditingApp {
         saveBtn.onclick = () => this.addWebsite();
     }
 
-    startScan(websiteId) {
-        this.showAlert('Avvio scansione in sviluppo', 'info');
+    resetNewScanModal() {
+        document.getElementById('newScanForm').reset();
+        this.populateWebsiteDropdownForScan();
     }
 
-    startNewScan() {
-        this.showAlert('Selezione sito per nuova scansione in sviluppo', 'info');
+    async startScan(websiteId) {
+        const website = this.websites.find(w => w.id === websiteId);
+        if (!website) {
+            this.showAlert('Sito web non trovato', 'danger');
+            return;
+        }
+
+        if (confirm(`Avviare una nuova scansione per "${website.domain}"?`)) {
+            try {
+                const response = await fetch(`${this.apiBase}/scans/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        website_id: websiteId
+                    })
+                });
+                
+                if (response.ok) {
+                    const newScan = await response.json();
+                    this.scans.unshift(newScan); // Add to beginning of array
+                    this.renderScansTable();
+                    this.updateDashboard();
+                    
+                    this.showAlert(`Scansione avviata per ${website.domain}`, 'success');
+                    
+                    // Optionally switch to scans section
+                    this.showSection('scans');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Errore durante l\'avvio della scansione');
+                }
+            } catch (error) {
+                console.error('Error starting scan:', error);
+                this.showAlert(`Errore durante l'avvio della scansione: ${error.message}`, 'danger');
+            }
+        }
+    }
+
+    showNewScanModal() {
+        const modal = new bootstrap.Modal(document.getElementById('newScanModal'));
+        this.populateWebsiteDropdownForScan();
+        modal.show();
+    }
+
+    populateWebsiteDropdownForScan() {
+        const select = document.getElementById('scanWebsite');
+        if (!select) return;
+
+        const activeWebsites = this.websites.filter(w => w.is_active);
+        
+        if (activeWebsites.length === 0) {
+            select.innerHTML = '<option value="">Nessun sito web attivo trovato</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">Seleziona sito web...</option>' +
+            activeWebsites.map(website => {
+                const client = this.clients.find(c => c.id === website.client_id);
+                const clientName = client ? client.name : 'N/A';
+                return `<option value="${website.id}">${website.domain} (${clientName})</option>`;
+            }).join('');
+    }
+
+    async startNewScan() {
+        const websiteId = parseInt(document.getElementById('scanWebsite').value);
+        
+        if (!websiteId) {
+            this.showAlert('Seleziona un sito web', 'warning');
+            return;
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('newScanModal')).hide();
+        
+        // Use the existing startScan function
+        await this.startScan(websiteId);
     }
 
     viewScanResults(scanId) {
@@ -668,6 +784,91 @@ class SEOAuditingApp {
 
     downloadReport(scanId) {
         this.showAlert('Download report in sviluppo', 'info');
+    }
+
+    async deleteScan(scanId) {
+        const scan = this.scans.find(s => s.id === scanId);
+        if (!scan) return;
+
+        if (confirm(`Sei sicuro di voler eliminare la scansione del ${new Date(scan.started_at).toLocaleDateString('it-IT')}?`)) {
+            try {
+                const response = await fetch(`${this.apiBase}/scans/${scanId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    this.scans = this.scans.filter(s => s.id !== scanId);
+                    this.renderScansTable();
+                    this.updateDashboard();
+                    this.showAlert('Scansione eliminata con successo!', 'success');
+                } else {
+                    throw new Error('Errore durante l\'eliminazione della scansione');
+                }
+            } catch (error) {
+                console.error('Error deleting scan:', error);
+                this.showAlert('Errore durante l\'eliminazione della scansione', 'danger');
+            }
+        }
+    }
+
+    async retryScan(scanId) {
+        const scan = this.scans.find(s => s.id === scanId);
+        if (!scan) return;
+
+        if (confirm(`Riprovare la scansione?`)) {
+            try {
+                const response = await fetch(`${this.apiBase}/scans/${scanId}/retry`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const updatedScan = await response.json();
+                    const index = this.scans.findIndex(s => s.id === scanId);
+                    this.scans[index] = updatedScan;
+                    this.renderScansTable();
+                    this.showAlert('Scansione riavviata con successo!', 'success');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Errore durante il riavvio della scansione');
+                }
+            } catch (error) {
+                console.error('Error retrying scan:', error);
+                this.showAlert(`Errore durante il riavvio della scansione: ${error.message}`, 'danger');
+            }
+        }
+    }
+
+    async cancelScan(scanId) {
+        const scan = this.scans.find(s => s.id === scanId);
+        if (!scan) return;
+
+        if (confirm(`Annullare la scansione in corso?`)) {
+            try {
+                const response = await fetch(`${this.apiBase}/scans/${scanId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const updatedScan = await response.json();
+                    const index = this.scans.findIndex(s => s.id === scanId);
+                    this.scans[index] = updatedScan;
+                    this.renderScansTable();
+                    this.showAlert('Scansione annullata con successo!', 'success');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Errore durante l\'annullamento della scansione');
+                }
+            } catch (error) {
+                console.error('Error cancelling scan:', error);
+                this.showAlert(`Errore durante l'annullamento della scansione: ${error.message}`, 'danger');
+            }
+        }
     }
 }
 
