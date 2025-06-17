@@ -29,5 +29,6 @@ class Website(Base):
     # Relationships
     client = relationship("Client", back_populates="websites")
     scans = relationship("Scan", back_populates="website", cascade="all, delete-orphan")
+    schedules = relationship("Schedule", back_populates="website", cascade="all, delete-orphan")
     robots_snapshots = relationship("RobotsSnapshot", back_populates="website", cascade="all, delete-orphan")
     sitemap_snapshots = relationship("SitemapSnapshot", back_populates="website", cascade="all, delete-orphan")

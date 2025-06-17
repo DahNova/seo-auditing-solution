@@ -57,6 +57,13 @@ class SchedulerModule {
             });
         }
 
+        const frequencyFilter = document.getElementById('schedule-frequency-filter');
+        if (frequencyFilter) {
+            frequencyFilter.addEventListener('change', () => {
+                this.applyFilters();
+            });
+        }
+
         // Subscribe to data changes
         appState.subscribe('data.scheduledScans', () => {
             this.applyFilters();
@@ -72,6 +79,10 @@ class SchedulerModule {
         this.refreshInterval = setInterval(() => {
             this.loadSchedulerStats();
             this.loadActiveTasks();
+            // Refresh schedules every minute to update next_run_at times
+            if (Date.now() % 60000 < 10000) {
+                this.loadScheduledScans();
+            }
         }, 10000);
     }
 
@@ -114,8 +125,33 @@ class SchedulerModule {
 
     async loadScheduledScans() {
         try {
-            const scheduledScans = await apiClient.getScheduledScans();
-            appState.setData('scheduledScans', scheduledScans);
+            // Load real schedules from new API
+            const [schedules, websites, clients] = await Promise.all([
+                apiClient.getSchedules(),
+                apiClient.getWebsites(),
+                apiClient.getClients()
+            ]);
+            
+            // Enrich schedules with website and client data
+            const enrichedSchedules = schedules.map(schedule => {
+                const website = websites.find(w => w.id === schedule.website_id);
+                let enrichedWebsite = website || null;
+                
+                if (enrichedWebsite && enrichedWebsite.client_id) {
+                    const client = clients.find(c => c.id === enrichedWebsite.client_id);
+                    enrichedWebsite = {
+                        ...enrichedWebsite,
+                        client: client || null
+                    };
+                }
+                
+                return {
+                    ...schedule,
+                    website: enrichedWebsite
+                };
+            });
+            
+            appState.setData('scheduledScans', enrichedSchedules);
         } catch (error) {
             console.error('Error loading scheduled scans:', error);
         }
@@ -288,9 +324,11 @@ class SchedulerModule {
         const scheduledScans = appState.getData('scheduledScans') || [];
         const searchInput = document.getElementById('schedule-search');
         const statusFilter = document.getElementById('schedule-status-filter');
+        const frequencyFilter = document.getElementById('schedule-frequency-filter');
         
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
         const statusValue = statusFilter ? statusFilter.value : '';
+        const frequencyValue = frequencyFilter ? frequencyFilter.value : '';
 
         this.filteredSchedules = scheduledScans.filter(schedule => {
             const matchesSearch = !searchTerm || 
@@ -302,10 +340,20 @@ class SchedulerModule {
                 (statusValue === 'inactive' && !schedule.is_active) ||
                 (statusValue === 'error' && schedule.last_error);
 
-            return matchesSearch && matchesStatus;
+            const matchesFrequency = !frequencyValue || schedule.frequency === frequencyValue;
+
+            return matchesSearch && matchesStatus && matchesFrequency;
+        });
+
+        // Sort by next_run_at (soonest first)
+        this.filteredSchedules.sort((a, b) => {
+            if (!a.next_run_at) return 1;
+            if (!b.next_run_at) return -1;
+            return new Date(a.next_run_at) - new Date(b.next_run_at);
         });
 
         this.renderScheduledScansTable();
+        this.updateScheduleStats();
     }
 
     renderScheduledScansTable() {
@@ -313,15 +361,31 @@ class SchedulerModule {
         if (!tbody) return;
 
         if (this.filteredSchedules.length === 0) {
+            const totalSchedules = appState.getData('scheduledScans')?.length || 0;
+            const message = totalSchedules === 0 ? 
+                'Nessuna programmazione configurata' : 
+                'Nessuna programmazione corrisponde ai filtri';
+            const buttonText = totalSchedules === 0 ? 
+                'Nuova Programmazione' : 
+                'Reset Filtri';
+            const buttonAction = totalSchedules === 0 ? 
+                'scheduler.showScheduleModal()' : 
+                'scheduler.clearFilters()';
+            
             tbody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center py-4">
                         <div class="text-muted">
                             <i class="bi bi-calendar-x fs-1 opacity-50"></i>
-                            <p class="mt-2">Nessuna programmazione trovata</p>
-                            <button class="btn btn-primary btn-sm" onclick="scheduler.showScheduleModal()">
-                                <i class="bi bi-plus"></i> Nuova Programmazione
+                            <p class="mt-2">${message}</p>
+                            <button class="btn btn-primary btn-sm me-2" onclick="${buttonAction}">
+                                <i class="bi bi-${totalSchedules === 0 ? 'plus' : 'x-circle'}"></i> ${buttonText}
                             </button>
+                            ${totalSchedules === 0 ? `
+                                <button class="btn btn-warning btn-sm" onclick="scheduler.showBulkScheduleModal()">
+                                    <i class="bi bi-lightning"></i> Programmazione Bulk
+                                </button>
+                            ` : ''}
                         </div>
                     </td>
                 </tr>
@@ -359,7 +423,7 @@ class SchedulerModule {
                 <td>
                     <div class="text-muted small">
                         ${schedule.next_run_at ? 
-                            utils.formatRelativeTime(schedule.next_run_at) : 
+                            this.formatNextRun(schedule.next_run_at) : 
                             'Non programmata'
                         }
                     </div>
@@ -488,10 +552,26 @@ class SchedulerModule {
         if (!select) return;
 
         const websites = appState.getData('websites') || [];
-        const activeWebsites = websites.filter(w => w.is_active);
+        const schedules = appState.getData('scheduledScans') || [];
+        const scheduledWebsiteIds = new Set(schedules.map(s => s.website_id));
+        
+        // Filter out websites that already have schedules
+        const unscheduledWebsites = websites.filter(w => 
+            w.is_active && !scheduledWebsiteIds.has(w.id)
+        );
         
         select.innerHTML = '<option value="">Seleziona sito web...</option>';
-        activeWebsites.forEach(website => {
+        
+        if (unscheduledWebsites.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Tutti i siti sono già programmati';
+            option.disabled = true;
+            select.appendChild(option);
+            return;
+        }
+        
+        unscheduledWebsites.forEach(website => {
             const option = document.createElement('option');
             option.value = website.id;
             option.textContent = `${website.domain} ${website.client ? `(${website.client.name})` : ''}`;
@@ -500,13 +580,14 @@ class SchedulerModule {
     }
 
     async createSchedule() {
-        const form = document.getElementById('scheduleForm');
-        if (!form) return;
+        const websiteSelect = document.getElementById('scheduleWebsite');
+        const frequencySelect = document.getElementById('scheduleFrequency');
+        
+        if (!websiteSelect || !frequencySelect) return;
 
-        const formData = new FormData(form);
         const scheduleData = {
-            website_id: parseInt(formData.get('website_id') || document.getElementById('scheduleWebsite').value),
-            frequency: formData.get('frequency') || document.getElementById('scheduleFrequency').value,
+            website_id: parseInt(websiteSelect.value),
+            frequency: frequencySelect.value,
             is_active: true
         };
 
@@ -527,42 +608,97 @@ class SchedulerModule {
             utils.showToast('Programmazione creata con successo', 'success');
             
             // Close modal and refresh
-            bootstrap.Modal.getInstance(document.getElementById('scheduleModal')).hide();
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getInstance(document.getElementById('scheduleModal')).hide();
+            }
             await this.loadScheduledScans();
+            this.applyFilters();
             
         } catch (error) {
             console.error('Error creating schedule:', error);
-            utils.showToast('Errore nella creazione della programmazione', 'error');
+            const errorMsg = error.message.includes('already exists') ? 
+                'Programmazione già esistente per questo sito' : 
+                'Errore nella creazione della programmazione';
+            utils.showToast(errorMsg, 'error');
         }
     }
 
     async editSchedule(scheduleId) {
         try {
             const schedule = await apiClient.getSchedule(scheduleId);
+            const schedules = appState.getData('scheduledScans') || [];
+            const scheduleWithWebsite = schedules.find(s => s.id === scheduleId);
             
-            // Simple prompt-based edit for now
-            const newFrequency = prompt('Frequenza (daily/weekly/monthly):', schedule.frequency);
-            if (newFrequency === null) return;
+            // Populate edit modal
+            document.getElementById('editWebsiteId').value = schedule.website_id;
+            document.getElementById('editWebsiteDomain').value = scheduleWithWebsite?.website?.domain || 'Sito sconosciuto';
+            document.getElementById('editScheduleFrequency').value = schedule.frequency;
+            document.getElementById('editScheduleActive').checked = schedule.is_active;
             
-            const isActive = confirm('Mantenere attiva la programmazione?');
+            // Store schedule ID for later use
+            this.currentEditScheduleId = scheduleId;
             
-            const scheduleData = {
-                frequency: newFrequency.trim(),
-                is_active: isActive
-            };
-            
-            if (!scheduleData.frequency) {
-                utils.showToast('La frequenza è obbligatoria', 'error');
-                return;
+            // Show modal
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+                modal.show();
             }
             
-            await apiClient.updateSchedule(scheduleId, scheduleData);
+        } catch (error) {
+            console.error('Error loading schedule for edit:', error);
+            utils.showToast('Errore nel caricamento della programmazione', 'error');
+        }
+    }
+
+    async updateSchedule() {
+        if (!this.currentEditScheduleId) return;
+        
+        const frequencySelect = document.getElementById('editScheduleFrequency');
+        const activeCheck = document.getElementById('editScheduleActive');
+        
+        const scheduleData = {
+            frequency: frequencySelect.value,
+            is_active: activeCheck.checked
+        };
+        
+        try {
+            await apiClient.updateSchedule(this.currentEditScheduleId, scheduleData);
             utils.showToast('Programmazione aggiornata con successo', 'success');
+            
+            // Close modal and refresh
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
+            }
             await this.loadScheduledScans();
+            this.applyFilters();
             
         } catch (error) {
             console.error('Error updating schedule:', error);
             utils.showToast('Errore nell\'aggiornamento della programmazione', 'error');
+        }
+    }
+
+    async deleteScheduleFromModal() {
+        if (!this.currentEditScheduleId) return;
+        
+        if (!confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+            return;
+        }
+        
+        try {
+            await apiClient.deleteSchedule(this.currentEditScheduleId);
+            utils.showToast('Programmazione eliminata con successo', 'success');
+            
+            // Close modal and refresh
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
+            }
+            await this.loadScheduledScans();
+            this.applyFilters();
+            
+        } catch (error) {
+            console.error('Error deleting schedule:', error);
+            utils.showToast('Errore nell\'eliminazione della programmazione', 'error');
         }
     }
 
@@ -596,6 +732,116 @@ class SchedulerModule {
             console.error('Error deleting schedule:', error);
             utils.showToast('Errore nell\'eliminazione della programmazione', 'error');
         }
+    }
+
+    // Bulk Operations
+    async showBulkScheduleModal() {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(document.getElementById('bulkScheduleModal'));
+            modal.show();
+        } else {
+            alert('Funzionalità bulk scheduling non disponibile');
+        }
+    }
+
+    async createBulkSchedules() {
+        const frequencySelect = document.getElementById('bulkFrequency');
+        const onlyUnscheduledCheck = document.getElementById('bulkOnlyUnscheduled');
+        
+        if (!frequencySelect) {
+            utils.showToast('Elementi del form non trovati', 'error');
+            return;
+        }
+
+        const frequency = frequencySelect.value || 'monthly';
+        const onlyUnscheduled = onlyUnscheduledCheck ? onlyUnscheduledCheck.checked : true;
+
+        if (!confirm(`Sei sicuro di voler programmare tutti i siti web con frequenza ${frequency}?`)) {
+            return;
+        }
+
+        try {
+            utils.showToast('Creazione programmazioni in corso...', 'info');
+            
+            const result = await apiClient.createBulkSchedules(frequency, onlyUnscheduled);
+            
+            utils.showToast(
+                `Operazione completata: ${result.created} create, ${result.skipped} saltate`, 
+                'success'
+            );
+            
+            // Close modal and refresh
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getInstance(document.getElementById('bulkScheduleModal')).hide();
+            }
+            
+            await this.loadScheduledScans();
+            this.applyFilters();
+            
+        } catch (error) {
+            console.error('Error creating bulk schedules:', error);
+            utils.showToast('Errore nella creazione delle programmazioni', 'error');
+        }
+    }
+
+    updateScheduleStats() {
+        const totalSchedules = appState.getData('scheduledScans')?.length || 0;
+        const filteredCount = this.filteredSchedules.length;
+        const activeSchedules = this.filteredSchedules.filter(s => s.is_active).length;
+        const inactiveSchedules = this.filteredSchedules.filter(s => !s.is_active).length;
+        const errorSchedules = this.filteredSchedules.filter(s => s.last_error).length;
+
+        // Update header stats if elements exist
+        const elements = {
+            'scheduled-scans-count': totalSchedules,
+            'active-schedules-count': activeSchedules,
+            'inactive-schedules-count': inactiveSchedules,
+            'error-schedules-count': errorSchedules
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        });
+
+        // Update status in page title or somewhere visible
+        console.log(`📊 Schedules Stats: ${filteredCount}/${totalSchedules} shown, ${activeSchedules} active, ${errorSchedules} errors`);
+    }
+
+    formatNextRun(nextRunAt) {
+        const now = new Date();
+        const nextRun = new Date(nextRunAt);
+        const diff = nextRun - now;
+        
+        if (diff < 0) {
+            return '<span class="text-danger">🔴 In ritardo</span>';
+        }
+        
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        if (days > 0) {
+            return `📅 In ${days} giorni`;
+        } else if (hours > 0) {
+            return `⏰ In ${hours} ore`;
+        } else if (minutes > 0) {
+            return `⏱️ In ${minutes} minuti`;
+        } else {
+            return '<span class="text-warning">🟡 Imminente</span>';
+        }
+    }
+
+    clearFilters() {
+        const searchInput = document.getElementById('schedule-search');
+        const statusFilter = document.getElementById('schedule-status-filter');
+        const frequencyFilter = document.getElementById('schedule-frequency-filter');
+
+        if (searchInput) searchInput.value = '';
+        if (statusFilter) statusFilter.value = '';
+        if (frequencyFilter) frequencyFilter.value = '';
+
+        this.applyFilters();
     }
 
     // Cleanup when switching sections

@@ -1117,134 +1117,99 @@
 
         <!-- Scheduler Section -->
         <div id="scheduler-section" class="content-section" style="display: none;">
-            <!-- Modern Scheduler Header -->
-            <div class="row mb-4">
+            <!-- Professional Scheduler Header -->
+            <div class="row mb-3">
                 <div class="col-12">
-                    <div class="modern-section-header">
-                        <div class="section-header-content">
-                            <div class="section-icon scheduler-section-icon">
-                                <i class="bi bi-clock-fill"></i>
+                    <div class="scheduler-header-professional">
+                        <div class="header-left">
+                            <div class="header-icon-modern">
+                                <i class="bi bi-clock-history"></i>
                             </div>
-                            <div class="section-title-content">
-                                <h1 class="section-title">Scheduler <span class="title-accent">Management</span></h1>
-                                <p class="section-subtitle">Monitoraggio e gestione delle scansioni programmate e task automatici</p>
-                                <div class="section-stats-mini">
-                                    <span class="mini-stat">
-                                        <i class="bi bi-calendar-event"></i> 
-                                        <span id="scheduled-count-header">0</span> programmazioni attive
+                            <div class="header-content">
+                                <h2 class="scheduler-title">Scheduler <span class="accent-text">Management</span></h2>
+                                <div class="scheduler-status-bar">
+                                    <span class="status-indicator" id="scheduler-status">
+                                        <i class="bi bi-circle-fill text-success"></i> Sistema Operativo
                                     </span>
-                                    <span class="mini-stat">
-                                        <i class="bi bi-cpu"></i> 
-                                        <span id="workers-count-header">0</span> workers online
+                                    <span class="separator">•</span>
+                                    <span class="live-stats">
+                                        <i class="bi bi-calendar-check"></i> <span id="scheduled-count-header">0</span> programmate
                                     </span>
-                                    <span class="mini-stat">
-                                        <i class="bi bi-list-task"></i> 
-                                        <span id="queue-size-header">0</span> task in coda
+                                    <span class="separator">•</span>
+                                    <span class="live-stats">
+                                        <i class="bi bi-cpu"></i> <span id="workers-count-header">0</span> workers
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div class="section-actions">
-                            <button class="btn btn-gradient-section" onclick="app.showScheduleModal()">
-                                <i class="bi bi-plus-calendar"></i> Nuova Programmazione
+                        <div class="header-actions-compact">
+                            <button class="btn btn-pro-primary" onclick="scheduler.showScheduleModal()">
+                                <i class="bi bi-plus-lg"></i> Nuova
                             </button>
-                            <button class="btn btn-outline-gradient-section" onclick="app.refreshSchedulerData()">
-                                <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                            <button class="btn btn-pro-secondary" onclick="scheduler.refreshData()" id="scheduler-refresh">
+                                <i class="bi bi-arrow-clockwise"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Modern Scheduler Stats Row -->
-            <div class="row mb-4 scheduler-stats-row">
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-stats-card worker-status-card fade-in">
-                        <div class="stats-card-bg"></div>
-                        <div class="stats-card-content">
-                            <div class="stats-icon-container">
-                                <div class="stats-icon worker-icon">
-                                    <i class="bi bi-cpu"></i>
-                                </div>
-                            </div>
-                            <div class="stats-data">
-                                <div class="stats-label">Worker Status</div>
-                                <div class="stats-number" id="worker-status">
-                                    <span class="text-warning">Checking...</span>
-                                </div>
-                                <div class="stats-trend info" id="worker-count">
-                                    <i class="bi bi-cpu"></i>
-                                    <span>-</span> workers attivi
-                                </div>
-                            </div>
+            <!-- Compact Professional Stats -->
+            <div class="row mb-3">
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="stat-card-pro">
+                        <div class="stat-icon stat-icon-workers">
+                            <i class="bi bi-cpu"></i>
                         </div>
-                        <div class="stats-card-shine"></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Workers</div>
+                            <div class="stat-value" id="active-workers">0</div>
+                        </div>
+                        <div class="stat-status" id="worker-status-indicator">
+                            <i class="bi bi-circle-fill text-success"></i>
+                        </div>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-stats-card queue-status-card fade-in">
-                        <div class="stats-card-bg"></div>
-                        <div class="stats-card-content">
-                            <div class="stats-icon-container">
-                                <div class="stats-icon queue-icon">
-                                    <i class="bi bi-list-task"></i>
-                                </div>
-                            </div>
-                            <div class="stats-data">
-                                <div class="stats-label">Task in Coda</div>
-                                <div class="stats-number" id="queue-length">0</div>
-                                <div class="stats-trend neutral">
-                                    <i class="bi bi-list-task"></i>
-                                    nella queue
-                                </div>
-                            </div>
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="stat-card-pro">
+                        <div class="stat-icon stat-icon-queue">
+                            <i class="bi bi-list-task"></i>
                         </div>
-                        <div class="stats-card-shine"></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Queue</div>
+                            <div class="stat-value" id="queue-size">0</div>
+                        </div>
+                        <div class="stat-trend" id="queue-trend">
+                            <i class="bi bi-dash"></i>
+                        </div>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-stats-card today-scans-card fade-in">
-                        <div class="stats-card-bg"></div>
-                        <div class="stats-card-content">
-                            <div class="stats-icon-container">
-                                <div class="stats-icon today-icon">
-                                    <i class="bi bi-check-circle"></i>
-                                </div>
-                            </div>
-                            <div class="stats-data">
-                                <div class="stats-label">Scansioni Oggi</div>
-                                <div class="stats-number" id="scans-today">0</div>
-                                <div class="stats-trend positive">
-                                    <i class="bi bi-check-circle"></i>
-                                    completate
-                                </div>
-                            </div>
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="stat-card-pro">
+                        <div class="stat-icon stat-icon-completed">
+                            <i class="bi bi-check-circle"></i>
                         </div>
-                        <div class="stats-card-shine"></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Oggi</div>
+                            <div class="stat-value" id="processed-today">0</div>
+                        </div>
+                        <div class="stat-trend positive">
+                            <i class="bi bi-arrow-up"></i>
+                        </div>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-stats-card next-scan-card fade-in">
-                        <div class="stats-card-bg"></div>
-                        <div class="stats-card-content">
-                            <div class="stats-icon-container">
-                                <div class="stats-icon next-icon">
-                                    <i class="bi bi-clock"></i>
-                                </div>
-                            </div>
-                            <div class="stats-data">
-                                <div class="stats-label">Prossima Scansione</div>
-                                <div class="stats-number smaller" id="next-scan-time">--:--</div>
-                                <div class="stats-trend info" id="next-scan-website">
-                                    <i class="bi bi-clock"></i>
-                                    In attesa...
-                                </div>
-                            </div>
+                <div class="col-lg-3 col-md-6 mb-2">
+                    <div class="stat-card-pro">
+                        <div class="stat-icon stat-icon-scheduled">
+                            <i class="bi bi-calendar-check"></i>
                         </div>
-                        <div class="stats-card-shine"></div>
+                        <div class="stat-content">
+                            <div class="stat-label">Programmate</div>
+                            <div class="stat-value" id="scheduled-scans-count">0</div>
+                        </div>
+                        <div class="stat-trend">
+                            <i class="bi bi-calendar"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1254,14 +1219,46 @@
                 <!-- Scheduled Scans -->
                 <div class="col-lg-8">
                     <div class="card mb-4">
-                        <div class="card-header bg-transparent">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Scansioni Programmate</h5>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="app.showScheduleModal()">
-                                        <i class="bi bi-plus-circle"></i> Nuova Programmazione
-                                    </button>
-                                </div>
+                        <div class="card-header-pro">
+                            <div class="card-header-left">
+                                <h5 class="card-title-pro">
+                                    <i class="bi bi-calendar-event"></i> Scansioni Programmate
+                                </h5>
+                            </div>
+                            <div class="card-header-actions">
+                                <button class="btn btn-pro-outline-warning btn-sm" onclick="scheduler.showBulkScheduleModal()">
+                                    <i class="bi bi-lightning"></i> Bulk
+                                </button>
+                                <button class="btn btn-pro-primary btn-sm" onclick="scheduler.showScheduleModal()">
+                                    <i class="bi bi-plus"></i> Nuova
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filters-bar-pro">
+                            <div class="filter-group">
+                                <input type="text" class="filter-input-pro" id="schedule-search" placeholder="Cerca sito web...">
+                            </div>
+                            <div class="filter-group">
+                                <select class="filter-select-pro" id="schedule-status-filter">
+                                    <option value="">Tutti</option>
+                                    <option value="active">Attivi</option>
+                                    <option value="inactive">Inattivi</option>
+                                    <option value="error">Errori</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <select class="filter-select-pro" id="schedule-frequency-filter">
+                                    <option value="">Frequenza</option>
+                                    <option value="hourly">Oraria</option>
+                                    <option value="daily">Giornaliera</option>
+                                    <option value="weekly">Settimanale</option>
+                                    <option value="monthly">Mensile</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <button class="btn-filter-reset" onclick="scheduler.clearFilters()">
+                                    <i class="bi bi-x"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -1277,7 +1274,7 @@
                                             <th>Azioni</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="scheduled-scans-table">
+                                    <tbody id="scheduled-scans-table-body">
                                         <!-- Populated by JavaScript -->
                                     </tbody>
                                 </table>
@@ -1408,6 +1405,48 @@
         </div>
     </div>
 
+    <!-- Bulk Schedule Modal -->
+    <div class="modal fade" id="bulkScheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Programmazione Bulk</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Programmazione di massa:</strong> Questa funzione creerà automaticamente programmazioni per tutti i siti web attivi che non ne hanno ancora una.
+                    </div>
+                    <form id="bulkScheduleForm">
+                        <div class="mb-3">
+                            <label for="bulkFrequency" class="form-label">Frequenza per Tutti i Siti *</label>
+                            <select class="form-select" id="bulkFrequency" required>
+                                <option value="hourly">🕐 Oraria</option>
+                                <option value="daily">🌅 Giornaliera</option>
+                                <option value="weekly" selected>📅 Settimanale</option>
+                                <option value="monthly">🗓️ Mensile</option>
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="bulkOnlyUnscheduled" checked>
+                            <label class="form-check-label" for="bulkOnlyUnscheduled">
+                                Solo siti senza programmazione esistente
+                            </label>
+                            <div class="form-text">Se attivato, verrà saltato chi ha già una programmazione attiva.</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-warning" onclick="scheduler.createBulkSchedules()">
+                        <i class="bi bi-lightning"></i> Avvia Programmazione Bulk
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Schedule Modal -->
     <div class="modal fade" id="editScheduleModal" tabindex="-1">
         <div class="modal-dialog">
@@ -1460,11 +1499,11 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger" onclick="app.deleteSchedule()">
+                    <button type="button" class="btn btn-outline-danger" onclick="scheduler.deleteScheduleFromModal()">
                         <i class="bi bi-trash"></i> Elimina Programmazione
                     </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-primary" onclick="app.updateSchedule()">
+                    <button type="button" class="btn btn-primary" onclick="scheduler.updateSchedule()">
                         <i class="bi bi-check-circle"></i> Salva Modifiche
                     </button>
                 </div>

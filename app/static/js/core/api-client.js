@@ -173,6 +173,39 @@ class APIClient {
     async resumeScheduler() {
         return this.post('/scheduler/actions/resume');
     }
+
+    // ===== SCHEDULES API =====
+    async getSchedules(skip = 0, limit = 100) {
+        return this.get(`/schedules/?skip=${skip}&limit=${limit}`);
+    }
+
+    async getSchedule(scheduleId) {
+        return this.get(`/schedules/${scheduleId}`);
+    }
+
+    async createSchedule(scheduleData) {
+        return this.post('/schedules/', scheduleData);
+    }
+
+    async updateSchedule(scheduleId, scheduleData) {
+        return this.put(`/schedules/${scheduleId}`, scheduleData);
+    }
+
+    async deleteSchedule(scheduleId) {
+        return this.delete(`/schedules/${scheduleId}`);
+    }
+
+    async runScheduleNow(scheduleId) {
+        return this.post(`/schedules/${scheduleId}/run-now`);
+    }
+
+    async getDueSchedules() {
+        return this.get('/schedules/due/list');
+    }
+
+    async createBulkSchedules(frequency = 'monthly', onlyUnscheduled = true) {
+        return this.post(`/schedules/bulk/create?frequency=${frequency}&only_unscheduled=${onlyUnscheduled}`);
+    }
 }
 
 // Export singleton instance

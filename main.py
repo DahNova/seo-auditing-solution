@@ -8,7 +8,7 @@ import os
 
 from app.core.config import settings
 from app.database import init_db, close_db
-from app.routers import clients, websites, scans, scheduler
+from app.routers import clients, websites, scans, scheduler, schedules
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(clients.router, prefix="/api/v1")
 app.include_router(websites.router, prefix="/api/v1")
 app.include_router(scans.router, prefix="/api/v1")
+app.include_router(schedules.router)
 app.include_router(scheduler.router)
 
 # Mount static files (after routes to avoid conflicts)
