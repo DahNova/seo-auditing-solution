@@ -416,14 +416,14 @@ body {
     transition: transform 0.3s ease;
 }
 
-.card:hover::before {
+/* .card:hover::before {
     transform: scaleX(1);
 }
 
 .card:hover {
     transform: translateY(-8px);
     box-shadow: var(--shadow-xl);
-}
+} */
 
 .card-body {
     padding: 24px;
@@ -731,10 +731,10 @@ body {
     transform: scaleX(1);
 }
 
-.stats-card:hover {
+/* .stats-card:hover {
     transform: translateY(-12px);
     box-shadow: var(--shadow-xl);
-}
+} */
 
 .stats-number {
     font-size: 3rem;
@@ -1013,10 +1013,10 @@ body {
     transform: scaleX(1);
 }
 
-.modern-stats-card:hover {
+/* .modern-stats-card:hover {
     transform: translateY(-12px);
     box-shadow: var(--shadow-xl);
-}
+} */
 
 .modern-stats-card:hover .stats-card-shine {
     opacity: 1;
@@ -1138,10 +1138,10 @@ body {
     border: 1px solid rgba(99, 102, 241, 0.05);
 }
 
-.modern-dashboard-card:hover {
+/* .modern-dashboard-card:hover {
     transform: translateY(-8px);
     box-shadow: var(--shadow-xl);
-}
+} */
 
 .card-header-modern {
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
@@ -1323,7 +1323,6 @@ body {
 }
 
 .counter-value {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
     border-radius: 20px;
     padding: 8px 16px;
@@ -1559,11 +1558,11 @@ body {
     left: 100%;
 }
 
-.btn-gradient-section:hover {
+/* .btn-gradient-section:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow: var(--shadow-xl);
     color: white;
-}
+} */
 
 .btn-outline-gradient-section {
     border: 2px solid;
@@ -1593,10 +1592,10 @@ body {
     overflow: hidden;
 }
 
-.modern-filters-card:hover {
+/* .modern-filters-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-xl);
-}
+} */
 
 .filters-card-body {
     padding: 24px 32px;
@@ -1673,10 +1672,10 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.modern-table-card:hover {
+/* .modern-table-card:hover {
     transform: translateY(-6px);
     box-shadow: var(--shadow-xl);
-}
+} */
 
 .table-card-header {
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
