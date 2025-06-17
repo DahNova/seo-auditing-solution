@@ -154,6 +154,9 @@ clean:
 quick-test: test-unit test-api
 	@echo "Quick tests completed!"
 
+test-working:
+	pytest tests/test_models_only.py tests/test_seo_simple.py -v --asyncio-mode=auto --tb=short
+
 full-test: test-coverage lint type-check
 	@echo "Full test suite completed!"
 

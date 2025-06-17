@@ -16,7 +16,9 @@
       "Bash(find:*)",
       "Bash(rg:*)",
       "mcp__puppeteer__puppeteer_navigate",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(make test-unit:*)",
+      "Bash(make test:*)"
     ],
     "deny": []
   }

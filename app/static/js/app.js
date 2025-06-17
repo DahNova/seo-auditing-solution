@@ -11,8 +11,10 @@ class SEOAuditingApp {
 
     async init() {
         this.setupEventListeners();
+        this.setupModernFeatures();
         await this.loadInitialData();
         this.updateDashboard();
+        this.startRealTimeUpdates();
     }
 
     setupEventListeners() {
@@ -2823,6 +2825,231 @@ class SEOAuditingApp {
         if (diffMins < 60) return `${diffMins}m fa`;
         if (diffHours < 24) return `${diffHours}h fa`;
         return `${Math.floor(diffHours / 24)}g fa`;
+    }
+
+    // ===== MODERN FEATURES ===== //
+    
+    setupModernFeatures() {
+        // Add fade-in animations to cards
+        this.addFadeInAnimations();
+        
+        // Setup smooth scrolling
+        this.setupSmoothScrolling();
+        
+        // Add loading states
+        this.setupLoadingStates();
+        
+        // Setup keyboard shortcuts
+        this.setupKeyboardShortcuts();
+    }
+    
+    addFadeInAnimations() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        // Observe all cards
+        document.querySelectorAll('.card').forEach(card => {
+            observer.observe(card);
+        });
+    }
+    
+    setupSmoothScrolling() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    }
+    
+    setupLoadingStates() {
+        // Add loading spinners to buttons on click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn') && !e.target.classList.contains('btn-no-loading')) {
+                const btn = e.target;
+                const originalText = btn.innerHTML;
+                
+                btn.innerHTML = '<span class="loading-spinner"></span> Caricamento...';
+                btn.disabled = true;
+                
+                // Auto-restore after 2 seconds if not manually restored
+                setTimeout(() => {
+                    if (btn.innerHTML.includes('loading-spinner')) {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                }, 2000);
+            }
+        });
+    }
+    
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K for quick search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.querySelector('input[type="search"], input[placeholder*="cerca"]');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+            
+            // Ctrl/Cmd + N for new scan
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                this.showNewScanModal();
+            }
+            
+            // Number keys for navigation
+            if (e.altKey && !isNaN(e.key) && e.key >= '1' && e.key <= '5') {
+                e.preventDefault();
+                const sections = ['dashboard', 'clients', 'websites', 'scans', 'scheduler'];
+                const sectionIndex = parseInt(e.key) - 1;
+                if (sections[sectionIndex]) {
+                    this.showSection(sections[sectionIndex]);
+                }
+            }
+        });
+    }
+    
+    startRealTimeUpdates() {
+        // Update timestamp every minute
+        this.updateTimestamp();
+        setInterval(() => this.updateTimestamp(), 60000);
+        
+        // Auto-refresh data every 5 minutes
+        setInterval(() => this.refreshData(), 300000);
+        
+        // Check for new scans every 30 seconds
+        setInterval(() => this.checkForUpdates(), 30000);
+    }
+    
+    updateTimestamp() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('it-IT', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const updateElement = document.getElementById('last-update');
+        if (updateElement) {
+            updateElement.textContent = timeString;
+        }
+    }
+    
+    async refreshData() {
+        try {
+            // Show subtle loading indicator
+            this.showRefreshIndicator();
+            
+            // Reload current section data
+            await this.loadInitialData();
+            this.updateDashboard();
+            
+            // Reload current section if needed
+            switch (this.currentSection) {
+                case 'clients':
+                    this.loadClients();
+                    break;
+                case 'websites':
+                    this.loadWebsites();
+                    break;
+                case 'scans':
+                    this.loadScans();
+                    break;
+                case 'scheduler':
+                    this.loadSchedulerData();
+                    break;
+            }
+            
+            this.hideRefreshIndicator();
+            
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+            this.hideRefreshIndicator();
+        }
+    }
+    
+    showRefreshIndicator() {
+        const indicator = document.querySelector('.pulse-animation');
+        if (indicator) {
+            indicator.style.animationDuration = '0.5s';
+        }
+    }
+    
+    hideRefreshIndicator() {
+        const indicator = document.querySelector('.pulse-animation');
+        if (indicator) {
+            indicator.style.animationDuration = '2s';
+        }
+    }
+    
+    async checkForUpdates() {
+        try {
+            // Check if there are new scans or status changes
+            const response = await fetch(`${this.apiBase}/scans?limit=1`);
+            if (response.ok) {
+                const latestScans = await response.json();
+                if (latestScans.length > 0) {
+                    const latestScan = latestScans[0];
+                    const currentLatest = this.scans[0];
+                    
+                    // If we have a new scan or status change, refresh
+                    if (!currentLatest || 
+                        latestScan.id !== currentLatest.id || 
+                        latestScan.status !== currentLatest.status) {
+                        await this.loadScans();
+                        this.updateDashboard();
+                        
+                        // Show notification for new scans
+                        if (!currentLatest || latestScan.id !== currentLatest.id) {
+                            this.showNotification('Nuova scansione rilevata!', 'info');
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error checking for updates:', error);
+        }
+    }
+    
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            box-shadow: var(--shadow-xl);
+            border-radius: 12px;
+        `;
+        
+        notification.innerHTML = `
+            <i class="bi bi-info-circle"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
     }
 }
 

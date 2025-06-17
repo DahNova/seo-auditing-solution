@@ -3,151 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO Auditing Solution - Dexa Agency</title>
+    <title>SEOAudit - Dashboard Professionale | Dexa Agency</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="#"><i class="bi bi-graph-up"></i> SEO Auditing - Dexa</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" data-section="dashboard">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-section="clients">
-                            <i class="bi bi-people"></i> Clienti
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-section="websites">
-                            <i class="bi bi-globe"></i> Siti Web
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-section="scans">
-                            <i class="bi bi-search"></i> Scansioni
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-section="scheduler">
-                            <i class="bi bi-clock-fill"></i> Scheduler
-                        </a>
-                    </li>
-                </ul>
-                <span class="navbar-text">
-                    <i class="bi bi-person-circle"></i> Admin
-                </span>
+    <!-- Header Top Bar -->
+    <div class="header-top">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="header-info">
+                        <span class="badge bg-success pulse-animation">
+                            <i class="bi bi-circle-fill"></i> Sistema Attivo
+                        </span>
+                        <span class="text-muted ms-3">
+                            <i class="bi bi-clock"></i> Ultimo aggiornamento: <span id="last-update">In tempo reale</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="header-actions">
+                        <button class="btn btn-outline-light btn-sm me-2" onclick="app.refreshData()">
+                            <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                        </button>
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> Admin
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Impostazioni</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle"></i> Aiuto</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </nav>
+    </div>
+
+    <!-- Main Navigation Header -->
+    <header class="main-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <!-- Logo e Brand -->
+                <div class="col-lg-3 col-md-4">
+                    <div class="brand-section">
+                        <div class="logo-container">
+                            <div class="logo-icon">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                            <div class="brand-text">
+                                <h1 class="brand-title">SEO<span class="brand-accent">Audit</span></h1>
+                                <p class="brand-subtitle">by Dexa Agency</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <div class="col-lg-6 col-md-5">
+                    <nav class="main-nav">
+                        <ul class="nav-menu">
+                            <li class="nav-item">
+                                <a href="#" class="nav-link active" data-section="dashboard">
+                                    <div class="nav-icon">
+                                        <i class="bi bi-speedometer2"></i>
+                                    </div>
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-section="clients">
+                                    <div class="nav-icon">
+                                        <i class="bi bi-people"></i>
+                                    </div>
+                                    <span>Clienti</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-section="websites">
+                                    <div class="nav-icon">
+                                        <i class="bi bi-globe"></i>
+                                    </div>
+                                    <span>Siti Web</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-section="scans">
+                                    <div class="nav-icon">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                    <span>Scansioni</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#" class="nav-link" data-section="scheduler">
+                                    <div class="nav-icon">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <span>Scheduler</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="col-lg-3 col-md-3">
+                    <div class="header-cta">
+                        <button class="btn btn-gradient btn-lg" onclick="app.showNewScanModal()">
+                            <i class="bi bi-rocket-takeoff"></i>
+                            <span class="btn-text">Nuova Scansione</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Toggle -->
+    <div class="mobile-nav-toggle d-lg-none">
+        <button class="btn btn-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav">
+            <i class="bi bi-list"></i> Menu Navigazione
+        </button>
+        <div class="collapse" id="mobileNav">
+            <div class="mobile-nav-menu">
+                <a href="#" class="mobile-nav-link active" data-section="dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <a href="#" class="mobile-nav-link" data-section="clients">
+                    <i class="bi bi-people"></i> Clienti
+                </a>
+                <a href="#" class="mobile-nav-link" data-section="websites">
+                    <i class="bi bi-globe"></i> Siti Web
+                </a>
+                <a href="#" class="mobile-nav-link" data-section="scans">
+                    <i class="bi bi-search"></i> Scansioni
+                </a>
+                <a href="#" class="mobile-nav-link" data-section="scheduler">
+                    <i class="bi bi-clock-history"></i> Scheduler
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <div class="container-fluid mt-4">
         <!-- Dashboard Section -->
         <div id="dashboard-section" class="content-section">
-            <!-- Header -->
+            <!-- Modern Dashboard Header -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2 class="mb-1"><i class="bi bi-speedometer2"></i> SEO Auditing Dashboard</h2>
-                            <p class="text-muted mb-0">Panoramica completa delle performance SEO dei tuoi clienti</p>
+                    <div class="dashboard-header">
+                        <div class="dashboard-title-section">
+                            <div class="dashboard-icon">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <div class="dashboard-title-content">
+                                <h1 class="dashboard-title">Dashboard <span class="title-accent">Professionale</span></h1>
+                                <p class="dashboard-subtitle">Panoramica completa delle performance SEO dei tuoi clienti</p>
+                                <div class="dashboard-stats-mini">
+                                    <span class="mini-stat">
+                                        <i class="bi bi-lightning-charge"></i> 
+                                        <span id="mini-active-scans">0</span> scansioni attive
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-clock"></i> 
+                                        Ultimo update: <span id="mini-last-update">ora</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <button class="btn btn-primary" onclick="app.showNewScanModal()">
+                        <div class="dashboard-actions">
+                            <button class="btn btn-gradient-dashboard" onclick="app.showNewScanModal()">
                                 <i class="bi bi-play-circle"></i> Nuova Scansione
+                            </button>
+                            <button class="btn btn-outline-gradient" onclick="app.refreshData()">
+                                <i class="bi bi-arrow-clockwise"></i> Aggiorna Tutto
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Key Metrics Row -->
-            <div class="row mb-4">
+            <!-- Modern Stats Cards Row -->
+            <div class="row mb-4 dashboard-stats-row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">CLIENTI ATTIVI</div>
-                                    <h3 class="mb-0 text-primary fw-bold" id="total-clients">0</h3>
-                                    <small class="text-success">
-                                        <i class="bi bi-arrow-up"></i> <span id="clients-growth">+0</span> questo mese
-                                    </small>
+                    <div class="modern-stats-card clients-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon clients-icon">
+                                    <i class="bi bi-people"></i>
                                 </div>
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-people text-primary fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Clienti Attivi</div>
+                                <div class="stats-number" id="total-clients">0</div>
+                                <div class="stats-trend positive">
+                                    <i class="bi bi-trending-up"></i>
+                                    <span id="clients-growth">+0</span> questo mese
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">SITI MONITORATI</div>
-                                    <h3 class="mb-0 text-success fw-bold" id="total-websites">0</h3>
-                                    <small class="text-info">
-                                        <i class="bi bi-activity"></i> <span id="active-websites">0</span> attivi
-                                    </small>
+                    <div class="modern-stats-card websites-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon websites-icon">
+                                    <i class="bi bi-globe"></i>
                                 </div>
-                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-globe text-success fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Siti Monitorati</div>
+                                <div class="stats-number" id="total-websites">0</div>
+                                <div class="stats-trend info">
+                                    <i class="bi bi-activity"></i>
+                                    <span id="active-websites">0</span> attivi
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">SCANSIONI COMPLETATE</div>
-                                    <h3 class="mb-0 text-warning fw-bold" id="total-scans">0</h3>
-                                    <small class="text-muted">
-                                        <i class="bi bi-clock"></i> <span id="last-scan-time">-</span>
-                                    </small>
+                    <div class="modern-stats-card scans-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon scans-icon">
+                                    <i class="bi bi-search"></i>
                                 </div>
-                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-search text-warning fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Scansioni Complete</div>
+                                <div class="stats-number" id="total-scans">0</div>
+                                <div class="stats-trend neutral">
+                                    <i class="bi bi-clock"></i>
+                                    <span id="last-scan-time">mai</span>
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">PROBLEMI CRITICI</div>
-                                    <h3 class="mb-0 text-danger fw-bold" id="critical-issues-total">0</h3>
-                                    <small class="text-danger">
-                                        <i class="bi bi-exclamation-triangle"></i> Richiedono attenzione
-                                    </small>
+                    <div class="modern-stats-card issues-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon issues-icon">
+                                    <i class="bi bi-exclamation-triangle"></i>
                                 </div>
-                                <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Problemi Critici</div>
+                                <div class="stats-number" id="critical-issues-total">0</div>
+                                <div class="stats-trend warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    Richiedono attenzione
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
             </div>
@@ -156,35 +289,59 @@
             <div class="row">
                 <!-- Recent Scans & Performance -->
                 <div class="col-lg-8">
-                    <!-- Recent Scans -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-transparent">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="bi bi-activity"></i> Scansioni Recenti</h5>
-                                <a href="#" onclick="app.showSection('scans')" class="btn btn-sm btn-outline-primary">
+                    <!-- Modern Recent Scans -->
+                    <div class="modern-dashboard-card recent-scans-card slide-in-right">
+                        <div class="card-header-modern">
+                            <div class="card-header-content">
+                                <div class="card-icon">
+                                    <i class="bi bi-activity"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h5 class="card-title-modern">Scansioni Recenti</h5>
+                                    <p class="card-subtitle-modern">Monitora l'attività di scansione in tempo reale</p>
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                <a href="#" onclick="app.showSection('scans')" class="btn btn-modern-outline">
                                     Vedi tutte <i class="bi bi-arrow-right"></i>
                                 </a>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <div id="recent-scans-list">
+                        <div class="card-body-modern">
+                            <div id="recent-scans-list" class="scans-list-modern">
                                 <!-- Populated by JavaScript -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- SEO Health Overview -->
-                    <div class="card">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-graph-up"></i> Stato SEO Complessivo</h5>
+                    <!-- Modern SEO Health Overview -->
+                    <div class="modern-dashboard-card health-overview-card slide-in-right">
+                        <div class="card-header-modern">
+                            <div class="card-header-content">
+                                <div class="card-icon health-icon">
+                                    <i class="bi bi-graph-up"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h5 class="card-title-modern">Stato SEO <span class="title-accent">Complessivo</span></h5>
+                                    <p class="card-subtitle-modern">Analisi delle performance aggregate di tutti i siti</p>
+                                </div>
+                            </div>
+                            <div class="health-score-preview">
+                                <div class="score-indicator">
+                                    <span class="score-value" id="overall-score">--</span>
+                                    <span class="score-label">Score</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body-modern">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <canvas id="dashboardHealthChart" width="300" height="200"></canvas>
+                                    <div class="chart-container">
+                                        <canvas id="dashboardHealthChart" width="300" height="200"></canvas>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div id="health-insights">
+                                    <div id="health-insights" class="health-insights-modern">
                                         <!-- Populated by JavaScript -->
                                     </div>
                                 </div>
@@ -195,49 +352,104 @@
 
                 <!-- Sidebar: Quick Actions & Alerts -->
                 <div class="col-lg-4">
-                    <!-- Quick Actions -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-lightning"></i> Azioni Rapide</h5>
+                    <!-- Modern Quick Actions -->
+                    <div class="modern-dashboard-card quick-actions-card slide-in-right">
+                        <div class="card-header-modern">
+                            <div class="card-header-content">
+                                <div class="card-icon lightning-icon">
+                                    <i class="bi bi-lightning"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h5 class="card-title-modern">Azioni <span class="title-accent">Rapide</span></h5>
+                                    <p class="card-subtitle-modern">Operazioni frequenti a portata di click</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-outline-primary" onclick="app.showAddClientModal()">
-                                    <i class="bi bi-person-plus"></i> Aggiungi Cliente
+                        <div class="card-body-modern">
+                            <div class="actions-grid">
+                                <button class="action-btn client-action" onclick="app.showAddClientModal()">
+                                    <div class="action-icon">
+                                        <i class="bi bi-person-plus"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <span class="action-title">Nuovo Cliente</span>
+                                        <span class="action-desc">Aggiungi cliente</span>
+                                    </div>
                                 </button>
-                                <button class="btn btn-outline-success" onclick="app.showAddWebsiteModal()">
-                                    <i class="bi bi-globe-europe-africa"></i> Aggiungi Sito Web
+                                <button class="action-btn website-action" onclick="app.showAddWebsiteModal()">
+                                    <div class="action-icon">
+                                        <i class="bi bi-globe-europe-africa"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <span class="action-title">Nuovo Sito</span>
+                                        <span class="action-desc">Aggiungi sito web</span>
+                                    </div>
                                 </button>
-                                <button class="btn btn-outline-warning" onclick="app.showNewScanModal()">
-                                    <i class="bi bi-play-circle"></i> Avvia Scansione
+                                <button class="action-btn scan-action" onclick="app.showNewScanModal()">
+                                    <div class="action-icon">
+                                        <i class="bi bi-play-circle"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <span class="action-title">Avvia Scan</span>
+                                        <span class="action-desc">Nuova scansione</span>
+                                    </div>
                                 </button>
-                                <hr class="my-3">
-                                <button class="btn btn-outline-info" onclick="app.viewAllReports()">
-                                    <i class="bi bi-file-earmark-text"></i> Tutti i Report
+                                <button class="action-btn report-action" onclick="app.viewAllReports()">
+                                    <div class="action-icon">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <span class="action-title">Report</span>
+                                        <span class="action-desc">Tutti i report</span>
+                                    </div>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Critical Alerts -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-transparent border-bottom">
-                            <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle"></i> Alert Critici</h5>
+                    <!-- Modern Critical Alerts -->
+                    <div class="modern-dashboard-card alerts-card slide-in-right">
+                        <div class="card-header-modern danger-header">
+                            <div class="card-header-content">
+                                <div class="card-icon alert-icon">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h5 class="card-title-modern">Alert <span class="title-accent danger">Critici</span></h5>
+                                    <p class="card-subtitle-modern">Problemi che richiedono attenzione immediata</p>
+                                </div>
+                            </div>
+                            <div class="alert-counter">
+                                <span class="counter-value" id="alert-counter">0</span>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div id="critical-alerts">
+                        <div class="card-body-modern">
+                            <div id="critical-alerts" class="alerts-list-modern">
                                 <!-- Populated by JavaScript -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Recent Activity Feed -->
-                    <div class="card">
-                        <div class="card-header bg-transparent">
-                            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Attività Recente</h5>
+                    <!-- Modern Activity Feed -->
+                    <div class="modern-dashboard-card activity-card slide-in-right">
+                        <div class="card-header-modern">
+                            <div class="card-header-content">
+                                <div class="card-icon activity-icon">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h5 class="card-title-modern">Attività <span class="title-accent">Recente</span></h5>
+                                    <p class="card-subtitle-modern">Timeline degli eventi del sistema</p>
+                                </div>
+                            </div>
+                            <div class="activity-status">
+                                <div class="status-indicator live">
+                                    <i class="bi bi-circle-fill"></i> Live
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div id="activity-feed">
+                        <div class="card-body-modern">
+                            <div id="activity-feed" class="activity-timeline">
                                 <!-- Populated by JavaScript -->
                             </div>
                         </div>
@@ -248,49 +460,138 @@
 
         <!-- Clients Section -->
         <div id="clients-section" class="content-section" style="display: none;">
-            <div class="row">
+            <!-- Modern Clients Header -->
+            <div class="row mb-4">
                 <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2><i class="bi bi-people"></i> Gestione Clienti</h2>
-                        <button class="btn btn-primary" onclick="app.showAddClientModal()">
-                            <i class="bi bi-person-plus"></i> Aggiungi Cliente
-                        </button>
+                    <div class="modern-section-header">
+                        <div class="section-header-content">
+                            <div class="section-icon">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div class="section-title-content">
+                                <h1 class="section-title">Gestione <span class="title-accent">Clienti</span></h1>
+                                <p class="section-subtitle">Amministra i tuoi clienti e monitora le loro performance SEO</p>
+                                <div class="section-stats-mini">
+                                    <span class="mini-stat">
+                                        <i class="bi bi-person-check"></i> 
+                                        <span id="clients-count-header">0</span> clienti attivi
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-globe-europe-africa"></i> 
+                                        <span id="total-websites-header">0</span> siti monitorati
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section-actions">
+                            <button class="btn btn-gradient-section" onclick="app.showAddClientModal()">
+                                <i class="bi bi-person-plus"></i> Nuovo Cliente
+                            </button>
+                            <button class="btn btn-outline-gradient-section" onclick="app.refreshClientsData()">
+                                <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Search & Filters Card -->
+            <div class="modern-filters-card slide-in-right mb-4">
+                <div class="filters-card-body">
+                    <div class="row align-items-center">
+                        <div class="col-lg-4 mb-3 mb-lg-0">
+                            <div class="search-input-container">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" class="form-control search-input" id="client-search" placeholder="Cerca clienti per nome o email...">
+                            </div>
+                        </div>
+                        <div class="col-lg-3 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="client-filter">
+                                <option value="">📋 Tutti i clienti</option>
+                                <option value="active">✅ Clienti attivi</option>
+                                <option value="inactive">❌ Clienti inattivi</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-3 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="client-sort">
+                                <option value="name">🔤 Ordina per nome</option>
+                                <option value="created">📅 Più recenti</option>
+                                <option value="websites">🌐 Per siti web</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-filter-clear w-100" onclick="app.clearClientsFilters()">
+                                <i class="bi bi-x-circle"></i> Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Clients Filter -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <input type="text" class="form-control" id="client-search" placeholder="Cerca clienti...">
+            <!-- Modern Clients Table Card -->
+            <div class="modern-table-card slide-in-right">
+                <div class="table-card-header">
+                    <div class="table-card-title-section">
+                        <div class="table-card-icon">
+                            <i class="bi bi-table"></i>
+                        </div>
+                        <div>
+                            <h5 class="table-card-title">Elenco Clienti</h5>
+                            <p class="table-card-subtitle">Gestisci tutti i tuoi clienti da un'unica interfaccia</p>
+                        </div>
+                    </div>
+                    <div class="table-card-actions">
+                        <div class="results-counter">
+                            <span class="counter-label">Mostrando</span>
+                            <span class="counter-value" id="clients-shown">0</span>
+                            <span class="counter-label">di</span>
+                            <span class="counter-value" id="clients-total">0</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <select class="form-select" id="client-filter">
-                        <option value="">Tutti i clienti</option>
-                        <option value="active">Clienti attivi</option>
-                        <option value="inactive">Clienti inattivi</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Clients Table -->
-            <div class="card">
-                <div class="card-body">
+                <div class="table-card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-modern">
                             <thead>
                                 <tr>
-                                    <th>Nome</th>
-                                    <th>Email</th>
-                                    <th>Siti Web</th>
-                                    <th>Ultimo Aggiornamento</th>
-                                    <th>Azioni</th>
+                                    <th class="col-name">
+                                        <i class="bi bi-person"></i> Nome Cliente
+                                    </th>
+                                    <th class="col-email">
+                                        <i class="bi bi-envelope"></i> Contatto
+                                    </th>
+                                    <th class="col-websites">
+                                        <i class="bi bi-globe"></i> Siti Web
+                                    </th>
+                                    <th class="col-status">
+                                        <i class="bi bi-activity"></i> Stato
+                                    </th>
+                                    <th class="col-updated">
+                                        <i class="bi bi-clock"></i> Ultimo Aggiornamento
+                                    </th>
+                                    <th class="col-actions">
+                                        <i class="bi bi-gear"></i> Azioni
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody id="clients-table-body">
+                            <tbody id="clients-table-body" class="table-body-modern">
                                 <!-- Populated by JavaScript -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <div class="table-card-footer">
+                    <div class="pagination-info">
+                        <span class="pagination-text">Righe per pagina:</span>
+                        <select class="form-select pagination-select" id="clients-per-page">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div id="clients-pagination" class="pagination-controls">
+                        <!-- Pagination buttons will be added by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -298,37 +599,157 @@
 
         <!-- Websites Section -->
         <div id="websites-section" class="content-section" style="display: none;">
-            <div class="row">
+            <!-- Modern Websites Header -->
+            <div class="row mb-4">
                 <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2><i class="bi bi-globe"></i> Gestione Siti Web</h2>
-                        <button class="btn btn-primary" onclick="app.showAddWebsiteModal()">
-                            <i class="bi bi-globe-europe-africa"></i> Aggiungi Sito Web
-                        </button>
+                    <div class="modern-section-header">
+                        <div class="section-header-content">
+                            <div class="section-icon websites-section-icon">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <div class="section-title-content">
+                                <h1 class="section-title">Siti <span class="title-accent">Web</span></h1>
+                                <p class="section-subtitle">Monitora e gestisci tutti i siti web dei tuoi clienti</p>
+                                <div class="section-stats-mini">
+                                    <span class="mini-stat">
+                                        <i class="bi bi-globe-europe-africa"></i> 
+                                        <span id="websites-count-header">0</span> siti attivi
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-activity"></i> 
+                                        <span id="scanning-websites-header">0</span> in scansione
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-clock"></i> 
+                                        Prossima: <span id="next-scan-header">--</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section-actions">
+                            <button class="btn btn-gradient-section" onclick="app.showAddWebsiteModal()">
+                                <i class="bi bi-plus-circle"></i> Nuovo Sito
+                            </button>
+                            <button class="btn btn-outline-gradient-section" onclick="app.refreshWebsitesData()">
+                                <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Search & Filters Card -->
+            <div class="modern-filters-card slide-in-right mb-4">
+                <div class="filters-card-body">
+                    <div class="row align-items-center">
+                        <div class="col-lg-4 mb-3 mb-lg-0">
+                            <div class="search-input-container">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" class="form-control search-input" id="website-search" placeholder="Cerca per dominio, nome o cliente...">
+                            </div>
+                        </div>
+                        <div class="col-lg-2 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="website-client-filter">
+                                <option value="">👥 Tutti i clienti</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="website-status-filter">
+                                <option value="">📊 Tutti gli stati</option>
+                                <option value="active">✅ Attivi</option>
+                                <option value="scanning">🔄 In scansione</option>
+                                <option value="error">❌ Errori</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="website-frequency-filter">
+                                <option value="">⏰ Tutte le frequenze</option>
+                                <option value="daily">🌅 Giornaliera</option>
+                                <option value="weekly">📅 Settimanale</option>
+                                <option value="monthly">🗓️ Mensile</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-filter-clear w-100" onclick="app.clearWebsitesFilters()">
+                                <i class="bi bi-x-circle"></i> Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Websites Table -->
-            <div class="card">
-                <div class="card-body">
+            <!-- Modern Websites Table Card -->
+            <div class="modern-table-card slide-in-right">
+                <div class="table-card-header">
+                    <div class="table-card-title-section">
+                        <div class="table-card-icon websites-card-icon">
+                            <i class="bi bi-list-ul"></i>
+                        </div>
+                        <div>
+                            <h5 class="table-card-title">Elenco Siti Web</h5>
+                            <p class="table-card-subtitle">Monitora performance e stato di tutti i siti</p>
+                        </div>
+                    </div>
+                    <div class="table-card-actions">
+                        <div class="websites-quick-actions">
+                            <button class="btn btn-sm btn-success me-2" onclick="app.bulkScanWebsites()">
+                                <i class="bi bi-play-circle"></i> Scansiona Tutti
+                            </button>
+                            <div class="results-counter">
+                                <span class="counter-label">Mostrando</span>
+                                <span class="counter-value" id="websites-shown">0</span>
+                                <span class="counter-label">di</span>
+                                <span class="counter-value" id="websites-total">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-modern">
                             <thead>
                                 <tr>
-                                    <th>Dominio</th>
-                                    <th>Nome</th>
-                                    <th>Cliente</th>
-                                    <th>Frequenza Scansione</th>
-                                    <th>Ultima Scansione</th>
-                                    <th>Stato</th>
-                                    <th>Azioni</th>
+                                    <th class="col-domain">
+                                        <i class="bi bi-globe"></i> Dominio
+                                    </th>
+                                    <th class="col-name">
+                                        <i class="bi bi-tag"></i> Nome
+                                    </th>
+                                    <th class="col-client">
+                                        <i class="bi bi-person"></i> Cliente
+                                    </th>
+                                    <th class="col-frequency">
+                                        <i class="bi bi-clock"></i> Frequenza
+                                    </th>
+                                    <th class="col-last-scan">
+                                        <i class="bi bi-calendar-check"></i> Ultima Scansione
+                                    </th>
+                                    <th class="col-status">
+                                        <i class="bi bi-activity"></i> Stato
+                                    </th>
+                                    <th class="col-actions">
+                                        <i class="bi bi-gear"></i> Azioni
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody id="websites-table-body">
+                            <tbody id="websites-table-body" class="table-body-modern">
                                 <!-- Populated by JavaScript -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <div class="table-card-footer">
+                    <div class="pagination-info">
+                        <span class="pagination-text">Righe per pagina:</span>
+                        <select class="form-select pagination-select" id="websites-per-page">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div id="websites-pagination" class="pagination-controls">
+                        <!-- Pagination buttons will be added by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -336,31 +757,162 @@
 
         <!-- Scans Section -->
         <div id="scans-section" class="content-section" style="display: none;">
-            <div class="row">
+            <!-- Modern Scans Header -->
+            <div class="row mb-4">
                 <div class="col-12">
-                    <h2><i class="bi bi-search"></i> Monitoraggio Scansioni</h2>
+                    <div class="modern-section-header">
+                        <div class="section-header-content">
+                            <div class="section-icon scans-section-icon">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <div class="section-title-content">
+                                <h1 class="section-title">Monitoraggio <span class="title-accent">Scansioni</span></h1>
+                                <p class="section-subtitle">Analizza i risultati SEO e monitora lo stato delle scansioni</p>
+                                <div class="section-stats-mini">
+                                    <span class="mini-stat">
+                                        <i class="bi bi-check-circle"></i> 
+                                        <span id="completed-scans-header">0</span> completate
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-clock-fill"></i> 
+                                        <span id="running-scans-header">0</span> in corso
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-exclamation-triangle"></i> 
+                                        <span id="total-issues-header">0</span> problemi rilevati
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section-actions">
+                            <button class="btn btn-gradient-section" onclick="app.showNewScanModal()">
+                                <i class="bi bi-play-circle"></i> Nuova Scansione
+                            </button>
+                            <button class="btn btn-outline-gradient-section" onclick="app.refreshScansData()">
+                                <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Search & Filters Card -->
+            <div class="modern-filters-card slide-in-right mb-4">
+                <div class="filters-card-body">
+                    <div class="row align-items-center">
+                        <div class="col-lg-4 mb-3 mb-lg-0">
+                            <div class="search-input-container">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" class="form-control search-input" id="scan-search" placeholder="Cerca per sito web o cliente...">
+                            </div>
+                        </div>
+                        <div class="col-lg-2 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="scan-status-filter">
+                                <option value="">📊 Tutti gli stati</option>
+                                <option value="running">🔄 In corso</option>
+                                <option value="completed">✅ Completate</option>
+                                <option value="failed">❌ Fallite</option>
+                                <option value="cancelled">⏹️ Annullate</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="scan-date-filter">
+                                <option value="">📅 Tutte le date</option>
+                                <option value="today">🗓️ Oggi</option>
+                                <option value="week">📆 Ultima settimana</option>
+                                <option value="month">📋 Ultimo mese</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 mb-3 mb-lg-0">
+                            <select class="form-select filter-select" id="scan-score-filter">
+                                <option value="">⭐ Tutti i punteggi</option>
+                                <option value="excellent">🟢 Eccellente (90+)</option>
+                                <option value="good">🟡 Buono (70-89)</option>
+                                <option value="fair">🟠 Sufficiente (50-69)</option>
+                                <option value="poor">🔴 Scarso (<50)</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-filter-clear w-100" onclick="app.clearScansFilters()">
+                                <i class="bi bi-x-circle"></i> Reset
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="card">
-                <div class="card-body">
+            <!-- Modern Scans Table Card -->
+            <div class="modern-table-card slide-in-right">
+                <div class="table-card-header">
+                    <div class="table-card-title-section">
+                        <div class="table-card-icon scans-card-icon">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div>
+                            <h5 class="table-card-title">Cronologia Scansioni</h5>
+                            <p class="table-card-subtitle">Visualizza e analizza tutte le scansioni SEO effettuate</p>
+                        </div>
+                    </div>
+                    <div class="table-card-actions">
+                        <div class="scans-quick-actions">
+                            <button class="btn btn-sm btn-warning me-2" onclick="app.downloadAllReports()">
+                                <i class="bi bi-download"></i> Scarica Tutti i Report
+                            </button>
+                            <div class="results-counter">
+                                <span class="counter-label">Mostrando</span>
+                                <span class="counter-value" id="scans-shown">0</span>
+                                <span class="counter-label">di</span>
+                                <span class="counter-value" id="scans-total">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-modern">
                             <thead>
                                 <tr>
-                                    <th>Sito Web</th>
-                                    <th>Data Inizio</th>
-                                    <th>Stato</th>
-                                    <th>Pagine Scansionate</th>
-                                    <th>Problemi Trovati</th>
-                                    <th>Punteggio SEO</th>
-                                    <th>Azioni</th>
+                                    <th class="col-website">
+                                        <i class="bi bi-globe"></i> Sito Web
+                                    </th>
+                                    <th class="col-started">
+                                        <i class="bi bi-calendar-event"></i> Data Inizio
+                                    </th>
+                                    <th class="col-status">
+                                        <i class="bi bi-activity"></i> Stato
+                                    </th>
+                                    <th class="col-pages">
+                                        <i class="bi bi-file-earmark"></i> Pagine
+                                    </th>
+                                    <th class="col-issues">
+                                        <i class="bi bi-exclamation-triangle"></i> Problemi
+                                    </th>
+                                    <th class="col-score">
+                                        <i class="bi bi-speedometer2"></i> Punteggio SEO
+                                    </th>
+                                    <th class="col-actions">
+                                        <i class="bi bi-gear"></i> Azioni
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody id="scans-table-body">
+                            <tbody id="scans-table-body" class="table-body-modern">
                                 <!-- Populated by JavaScript -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <div class="table-card-footer">
+                    <div class="pagination-info">
+                        <span class="pagination-text">Righe per pagina:</span>
+                        <select class="form-select pagination-select" id="scans-per-page">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div id="scans-pagination" class="pagination-controls">
+                        <!-- Pagination buttons will be added by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -615,16 +1167,38 @@
 
         <!-- Scheduler Section -->
         <div id="scheduler-section" class="content-section" style="display: none;">
-            <!-- Header -->
+            <!-- Modern Scheduler Header -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h2 class="mb-1"><i class="bi bi-clock-fill"></i> Scheduler Management</h2>
-                            <p class="text-muted mb-0">Monitoraggio e gestione delle scansioni programmate</p>
+                    <div class="modern-section-header">
+                        <div class="section-header-content">
+                            <div class="section-icon scheduler-section-icon">
+                                <i class="bi bi-clock-fill"></i>
+                            </div>
+                            <div class="section-title-content">
+                                <h1 class="section-title">Scheduler <span class="title-accent">Management</span></h1>
+                                <p class="section-subtitle">Monitoraggio e gestione delle scansioni programmate e task automatici</p>
+                                <div class="section-stats-mini">
+                                    <span class="mini-stat">
+                                        <i class="bi bi-calendar-event"></i> 
+                                        <span id="scheduled-count-header">0</span> programmazioni attive
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-cpu"></i> 
+                                        <span id="workers-count-header">0</span> workers online
+                                    </span>
+                                    <span class="mini-stat">
+                                        <i class="bi bi-list-task"></i> 
+                                        <span id="queue-size-header">0</span> task in coda
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <button class="btn btn-primary" onclick="app.refreshSchedulerData()">
+                        <div class="section-actions">
+                            <button class="btn btn-gradient-section" onclick="app.showScheduleModal()">
+                                <i class="bi bi-plus-calendar"></i> Nuova Programmazione
+                            </button>
+                            <button class="btn btn-outline-gradient-section" onclick="app.refreshSchedulerData()">
                                 <i class="bi bi-arrow-clockwise"></i> Aggiorna
                             </button>
                         </div>
@@ -632,83 +1206,95 @@
                 </div>
             </div>
 
-            <!-- Scheduler Status Row -->
-            <div class="row mb-4">
+            <!-- Modern Scheduler Stats Row -->
+            <div class="row mb-4 scheduler-stats-row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">WORKER STATUS</div>
-                                    <h3 class="mb-0 fw-bold" id="worker-status">
-                                        <span class="text-warning">Checking...</span>
-                                    </h3>
-                                    <small id="worker-count">
-                                        <i class="bi bi-cpu"></i> <span>-</span> workers attivi
-                                    </small>
+                    <div class="modern-stats-card worker-status-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon worker-icon">
+                                    <i class="bi bi-cpu"></i>
                                 </div>
-                                <div class="bg-info bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-cpu text-info fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Worker Status</div>
+                                <div class="stats-number" id="worker-status">
+                                    <span class="text-warning">Checking...</span>
+                                </div>
+                                <div class="stats-trend info" id="worker-count">
+                                    <i class="bi bi-cpu"></i>
+                                    <span>-</span> workers attivi
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">QUEUE STATUS</div>
-                                    <h3 class="mb-0 fw-bold" id="queue-length">0</h3>
-                                    <small class="text-muted">
-                                        <i class="bi bi-list-task"></i> task in coda
-                                    </small>
+                    <div class="modern-stats-card queue-status-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon queue-icon">
+                                    <i class="bi bi-list-task"></i>
                                 </div>
-                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-list-task text-warning fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Task in Coda</div>
+                                <div class="stats-number" id="queue-length">0</div>
+                                <div class="stats-trend neutral">
+                                    <i class="bi bi-list-task"></i>
+                                    nella queue
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">SCANSIONI OGGI</div>
-                                    <h3 class="mb-0 text-success fw-bold" id="scans-today">0</h3>
-                                    <small class="text-success">
-                                        <i class="bi bi-check-circle"></i> completate
-                                    </small>
+                    <div class="modern-stats-card today-scans-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon today-icon">
+                                    <i class="bi bi-check-circle"></i>
                                 </div>
-                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-check-circle text-success fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Scansioni Oggi</div>
+                                <div class="stats-number" id="scans-today">0</div>
+                                <div class="stats-trend positive">
+                                    <i class="bi bi-check-circle"></i>
+                                    completate
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="text-muted small">PROSSIMA SCANSIONE</div>
-                                    <h6 class="mb-0 fw-bold" id="next-scan-time">-</h6>
-                                    <small class="text-muted" id="next-scan-website">
-                                        <i class="bi bi-clock"></i> -
-                                    </small>
+                    <div class="modern-stats-card next-scan-card fade-in">
+                        <div class="stats-card-bg"></div>
+                        <div class="stats-card-content">
+                            <div class="stats-icon-container">
+                                <div class="stats-icon next-icon">
+                                    <i class="bi bi-clock"></i>
                                 </div>
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                                    <i class="bi bi-clock text-primary fs-4"></i>
+                            </div>
+                            <div class="stats-data">
+                                <div class="stats-label">Prossima Scansione</div>
+                                <div class="stats-number smaller" id="next-scan-time">--:--</div>
+                                <div class="stats-trend info" id="next-scan-website">
+                                    <i class="bi bi-clock"></i>
+                                    In attesa...
                                 </div>
                             </div>
                         </div>
+                        <div class="stats-card-shine"></div>
                     </div>
                 </div>
             </div>

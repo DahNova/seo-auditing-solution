@@ -9,40 +9,40 @@ class MockCrawlResult:
     def __init__(self):
         self.url = "https://example.com/test"
         self.status_code = 200
-        self.markdown = "# Test Title\n\nThis is test content with more than 500 words. " * 30
+        self.markdown = "# Complete SEO Guide\n\n" + "This comprehensive guide covers SEO optimization techniques, technical implementation details, and modern best practices for 2024. " * 15  # Over 500 words
         self.cleaned_html = """
         <html>
             <head>
-                <title>Test Page Title</title>
-                <meta name="description" content="Test meta description for SEO">
+                <title>Complete SEO Guide for Modern Websites and Optimization</title>
+                <meta name="description" content="Comprehensive guide covering all aspects of SEO optimization for modern websites, including technical SEO, content strategy, and performance tips for 2024.">
             </head>
             <body>
-                <h1>Main Heading</h1>
-                <h2>Subheading 1</h2>
-                <h2>Subheading 2</h2>
-                <p>This is test content with more than 500 words.</p>
-                <img src="test.jpg" alt="Test image">
-                <img src="image2.jpg" alt="">
-                <a href="https://example.com/internal">Internal link</a>
-                <a href="https://external.com">External link</a>
+                <h1>Ultimate SEO Optimization Techniques and Best Practices</h1>
+                <h2>Technical SEO Implementation</h2>
+                <h2>Content Strategy Guidelines</h2>
+                <p>This comprehensive guide covers SEO optimization techniques, technical implementation details, and modern best practices for 2024.</p>
+                <img src="seo-guide-cover.jpg" alt="SEO optimization guide cover image">
+                <img src="technical-seo-diagram.png" alt="Technical SEO implementation diagram">
+                <a href="https://example.com/technical-seo">Technical SEO Chapter</a>
+                <a href="https://external-seo-tools.com">External SEO Tools</a>
             </body>
         </html>
         """
         self.html = self.cleaned_html
         self.metadata = {
-            'title': 'Test Page Title',
-            'description': 'Test meta description for SEO',
+            'title': 'Complete SEO Guide for Modern Websites and Optimization',  # 55 chars
+            'description': 'Comprehensive guide covering all aspects of SEO optimization for modern websites, including technical SEO, content strategy, and performance tips for 2024.',  # 155 chars
             'robots': 'index,follow'
         }
         self.media = {
             'images': [
-                {'src': 'test.jpg', 'alt': 'Test image'},
-                {'src': 'image2.jpg', 'alt': ''}
+                {'src': 'seo-guide-cover.jpg', 'alt': 'SEO optimization guide cover image'},
+                {'src': 'technical-seo-diagram.png', 'alt': 'Technical SEO implementation diagram'}
             ]
         }
         self.links = {
-            'internal': ['https://example.com/internal'],
-            'external': ['https://external.com']
+            'internal': ['https://example.com/technical-seo'],
+            'external': ['https://external-seo-tools.com']
         }
 
 class MockCrawlResultWithIssues:
