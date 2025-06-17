@@ -38,7 +38,6 @@ class ScanResultsModule {
 
     async loadScanData(scanId) {
         try {
-            console.log('🔍 Loading scan data for scanId:', scanId);
             appState.setLoading('scanResults', true);
             
             // Load scan details, issues, and pages
@@ -48,11 +47,6 @@ class ScanResultsModule {
                 apiClient.getScanPages(scanId)
             ]);
 
-            console.log('📊 Loaded data:', {
-                scan: scan,
-                issuesCount: issues?.length || 0,
-                pagesCount: pages?.length || 0
-            });
 
             this.currentScan = scan;
             this.currentIssues = issues;
@@ -61,27 +55,13 @@ class ScanResultsModule {
             // Store current scan ID for downloads
             window.app.currentScanId = scanId;
 
-            console.log('🎨 Rendering scan details...');
             this.renderScanDetails();
             
-            console.log('📋 Rendering issues accordion...');
             this.renderIssuesAccordion();
             
-            // Debug: Show grouped issues structure
-            if (this.currentIssues && this.currentIssues.length > 0) {
-                const grouped = this.groupIssuesBySeverity(this.currentIssues);
-                console.log('📊 Issues grouped by severity:', grouped);
-                
-                Object.entries(grouped).forEach(([severity, issues]) => {
-                    const byType = this.groupIssuesByType(issues);
-                    console.log(`📋 ${severity.toUpperCase()} issues by type:`, byType);
-                });
-            }
             
-            console.log('📄 Rendering pages table...');
             this.renderPagesTable();
 
-            console.log('✅ Scan results rendering complete');
 
         } catch (error) {
             console.error('❌ Error loading scan data:', error);
@@ -298,6 +278,11 @@ class ScanResultsModule {
             const accordionId = `${severity}-${type}-accordion`;
             const collapseId = `${severity}-${type}-collapse`;
             
+            // Get first issue to extract common description and recommendation
+            const firstIssue = typeData.issues[0];
+            const commonDescription = firstIssue?.description || '';
+            const commonRecommendation = firstIssue?.recommendation || '';
+            
             return `
                 <div class="accordion-item">
                     <h3 class="accordion-header">
@@ -313,7 +298,24 @@ class ScanResultsModule {
                     </h3>
                     <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#${severity}SubAccordion">
                         <div class="accordion-body">
-                            ${this.renderIssuesList(typeData.issues)}
+                            ${commonDescription || commonRecommendation ? `
+                                <div class="mb-3 p-3 bg-light rounded border-start border-primary border-3">
+                                    ${commonDescription ? `
+                                        <div class="mb-2">
+                                            <strong class="text-dark">📋 Problema:</strong>
+                                            <span class="text-muted">${commonDescription}</span>
+                                        </div>
+                                    ` : ''}
+                                    ${commonRecommendation ? `
+                                        <div>
+                                            <strong class="text-primary">💡 Best Practice:</strong>
+                                            <span class="text-primary">${commonRecommendation}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="mb-2"><strong>Pagine interessate:</strong></div>
+                            ` : ''}
+                            ${this.renderIssuesListCompact(typeData.issues)}
                         </div>
                     </div>
                 </div>
@@ -323,33 +325,57 @@ class ScanResultsModule {
 
     renderIssuesList(issues) {
         return issues.map((issue, index) => `
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <h6 class="card-title">${issue.title || 'Problema SEO'}</h6>
-                            <p class="card-text text-muted">${issue.description || 'Nessuna descrizione disponibile'}</p>
-                            ${issue.recommendation ? `
-                                <div class="alert alert-light border-start border-primary border-3 py-2 px-3 mb-2">
-                                    <small><strong>💡 Raccomandazione:</strong> ${issue.recommendation}</small>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="text-end ms-3">
-                            <span class="badge ${this.getSeverityBadgeClass(issue.severity)}">
-                                ${issue.severity}
-                            </span>
-                            ${issue.page && issue.page.url ? `
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        <i class="bi bi-link-45deg"></i>
-                                        <a href="${issue.page.url}" target="_blank" class="text-decoration-none">
-                                            ${this.truncateUrl(issue.page.url)}
-                                        </a>
-                                    </small>
-                                </div>
-                            ` : ''}
-                        </div>
+            <div class="border-bottom py-2 ${index === issues.length - 1 ? 'border-0' : ''}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="fw-medium mb-1" style="font-size: 0.9rem;">${issue.title || 'Problema SEO'}</div>
+                        <div class="text-muted small mb-1">${issue.description || 'Nessuna descrizione disponibile'}</div>
+                        ${issue.recommendation ? `
+                            <div class="bg-light border-start border-primary border-2 px-2 py-1 mb-1 rounded-end">
+                                <small class="text-primary"><i class="bi bi-lightbulb"></i> ${issue.recommendation}</small>
+                            </div>
+                        ` : ''}
+                        ${issue.page && issue.page.url ? `
+                            <div class="mt-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-link-45deg"></i>
+                                    <a href="${issue.page.url}" target="_blank" class="text-decoration-none">
+                                        ${this.truncateUrl(issue.page.url, 40)}
+                                    </a>
+                                </small>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="text-end ms-2">
+                        <span class="badge ${this.getSeverityBadgeClass(issue.severity)}" style="font-size: 0.7rem;">
+                            ${issue.severity}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    renderIssuesListCompact(issues) {
+        return issues.map((issue, index) => `
+            <div class="border-bottom py-2 ${index === issues.length - 1 ? 'border-0' : ''}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1">
+                        ${issue.page && issue.page.url ? `
+                            <div>
+                                <i class="bi bi-link-45deg text-muted"></i>
+                                <a href="${issue.page.url}" target="_blank" class="text-decoration-none">
+                                    ${this.truncateUrl(issue.page.url, 60)}
+                                </a>
+                            </div>
+                        ` : `
+                            <div class="text-muted">
+                                ${issue.title || 'Problema SEO'}
+                            </div>
+                        `}
+                    </div>
+                    <div class="text-end ms-2">
+                        <small class="text-muted">${issue.severity}</small>
                     </div>
                 </div>
             </div>

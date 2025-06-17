@@ -104,6 +104,11 @@ class ScanService:
                                 issue = Issue(page_id=page.id, **issue_data)
                                 db.add(issue)
                             
+                            # Calculate SEO score for this page
+                            page_score = self.seo_analyzer.scoring_engine.calculate_page_score(issues)
+                            page.seo_score = page_score
+                            page.issues_count = len(issues)
+                            
                             total_issues += len(issues)
                             pages_scanned += 1
                             
@@ -118,6 +123,15 @@ class ScanService:
                     scan.pages_scanned = pages_scanned
                     scan.pages_failed = pages_failed
                     scan.total_issues = total_issues
+                    
+                    # Calculate overall website SEO score
+                    await db.flush()  # Ensure all pages are saved
+                    page_scores = [p.seo_score for p in scan.pages if p.seo_score > 0]
+                    if page_scores:
+                        website_score_data = self.seo_analyzer.scoring_engine.calculate_website_score(page_scores)
+                        scan.seo_score = website_score_data['average_score']
+                    else:
+                        scan.seo_score = 0.0
                     scan.config = {
                         "max_depth": website.max_depth,
                         "max_pages": website.max_pages,

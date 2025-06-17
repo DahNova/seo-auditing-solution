@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, JSON, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -19,6 +19,7 @@ class Scan(Base):
     pages_scanned = Column(Integer, default=0)
     pages_failed = Column(Integer, default=0)
     total_issues = Column(Integer, default=0)
+    seo_score = Column(Float, default=0.0)
     
     # Configuration used
     config = Column(JSON, nullable=True)
