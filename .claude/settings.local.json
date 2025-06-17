@@ -18,7 +18,9 @@
       "mcp__puppeteer__puppeteer_navigate",
       "Bash(mv:*)",
       "Bash(make test-unit:*)",
-      "Bash(make test:*)"
+      "Bash(make test:*)",
+      "Bash(cp:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
