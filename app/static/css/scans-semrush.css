@@ -10,6 +10,7 @@
   --sc-primary: var(--nav-primary, #ff642f);
   --sc-secondary: var(--nav-secondary, #2e5bff);
   --sc-dark: var(--nav-dark, #1a202c);
+  --sc-accent: #f59e0b;
   
   /* Scans specific colors */
   --sc-bg: #ffffff;
@@ -52,7 +53,7 @@
 
 /* ===== COMPACT HEADER ===== */
 .scans-header-compact {
-  background: linear-gradient(135deg, var(--sc-dark) 0%, var(--sc-primary) 100%);
+  background: linear-gradient(135deg, var(--sc-dark) 0%, var(--sc-accent) 100%);
   padding: var(--sc-space-lg);
   border-radius: 12px;
   color: white;

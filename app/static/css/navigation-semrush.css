@@ -26,6 +26,12 @@
   --nav-active: #ff642f;
   --nav-active-bg: rgba(255, 100, 47, 0.1);
   
+  /* Semantic colors for consistency across all sections */
+  --nav-success: #22c55e;
+  --nav-warning: #f59e0b;
+  --nav-danger: #ef4444;
+  --nav-info: #3b82f6;
+  
   /* Shadows and effects */
   --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   --nav-shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);

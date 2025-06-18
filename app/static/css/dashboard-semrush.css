@@ -10,6 +10,7 @@
   --dash-primary: var(--nav-primary, #ff642f);
   --dash-secondary: var(--nav-secondary, #2e5bff);
   --dash-dark: var(--nav-dark, #1a202c);
+  --dash-accent: #22c55e;
   
   /* Dashboard specific colors */
   --dash-bg: #ffffff;
@@ -56,7 +57,7 @@
 
 /* ===== COMPACT HEADER ===== */
 .dashboard-header-compact {
-  background: linear-gradient(135deg, var(--dash-dark) 0%, var(--dash-primary) 100%);
+  background: linear-gradient(135deg, var(--dash-dark) 0%, var(--dash-accent) 100%);
   padding: var(--dash-space-lg);
   border-radius: 12px;
   color: white;

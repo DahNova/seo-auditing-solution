@@ -10,6 +10,7 @@
   --ws-primary: var(--nav-primary, #ff642f);
   --ws-secondary: var(--nav-secondary, #2e5bff);
   --ws-dark: var(--nav-dark, #1a202c);
+  --ws-accent: #ef4444;
   
   /* Websites specific colors */
   --ws-bg: #ffffff;
@@ -51,7 +52,7 @@
 
 /* ===== COMPACT HEADER ===== */
 .websites-header-compact {
-  background: linear-gradient(135deg, var(--ws-dark) 0%, var(--ws-secondary) 100%);
+  background: linear-gradient(135deg, var(--ws-dark) 0%, var(--ws-accent) 100%);
   padding: var(--ws-space-lg);
   border-radius: 12px;
   color: white;

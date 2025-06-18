@@ -6,16 +6,16 @@
 
 /* ===== COLOR SYSTEM ===== */
 :root {
-  /* SEMrush-inspired palette */
-  --sr-primary: #ff642f;
-  --sr-primary-light: #ff7849;
-  --sr-primary-dark: #e55428;
-  --sr-blue: #2e5bff;
-  --sr-blue-light: #4169ff;
-  --sr-success: #27ae60;
-  --sr-warning: #f39c12;
-  --sr-danger: #e74c3c;
-  --sr-info: #3498db;
+  /* Inherit from navigation for consistency */
+  --sr-primary: var(--nav-primary, #ff642f);
+  --sr-primary-light: var(--nav-primary-light, #ff7849);
+  --sr-primary-dark: var(--nav-primary-dark, #e55428);
+  --sr-blue: var(--nav-secondary, #2e5bff);
+  --sr-blue-light: var(--nav-secondary-light, #4169ff);
+  --sr-success: var(--nav-success, #22c55e);
+  --sr-warning: var(--nav-warning, #f59e0b);
+  --sr-danger: var(--nav-danger, #ef4444);
+  --sr-info: var(--nav-info, #3b82f6);
   
   /* Neutrals */
   --sr-gray-50: #fafbfc;

@@ -10,6 +10,7 @@
   --sch-primary: var(--nav-primary, #ff642f);
   --sch-secondary: var(--nav-secondary, #2e5bff);
   --sch-dark: var(--nav-dark, #1a202c);
+  --sch-accent: #8b5cf6;
   
   /* Scheduler specific colors */
   --sch-bg: #ffffff;
@@ -52,7 +53,7 @@
 
 /* ===== COMPACT HEADER ===== */
 .scheduler-header-compact {
-  background: linear-gradient(135deg, var(--sch-dark) 0%, var(--sch-active) 100%);
+  background: linear-gradient(135deg, var(--sch-dark) 0%, var(--sch-accent) 100%);
   padding: var(--sch-space-lg);
   border-radius: 12px;
   color: white;

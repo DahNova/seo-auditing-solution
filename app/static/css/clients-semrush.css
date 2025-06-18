@@ -10,6 +10,7 @@
   --cl-primary: var(--nav-primary, #ff642f);
   --cl-secondary: var(--nav-secondary, #2e5bff);
   --cl-dark: var(--nav-dark, #1a202c);
+  --cl-accent: #2e5bff;
   
   /* Clients specific colors */
   --cl-bg: #ffffff;
@@ -51,7 +52,7 @@
 
 /* ===== COMPACT HEADER ===== */
 .clients-header-compact {
-  background: linear-gradient(135deg, var(--cl-dark) 0%, var(--cl-primary) 100%);
+  background: linear-gradient(135deg, var(--cl-dark) 0%, var(--cl-accent) 100%);
   padding: var(--cl-space-lg);
   border-radius: 12px;
   color: white;
