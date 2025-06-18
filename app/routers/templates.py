@@ -396,17 +396,41 @@ async def scan_results(request: Request, scan_id: int, db: AsyncSession = Depend
             
         scan, website_name, client_name = scan_data
         
-        # Get scan pages
+        # Get scan pages (no limit)
         pages_result = await db.execute(
-            select(Page).where(Page.scan_id == scan_id).limit(100)
+            select(Page).where(Page.scan_id == scan_id).order_by(Page.url)
         )
         pages = pages_result.scalars().all()
         
         # Get scan issues (join through pages)
         issues_result = await db.execute(
-            select(Issue).join(Page).where(Page.scan_id == scan_id).limit(100)
+            select(Issue).join(Page).where(Page.scan_id == scan_id)
         )
-        issues = issues_result.scalars().all()
+        issues_raw = issues_result.scalars().all()
+        
+        # Sort issues by severity in Python (more reliable than SQL CASE)
+        severity_order = {'critical': 1, 'high': 2, 'medium': 3, 'low': 4}
+        # Sort issues by severity in Python (more reliable than SQL CASE)
+        issues = sorted(issues_raw, key=lambda issue: (
+            severity_order.get(issue.severity, 5),  # Primary: severity
+            issue.type,                              # Secondary: type
+            issue.id                                 # Tertiary: ID for consistency
+        ))
+        
+        # Pre-calculate groupings to reduce template complexity
+        issues_by_severity = {}
+        issues_by_type = {}
+        
+        for issue in issues:
+            # Group by severity
+            if issue.severity not in issues_by_severity:
+                issues_by_severity[issue.severity] = []
+            issues_by_severity[issue.severity].append(issue)
+            
+            # Group by type
+            if issue.type not in issues_by_type:
+                issues_by_type[issue.type] = []
+            issues_by_type[issue.type].append(issue)
         
         context = {
             "request": request,
@@ -444,10 +468,12 @@ async def scan_results(request: Request, scan_id: int, db: AsyncSession = Depend
                 }
                 for issue in issues
             ],
+            "issues_by_severity": issues_by_severity,
+            "issues_by_type": issues_by_type,
             "current_section": "scan_results"
         }
         
-        return templates.TemplateResponse("components/sections/scan_results_semrush.html", context)
+        return templates.TemplateResponse("scan_results_wrapper.html", context)
         
     except Exception as e:
         context = {
@@ -462,7 +488,7 @@ async def scan_results(request: Request, scan_id: int, db: AsyncSession = Depend
             "error": str(e)
         }
     
-    return templates.TemplateResponse("components/sections/scan_results_semrush.html", context)
+    return templates.TemplateResponse("scan_results_wrapper.html", context)
 
 @router.get("/comparison", response_class=HTMLResponse)
 async def template_comparison(request: Request):

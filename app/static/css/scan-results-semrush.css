@@ -502,6 +502,30 @@
   padding: var(--sr-space-6);
 }
 
+/* ===== ACCORDION ===== */
+.accordion-item {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--sr-shadow-sm);
+}
+
+.accordion-header {
+  transition: var(--sr-transition);
+}
+
+.accordion-header:hover {
+  background: var(--sr-gray-100) !important;
+}
+
+.accordion-content {
+  background: var(--sr-white);
+}
+
+.accordion-icon {
+  transition: transform 0.2s ease-in-out;
+  margin-left: auto;
+}
+
 /* ===== EMPTY STATES ===== */
 .sr-empty-state {
   text-align: center;

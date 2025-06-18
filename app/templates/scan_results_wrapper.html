@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<!-- SEMrush-style scan results CSS -->
+<link rel="stylesheet" href="/static/css/scan-results-semrush.css">
+<style>
+/* Prevent FOUC by hiding content until CSS loads */
+.sr-scan-results {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+.sr-scan-results.loaded {
+    opacity: 1;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'components/sections/scan_results_semrush.html' %}
+
+<script>
+// Show content once CSS is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const scanResults = document.querySelector('.sr-scan-results');
+    if (scanResults) {
+        scanResults.classList.add('loaded');
+    }
+});
+</script>
+{% endblock %}
