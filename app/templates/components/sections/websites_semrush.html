@@ -49,6 +49,29 @@
         </div>
     </div>
 
+    {% if websites %}
+    <!-- Summary Stats -->
+    <div class="websites-summary">
+        <div class="summary-card">
+            <div class="summary-value">{{ websites_count }}</div>
+            <div class="summary-label">Siti Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ total_scans }}</div>
+            <div class="summary-label">Scansioni Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ (total_scans / websites_count) | round(1) if websites_count > 0 else 0 }}</div>
+            <div class="summary-label">Scansioni per Sito</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ clients | length }}</div>
+            <div class="summary-label">Clienti Unici</div>
+        </div>
+    </div>
+    {% endif %}
+
+
     <!-- Websites Table -->
     <div class="websites-table-container">
         {% if websites %}
@@ -129,27 +152,7 @@
         {% endif %}
     </div>
 
-    {% if websites %}
-    <!-- Summary Stats -->
-    <div class="websites-summary">
-        <div class="summary-card">
-            <div class="summary-value">{{ websites_count }}</div>
-            <div class="summary-label">Siti Totali</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ total_scans }}</div>
-            <div class="summary-label">Scansioni Totali</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ (total_scans / websites_count) | round(1) if websites_count > 0 else 0 }}</div>
-            <div class="summary-label">Scansioni per Sito</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ clients | length }}</div>
-            <div class="summary-label">Clienti Unici</div>
-        </div>
-    </div>
-    {% endif %}
+
 </div>
 
 <script>

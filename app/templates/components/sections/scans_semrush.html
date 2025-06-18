@@ -62,6 +62,29 @@
         </div>
     </div>
 
+    {% if scans %}
+    <!-- Summary Stats -->
+    <div class="scans-summary">
+        <div class="summary-card">
+            <div class="summary-value">{{ scans_count }}</div>
+            <div class="summary-label">Scansioni Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ completed_scans }}</div>
+            <div class="summary-label">Completate</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ avg_score | round(1) }}</div>
+            <div class="summary-label">Score Medio</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ websites | length }}</div>
+            <div class="summary-label">Siti Monitorati</div>
+        </div>
+    </div>
+    {% endif %}
+
+
     <!-- Scans Table -->
     <div class="scans-table-container">
         {% if scans %}
@@ -176,27 +199,7 @@
         {% endif %}
     </div>
 
-    {% if scans %}
-    <!-- Summary Stats -->
-    <div class="scans-summary">
-        <div class="summary-card">
-            <div class="summary-value">{{ scans_count }}</div>
-            <div class="summary-label">Scansioni Totali</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ completed_scans }}</div>
-            <div class="summary-label">Completate</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ avg_score | round(1) }}</div>
-            <div class="summary-label">Score Medio</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ websites | length }}</div>
-            <div class="summary-label">Siti Monitorati</div>
-        </div>
-    </div>
-    {% endif %}
+
 </div>
 
 <script>

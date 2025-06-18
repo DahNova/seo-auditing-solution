@@ -492,6 +492,101 @@ window.app = {
     showAddWebsiteModal: function() { showAddWebsiteModal(); },
     showNewScanModal: function() { showAddScanModal(); },
     
+    // Client management
+    editClient: function(clientId) {
+        fetch(`/api/v1/clients/${clientId}`)
+            .then(response => response.json())
+            .then(client => {
+                // Populate edit modal with client data
+                const editModal = document.getElementById('editClientModal');
+                if (editModal) {
+                    document.getElementById('editClientId').value = client.id;
+                    document.getElementById('editClientName').value = client.name;
+                    document.getElementById('editClientEmail').value = client.contact_email;
+                    document.getElementById('editClientPhone').value = client.contact_phone || '';
+                    document.getElementById('editClientNotes').value = client.notes || '';
+                    showModal('editClientModal');
+                } else {
+                    showToast('Modal di modifica non trovato', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nel caricamento del cliente', 'error'));
+    },
+    deleteClient: function(clientId) {
+        if (confirm('Sei sicuro di voler eliminare questo cliente?')) {
+            fetch(`/api/v1/clients/${clientId}`, { method: 'DELETE' })
+                .then(() => {
+                    showToast('Cliente eliminato con successo', 'success');
+                    window.location.reload();
+                })
+                .catch(err => showToast('Errore nell\'eliminazione del cliente', 'error'));
+        }
+    },
+    
+    // Website management
+    editWebsite: function(websiteId) {
+        fetch(`/api/v1/websites/${websiteId}`)
+            .then(response => response.json())
+            .then(website => {
+                // Populate edit modal with website data
+                const editModal = document.getElementById('editWebsiteModal');
+                if (editModal) {
+                    document.getElementById('editWebsiteId').value = website.id;
+                    document.getElementById('editWebsiteName').value = website.name;
+                    document.getElementById('editWebsiteUrl').value = website.domain;
+                    document.getElementById('editWebsiteClient').value = website.client_id;
+                    document.getElementById('editWebsiteDescription').value = website.description || '';
+                    document.getElementById('editWebsiteActive').checked = website.is_active;
+                    showModal('editWebsiteModal');
+                } else {
+                    showToast('Modal di modifica non trovato', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nel caricamento del sito web', 'error'));
+    },
+    deleteWebsite: function(websiteId) {
+        if (confirm('Sei sicuro di voler eliminare questo sito web?')) {
+            fetch(`/api/v1/websites/${websiteId}`, { method: 'DELETE' })
+                .then(() => {
+                    showToast('Sito web eliminato con successo', 'success');
+                    window.location.reload();
+                })
+                .catch(err => showToast('Errore nell\'eliminazione del sito web', 'error'));
+        }
+    },
+    startScanForWebsite: function(websiteId) {
+        const data = {
+            website_id: websiteId,
+            scan_type: 'full',
+            depth: 5,
+            options: {
+                images: true,
+                links: true,
+                performance: true,
+                mobile: false
+            }
+        };
+        
+        fetch('/api/v1/scans/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result) {
+                showToast('Scansione avviata con successo', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('Errore nell\'avvio della scansione', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Errore nella comunicazione con il server', 'error');
+        });
+    },
+    
     // Scan actions
     cancelScan: function(scanId) {
         if (confirm('Sei sicuro di voler annullare questa scansione?')) {
@@ -510,6 +605,72 @@ window.app = {
             fetch(`/api/v1/scans/${scanId}`, { method: 'DELETE' })
                 .then(() => window.location.reload())
                 .catch(err => showToast('Errore nell\'eliminazione della scansione', 'error'));
+        }
+    },
+    
+    // Scheduler management
+    editSchedule: function(scheduleId) {
+        fetch(`/api/v1/scheduler/schedules/${scheduleId}`)
+            .then(response => response.json())
+            .then(schedule => {
+                // Populate edit modal with schedule data
+                const editModal = document.getElementById('editScheduleModal');
+                if (editModal) {
+                    document.getElementById('editScheduleId').value = schedule.id;
+                    document.getElementById('editScheduleWebsite').value = schedule.website_id;
+                    document.getElementById('editScheduleFrequency').value = schedule.frequency;
+                    document.getElementById('editScheduleTime').value = schedule.time;
+                    document.getElementById('editScheduleDay').value = schedule.day || '';
+                    document.getElementById('editScheduleScanType').value = schedule.scan_type;
+                    document.getElementById('editScheduleEmailNotify').checked = schedule.email_notify;
+                    document.getElementById('editScheduleAlertIssues').checked = schedule.alert_issues;
+                    document.getElementById('editScheduleActive').checked = schedule.is_active;
+                    document.getElementById('editScheduleNotes').value = schedule.notes || '';
+                    showModal('editScheduleModal');
+                } else {
+                    showToast('Modal di modifica non trovato', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nel caricamento della programmazione', 'error'));
+    },
+    pauseSchedule: function(scheduleId) {
+        fetch(`/api/v1/scheduler/schedules/${scheduleId}/pause`, { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Programmazione messa in pausa', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella pausa della programmazione', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    },
+    deleteSchedule: function(scheduleId) {
+        if (confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+            fetch(`/api/v1/scheduler/schedules/${scheduleId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Programmazione eliminata con successo', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nell\'eliminazione della programmazione', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+        }
+    },
+    pauseAllSchedules: function() {
+        if (confirm('Sei sicuro di voler mettere in pausa tutte le programmazioni?')) {
+            fetch(`/api/v1/scheduler/actions/pause`, { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Tutte le programmazioni sono state messe in pausa', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nella pausa delle programmazioni', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
         }
     },
     

@@ -41,6 +41,26 @@
         </div>
     </div>
 
+
+    {% if clients %}
+    <!-- Summary Stats -->
+    <div class="clients-summary">
+        <div class="summary-card">
+            <div class="summary-value">{{ clients_count }}</div>
+            <div class="summary-label">Clienti Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ total_websites }}</div>
+            <div class="summary-label">Siti Monitorati</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ (total_websites / clients_count) | round(1) if clients_count > 0 else 0 }}</div>
+            <div class="summary-label">Siti per Cliente</div>
+        </div>
+    </div>
+    {% endif %}
+
+
     <!-- Clients Table -->
     <div class="clients-table-container">
         {% if clients %}
@@ -105,23 +125,7 @@
         {% endif %}
     </div>
 
-    {% if clients %}
-    <!-- Summary Stats -->
-    <div class="clients-summary">
-        <div class="summary-card">
-            <div class="summary-value">{{ clients_count }}</div>
-            <div class="summary-label">Clienti Totali</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ total_websites }}</div>
-            <div class="summary-label">Siti Monitorati</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-value">{{ (total_websites / clients_count) | round(1) if clients_count > 0 else 0 }}</div>
-            <div class="summary-label">Siti per Cliente</div>
-        </div>
-    </div>
-    {% endif %}
+
 </div>
 
 <script>
