@@ -1,0 +1,84 @@
+{% from 'components/section_header.html' import section_header %}
+{% from 'components/filter_bar.html' import filter_bar %}
+{% from 'components/data_table.html' import data_table %}
+
+<!-- Scans Section -->
+<div id="scans-section" class="content-section" style="display: none;">
+    {{ section_header(
+        title="Monitoraggio",
+        accent_text="Scansioni",
+        subtitle="Analizza i risultati SEO e monitora lo stato delle scansioni",
+        icon="bi-search",
+        icon_class="scans-section-icon",
+        stats=[
+            {"icon": "bi-check-circle", "id": "completed-scans-header", "default": "0", "label": "completate"},
+            {"icon": "bi-clock-fill", "id": "running-scans-header", "default": "0", "label": "in corso"},
+            {"icon": "bi-exclamation-triangle", "id": "total-issues-header", "default": "0", "label": "problemi rilevati"}
+        ],
+        actions=[
+            {"class": "btn-gradient-section", "icon": "bi-play-circle", "label": "Nuova Scansione", "onclick": "app.showNewScanModal()"},
+            {"class": "btn-outline-gradient-section", "icon": "bi-arrow-clockwise", "label": "Aggiorna", "onclick": "app.refreshScansData()"}
+        ]
+    ) }}
+
+    {{ filter_bar(
+        search_config={"id": "scan-search", "placeholder": "Cerca per sito web o cliente..."},
+        filters=[
+            {
+                "id": "scan-status-filter",
+                "label": "📊 Tutti gli stati",
+                "col_size": 2,
+                "options": [
+                    {"value": "running", "label": "🔄 In corso"},
+                    {"value": "completed", "label": "✅ Completate"},
+                    {"value": "failed", "label": "❌ Fallite"},
+                    {"value": "cancelled", "label": "⏹️ Annullate"}
+                ]
+            },
+            {
+                "id": "scan-date-filter",
+                "label": "📅 Tutte le date",
+                "col_size": 2,
+                "options": [
+                    {"value": "today", "label": "🗓️ Oggi"},
+                    {"value": "week", "label": "📆 Ultima settimana"},
+                    {"value": "month", "label": "📋 Ultimo mese"}
+                ]
+            },
+            {
+                "id": "scan-score-filter",
+                "label": "⭐ Tutti i punteggi",
+                "col_size": 2,
+                "options": [
+                    {"value": "excellent", "label": "🟢 Eccellente (90+)"},
+                    {"value": "good", "label": "🟡 Buono (70-89)"},
+                    {"value": "fair", "label": "🟠 Sufficiente (50-69)"},
+                    {"value": "poor", "label": "🔴 Scarso (<50)"}
+                ]
+            }
+        ],
+        clear_function="app.clearScansFilters()"
+    ) }}
+    
+    {{ data_table(
+        title="Cronologia Scansioni",
+        subtitle="Visualizza e analizza tutte le scansioni SEO effettuate",
+        icon="bi-graph-up",
+        icon_class="scans-card-icon",
+        columns=[
+            {"class": "col-website", "icon": "bi-globe", "label": "Sito Web"},
+            {"class": "col-started", "icon": "bi-calendar-event", "label": "Data Inizio"},
+            {"class": "col-status", "icon": "bi-activity", "label": "Stato"},
+            {"class": "col-pages", "icon": "bi-file-earmark", "label": "Pagine"},
+            {"class": "col-issues", "icon": "bi-exclamation-triangle", "label": "Problemi"},
+            {"class": "col-score", "icon": "bi-speedometer2", "label": "Punteggio SEO"},
+            {"class": "col-actions", "icon": "bi-gear", "label": "Azioni"}
+        ],
+        table_id="scans-table-body",
+        pagination_id="scans-pagination",
+        counter_ids={"shown": "scans-shown", "total": "scans-total"},
+        additional_actions=[
+            {"class": "btn-warning", "icon": "bi-download", "label": "Scarica Tutti i Report", "onclick": "app.downloadAllReports()"}
+        ]
+    ) }}
+</div>

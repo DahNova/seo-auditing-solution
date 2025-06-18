@@ -1,0 +1,251 @@
+{% from 'macros.html' import section_header, data_table %}
+
+<!-- Scan Results Section -->
+<div id="scan-results-section" class="content-section">
+    {% if scan %}
+    <!-- Modern Scan Results Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modern-section-header">
+                <div class="section-header-content">
+                    <div class="section-icon">
+                        <i class="bi bi-search-heart"></i>
+                    </div>
+                    <div class="section-title-content">
+                        <h1 class="section-title">Risultati <span class="title-accent">Scansione</span></h1>
+                        <p class="section-subtitle">Scansione #{{ scan.id }} - {{ scan.website_name }} ({{ scan.client_name }})</p>
+                        <div class="section-stats-mini">
+                            <span class="mini-stat">
+                                <i class="bi bi-{{ 'check-circle text-success' if scan.status == 'completed' else 'clock text-warning' if scan.status == 'running' else 'x-circle text-danger' }}"></i>
+                                Stato: {{ scan.status.title() }}
+                            </span>
+                            {% if scan.seo_score %}
+                            <span class="mini-stat">
+                                <i class="bi bi-star"></i>
+                                Score SEO: {{ scan.seo_score }}/100
+                            </span>
+                            {% endif %}
+                            <span class="mini-stat">
+                                <i class="bi bi-file-earmark"></i>
+                                {{ scan.pages_scanned or 0 }} pagine scansionate
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <a href="/api/v1/scans/{{ scan.id }}/report" class="btn btn-gradient-section" target="_blank">
+                        <i class="bi bi-download"></i> Scarica Report PDF
+                    </a>
+                    <a href="/templated/scans" class="btn btn-outline-gradient-section">
+                        <i class="bi bi-arrow-left"></i> Torna alle Scansioni
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card summary-card fade-in">
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon pages-icon">
+                            <i class="bi bi-files"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Pagine Totali</div>
+                        <div class="stats-number">{{ pages|length }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card summary-card fade-in">
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon issues-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Problemi Totali</div>
+                        <div class="stats-number">{{ issues|length }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card summary-card fade-in">
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon critical-icon">
+                            <i class="bi bi-shield-exclamation"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Problemi Critici</div>
+                        <div class="stats-number">{{ issues|selectattr('severity', 'equalto', 'critical')|list|length }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card summary-card fade-in">
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon score-icon">
+                            <i class="bi bi-award"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Score Medio</div>
+                        <div class="stats-number">{{ scan.seo_score or 0 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Results Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="modern-table-card">
+                <div class="table-card-header">
+                    <ul class="nav nav-tabs" id="scanResultsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues" type="button" role="tab">
+                                <i class="bi bi-exclamation-triangle"></i> Problemi SEO ({{ issues|length }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pages-tab" data-bs-toggle="tab" data-bs-target="#pages" type="button" role="tab">
+                                <i class="bi bi-files"></i> Pagine Scansionate ({{ pages|length }})
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="table-card-body">
+                    <div class="tab-content" id="scanResultsTabContent">
+                        <!-- Issues Tab -->
+                        <div class="tab-pane fade show active" id="issues" role="tabpanel">
+                            {% if issues %}
+                            <div class="table-responsive">
+                                <table class="table table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Severità</th>
+                                            <th>Messaggio</th>
+                                            <th>Pagina</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for issue in issues %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-info">{{ issue.type }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ 'danger' if issue.severity == 'critical' else 'warning' if issue.severity == 'warning' else 'secondary' }}">
+                                                    {{ issue.severity.title() }}
+                                                </span>
+                                            </td>
+                                            <td>{{ issue.message }}</td>
+                                            <td>
+                                                <a href="{{ issue.page_url }}" target="_blank" class="text-truncate" style="max-width: 300px;">
+                                                    {{ issue.page_url }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-check-circle fs-1 text-success"></i>
+                                <p class="mb-0">Nessun problema rilevato</p>
+                                <small>Ottimo lavoro! Il sito non presenta problemi SEO critici.</small>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Pages Tab -->
+                        <div class="tab-pane fade" id="pages" role="tabpanel">
+                            {% if pages %}
+                            <div class="table-responsive">
+                                <table class="table table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th>URL</th>
+                                            <th>Titolo</th>
+                                            <th>Status</th>
+                                            <th>Score SEO</th>
+                                            <th>Problemi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for page in pages %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ page.url }}" target="_blank" class="text-truncate" style="max-width: 300px;">
+                                                    {{ page.url }}
+                                                </a>
+                                            </td>
+                                            <td>{{ page.title or 'N/A' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if page.status_code == 200 else 'warning' if page.status_code < 400 else 'danger' }}">
+                                                    {{ page.status_code }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if page.seo_score %}
+                                                <div class="progress" style="width: 60px;">
+                                                    <div class="progress-bar bg-{{ 'success' if page.seo_score >= 80 else 'warning' if page.seo_score >= 60 else 'danger' }}" 
+                                                         style="width: {{ page.seo_score }}%"></div>
+                                                </div>
+                                                <small>{{ page.seo_score }}/100</small>
+                                                {% else %}
+                                                <span class="text-muted">N/A</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if page.issues_count > 0 %}
+                                                <span class="badge bg-warning">{{ page.issues_count }}</span>
+                                                {% else %}
+                                                <span class="badge bg-success">0</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-files fs-1"></i>
+                                <p class="mb-0">Nessuna pagina scansionata</p>
+                                <small>La scansione potrebbe essere ancora in corso.</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Error State -->
+    <div class="text-center py-5">
+        <i class="bi bi-exclamation-triangle fs-1 text-warning"></i>
+        <h3>Scansione non trovata</h3>
+        <p class="text-muted">La scansione richiesta non esiste o non è accessibile.</p>
+        <a href="/templated/scans" class="btn btn-primary">
+            <i class="bi bi-arrow-left"></i> Torna alle Scansioni
+        </a>
+    </div>
+    {% endif %}
+</div>

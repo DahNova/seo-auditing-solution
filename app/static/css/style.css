@@ -2657,3 +2657,18 @@ body {
         opacity: 1;
     }
 }
+
+/* ===== SCAN RESULTS LINKS ===== */
+.scan-item-link {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.scan-item-link:hover {
+    color: inherit;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}

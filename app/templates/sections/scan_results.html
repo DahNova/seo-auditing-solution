@@ -1,0 +1,163 @@
+<!-- Scan Results Section -->
+<div id="scan-results-section" class="content-section" style="display: none;">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="bi bi-file-text"></i> Audit SEO Report</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" onclick="app.downloadReport(app.currentScanId)">
+                        <i class="bi bi-download"></i> Scarica Report PDF
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.showSection('scans')">
+                        <i class="bi bi-arrow-left"></i> Torna alle Scansioni
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Summary -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title"><i class="bi bi-graph-up"></i> Riepilogo Esecutivo</h5>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Pagine Scansionate</small>
+                                        <h4 class="mb-0" id="scan-pages-count">0</h4>
+                                    </div>
+                                    <i class="bi bi-file-earmark text-primary fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Problemi Totali</small>
+                                        <h4 class="mb-0" id="scan-total-issues">0</h4>
+                                    </div>
+                                    <i class="bi bi-exclamation-triangle text-warning fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Punteggio SEO</small>
+                                        <h4 class="mb-0" id="scan-seo-score">-</h4>
+                                    </div>
+                                    <i class="bi bi-speedometer text-success fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Data Scansione</small>
+                                        <h6 class="mb-0" id="scan-date">-</h6>
+                                    </div>
+                                    <i class="bi bi-calendar text-info fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <canvas id="issuesDistributionChart" width="300" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issues Breakdown by Severity -->
+    <div class="accordion" id="issuesAccordion">
+        {% set severity_levels = [
+            {'id': 'critical', 'label': 'CRITICO', 'class': 'danger', 'title': 'Problemi Critici', 'icon': 'bi-exclamation-triangle', 'alert_text': 'Attenzione! Questi problemi richiedono un intervento immediato poiché impattano significativamente sulla visibilità nei motori di ricerca.'},
+            {'id': 'high', 'label': 'ALTO', 'class': 'warning', 'title': 'Problemi ad Alta Priorità', 'icon': 'bi-exclamation-circle', 'alert_text': 'Importante: Questi problemi dovrebbero essere risolti per migliorare le performance SEO.'},
+            {'id': 'medium', 'label': 'MEDIO', 'class': 'info', 'title': 'Problemi a Media Priorità', 'icon': 'bi-info-circle', 'alert_text': 'Nota: Questi problemi possono essere risolti nel medio termine per ottimizzare ulteriormente il sito.'},
+            {'id': 'low', 'label': 'BASSO', 'class': 'secondary', 'title': 'Problemi a Bassa Priorità', 'icon': 'bi-check-circle', 'alert_text': 'Opzionale: Questi sono miglioramenti che possono essere implementati quando il tempo lo permette.'}
+        ] %}
+        
+        {% for severity in severity_levels %}
+        <!-- {{ severity.title }} Section -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#{{ severity.id }}Issues" aria-expanded="false">
+                    <span class="badge bg-{{ severity.class }} me-3">{{ severity.label }}</span>
+                    <strong>{{ severity.title }}</strong>
+                    <span class="badge bg-{{ severity.class }} ms-auto" id="{{ severity.id }}-count">0</span>
+                </button>
+            </h2>
+            <div id="{{ severity.id }}Issues" class="accordion-collapse collapse" data-bs-parent="#issuesAccordion">
+                <div class="accordion-body">
+                    <div class="alert alert-{{ severity.class }}">
+                        <i class="bi {{ severity.icon }}"></i>
+                        {{ severity.alert_text }}
+                    </div>
+                    <!-- Nested accordion for {{ severity.id }} issue types -->
+                    <div class="accordion" id="{{ severity.id }}SubAccordion">
+                        <!-- Issue types will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pages Analysis Section -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-file-earmark"></i> Analisi delle Pagine</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="page-search" placeholder="Cerca nelle pagine...">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="page-status-filter">
+                        <option value="">Tutti gli Status</option>
+                        <option value="200">200 - OK</option>
+                        <option value="404">404 - Non Trovato</option>
+                        <option value="500">500 - Errore Server</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="page-issues-filter">
+                        <option value="">Tutte le pagine</option>
+                        <option value="has-issues">Solo con problemi</option>
+                        <option value="no-issues">Solo senza problemi</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Status</th>
+                            <th>Title</th>
+                            <th>Meta Description</th>
+                            <th>Parole</th>
+                            <th>Problemi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pages-table-body">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="pages-pagination" class="d-flex justify-content-center mt-3">
+                <!-- Pagination buttons will be added by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,65 @@
+{% macro data_table(title, subtitle, icon, columns, table_id, pagination_id, counter_ids, additional_actions=[]) %}
+<!-- Modern Table Card -->
+<div class="modern-table-card slide-in-right">
+    <div class="table-card-header">
+        <div class="table-card-title-section">
+            <div class="table-card-icon {% if icon_class %}{{ icon_class }}{% endif %}">
+                <i class="bi {{ icon }}"></i>
+            </div>
+            <div>
+                <h5 class="table-card-title">{{ title }}</h5>
+                <p class="table-card-subtitle">{{ subtitle }}</p>
+            </div>
+        </div>
+        <div class="table-card-actions">
+            {% if additional_actions %}
+            <div class="table-quick-actions">
+                {% for action in additional_actions %}
+                <button class="btn btn-sm {{ action.class }} me-2" onclick="{{ action.onclick }}">
+                    <i class="bi {{ action.icon }}"></i> {{ action.label }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="results-counter">
+                <span class="counter-label">Mostrando</span>
+                <span class="counter-value" id="{{ counter_ids.shown }}">0</span>
+                <span class="counter-label">di</span>
+                <span class="counter-value" id="{{ counter_ids.total }}">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="table-card-body">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th class="{{ column.class }}">
+                            <i class="bi {{ column.icon }}"></i> {{ column.label }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody id="{{ table_id }}" class="table-body-modern">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="table-card-footer">
+        <div class="pagination-info">
+            <span class="pagination-text">Righe per pagina:</span>
+            <select class="form-select pagination-select" id="{{ table_id }}-per-page">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        <div id="{{ pagination_id }}" class="pagination-controls">
+            <!-- Pagination buttons will be added by JavaScript -->
+        </div>
+    </div>
+</div>
+{% endmacro %}

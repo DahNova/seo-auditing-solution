@@ -435,6 +435,11 @@ class ClientsModule {
             utils.showToast('Errore nell\'eliminazione del cliente', 'error');
         }
     }
+
+    // Alias method for templated version compatibility
+    async createClient() {
+        return this.addClient();
+    }
 }
 
 // Export module

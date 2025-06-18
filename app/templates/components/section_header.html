@@ -1,0 +1,37 @@
+{% macro section_header(title, subtitle, icon, accent_text, stats=[], actions=[]) %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="modern-section-header">
+            <div class="section-header-content">
+                <div class="section-icon {% if icon_class %}{{ icon_class }}{% endif %}">
+                    <i class="bi {{ icon }}"></i>
+                </div>
+                <div class="section-title-content">
+                    <h1 class="section-title">{{ title }} <span class="title-accent">{{ accent_text }}</span></h1>
+                    <p class="section-subtitle">{{ subtitle }}</p>
+                    {% if stats %}
+                    <div class="section-stats-mini">
+                        {% for stat in stats %}
+                        <span class="mini-stat">
+                            <i class="bi {{ stat.icon }}"></i> 
+                            <span id="{{ stat.id }}">{{ stat.default }}</span> {{ stat.label }}
+                        </span>
+                        {% if not loop.last %}<span class="separator">•</span>{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if actions %}
+            <div class="section-actions">
+                {% for action in actions %}
+                <button class="btn {{ action.class }}" onclick="{{ action.onclick }}">
+                    <i class="bi {{ action.icon }}"></i> {{ action.label }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}

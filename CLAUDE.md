@@ -1,4 +1,4 @@
-# SEO Auditing Solution - Dexa Agency
+# SEO Auditing Solution - Nova Tools
 
 ## Stato Attuale del Progetto (SOTA)
 

@@ -1,0 +1,112 @@
+{% from 'macros.html' import modal_base, form_field %}
+
+<!-- Schedule Modal -->
+{% call modal_base('scheduleModal', 'Nuova Programmazione Scansione') %}
+<form id="scheduleForm">
+    {{ form_field('select', 'scheduleWebsite', 'Sito Web', required=true, placeholder='Seleziona sito web...') }}
+    
+    {{ form_field('select', 'scheduleFrequency', 'Frequenza Scansione', required=true, options=[
+        {'value': 'daily', 'text': 'Giornaliera'},
+        {'value': 'weekly', 'text': 'Settimanale'},
+        {'value': 'monthly', 'text': 'Mensile'}
+    ], value='monthly') }}
+    
+    <div class="form-text mb-3">La frequenza determina quanto spesso il sito verrà scansionato automaticamente.</div>
+    
+    {{ form_field('number', 'scheduleMaxPages', 'Massimo Pagine da Scansionare', value='1000') }}
+    <div class="form-text mb-3">Limite massimo di pagine da analizzare per scansione.</div>
+    
+    {{ form_field('number', 'scheduleMaxDepth', 'Profondità Massima', value='5') }}
+    <div class="form-text mb-3">Livelli di navigazione massimi da seguire.</div>
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="scheduleRobotsRespect" checked>
+        <label class="form-check-label" for="scheduleRobotsRespect">
+            Rispetta robots.txt
+        </label>
+        <div class="form-text">Se attivato, la scansione rispetterà le direttive del file robots.txt.</div>
+    </div>
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="scheduleIncludeExternal">
+        <label class="form-check-label" for="scheduleIncludeExternal">
+            Includi link esterni
+        </label>
+        <div class="form-text">Se attivato, verranno analizzati anche i link verso siti esterni.</div>
+    </div>
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="scheduleStartNow">
+        <label class="form-check-label" for="scheduleStartNow">
+            Avvia prima scansione immediatamente
+        </label>
+    </div>
+</form>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+    <button type="button" class="btn btn-primary" onclick="scheduler.createSchedule()">
+        <i class="bi bi-check-circle"></i> Crea Programmazione
+    </button>
+</div>
+{% endcall %}
+
+<!-- Edit Schedule Modal -->
+{% call modal_base('editScheduleModal', 'Modifica Programmazione Scansione') %}
+<form id="editScheduleForm">
+    <input type="hidden" id="editWebsiteId">
+    
+    {{ form_field('text', 'editWebsiteDomain', 'Sito Web') }}
+    
+    {{ form_field('select', 'editScheduleFrequency', 'Frequenza Scansione', required=true, options=[
+        {'value': 'daily', 'text': 'Giornaliera'},
+        {'value': 'weekly', 'text': 'Settimanale'},
+        {'value': 'monthly', 'text': 'Mensile'}
+    ]) }}
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="editScheduleActive">
+        <label class="form-check-label" for="editScheduleActive">
+            Programmazione attiva
+        </label>
+    </div>
+</form>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-danger" onclick="scheduler.deleteScheduleFromModal()">
+        <i class="bi bi-trash"></i> Elimina Programmazione
+    </button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+    <button type="button" class="btn btn-primary" onclick="scheduler.updateSchedule()">
+        <i class="bi bi-check-circle"></i> Salva Modifiche
+    </button>
+</div>
+{% endcall %}
+
+<!-- Bulk Schedule Modal -->
+{% call modal_base('bulkScheduleModal', 'Programmazione Bulk') %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>Programmazione di massa:</strong> Questa funzione creerà automaticamente programmazioni per tutti i siti web attivi che non ne hanno ancora una.
+</div>
+<form id="bulkScheduleForm">
+    {{ form_field('select', 'bulkFrequency', 'Frequenza per Tutti i Siti', required=true, options=[
+        {'value': 'hourly', 'text': '🕐 Oraria'},
+        {'value': 'daily', 'text': '🌅 Giornaliera'},
+        {'value': 'weekly', 'text': '📅 Settimanale'},
+        {'value': 'monthly', 'text': '🗓️ Mensile'}
+    ], value='weekly') }}
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="bulkOnlyUnscheduled" checked>
+        <label class="form-check-label" for="bulkOnlyUnscheduled">
+            Solo siti senza programmazione esistente
+        </label>
+        <div class="form-text">Se attivato, verrà saltato chi ha già una programmazione attiva.</div>
+    </div>
+</form>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+    <button type="button" class="btn btn-warning" onclick="scheduler.createBulkSchedules()">
+        <i class="bi bi-lightning"></i> Avvia Programmazione Bulk
+    </button>
+</div>
+{% endcall %}

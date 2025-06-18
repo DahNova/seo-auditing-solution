@@ -1,0 +1,201 @@
+<!-- Scheduler Section -->
+<div id="scheduler-section" class="content-section" style="display: none;">
+    <!-- Professional Scheduler Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="scheduler-header-professional">
+                <div class="header-left">
+                    <div class="header-icon-modern">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div class="header-content">
+                        <h2 class="scheduler-title">Scheduler <span class="accent-text">Management</span></h2>
+                        <div class="scheduler-status-bar">
+                            <span class="status-indicator" id="scheduler-status">
+                                <i class="bi bi-circle-fill text-success"></i> Sistema Operativo
+                            </span>
+                            <span class="separator">•</span>
+                            <span class="live-stats">
+                                <i class="bi bi-calendar-check"></i> <span id="scheduled-count-header">0</span> programmate
+                            </span>
+                            <span class="separator">•</span>
+                            <span class="live-stats">
+                                <i class="bi bi-cpu"></i> <span id="workers-count-header">0</span> workers
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions-compact">
+                    <button class="btn btn-pro-primary" onclick="scheduler.showScheduleModal()">
+                        <i class="bi bi-plus-lg"></i> Nuova
+                    </button>
+                    <button class="btn btn-pro-secondary" onclick="scheduler.refreshData()" id="scheduler-refresh">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Professional Stats -->
+    <div class="row mb-3">
+        {% set scheduler_stats = [
+            {'id': 'active-workers', 'label': 'Workers', 'icon': 'bi-cpu', 'class': 'workers', 'status_id': 'worker-status-indicator'},
+            {'id': 'queue-size', 'label': 'Queue', 'icon': 'bi-list-task', 'class': 'queue', 'trend_id': 'queue-trend'},
+            {'id': 'processed-today', 'label': 'Oggi', 'icon': 'bi-check-circle', 'class': 'completed', 'trend_class': 'positive'},
+            {'id': 'scheduled-scans-count', 'label': 'Programmate', 'icon': 'bi-calendar-check', 'class': 'scheduled'}
+        ] %}
+        
+        {% for stat in scheduler_stats %}
+        <div class="col-lg-3 col-md-6 mb-2">
+            <div class="stat-card-pro">
+                <div class="stat-icon stat-icon-{{ stat.class }}">
+                    <i class="bi {{ stat.icon }}"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">{{ stat.label }}</div>
+                    <div class="stat-value" id="{{ stat.id }}">0</div>
+                </div>
+                {% if stat.status_id %}
+                <div class="stat-status" id="{{ stat.status_id }}">
+                    <i class="bi bi-circle-fill text-success"></i>
+                </div>
+                {% elif stat.trend_id %}
+                <div class="stat-trend" id="{{ stat.trend_id }}">
+                    <i class="bi bi-dash"></i>
+                </div>
+                {% elif stat.trend_class %}
+                <div class="stat-trend {{ stat.trend_class }}">
+                    <i class="bi bi-arrow-up"></i>
+                </div>
+                {% else %}
+                <div class="stat-trend">
+                    <i class="bi bi-calendar"></i>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Scheduled Scans -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header-pro">
+                    <div class="card-header-left">
+                        <h5 class="card-title-pro">
+                            <i class="bi bi-calendar-event"></i> Scansioni Programmate
+                        </h5>
+                    </div>
+                    <div class="card-header-actions">
+                        <button class="btn btn-pro-outline-warning btn-sm" onclick="scheduler.showBulkScheduleModal()">
+                            <i class="bi bi-lightning"></i> Bulk
+                        </button>
+                        <button class="btn btn-pro-primary btn-sm" onclick="scheduler.showScheduleModal()">
+                            <i class="bi bi-plus"></i> Nuova
+                        </button>
+                    </div>
+                </div>
+                <div class="filters-bar-pro">
+                    <div class="filter-group">
+                        <input type="text" class="filter-input-pro" id="schedule-search" placeholder="Cerca sito web...">
+                    </div>
+                    <div class="filter-group">
+                        <select class="filter-select-pro" id="schedule-status-filter">
+                            <option value="">Tutti</option>
+                            <option value="active">Attivi</option>
+                            <option value="inactive">Inattivi</option>
+                            <option value="error">Errori</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select class="filter-select-pro" id="schedule-frequency-filter">
+                            <option value="">Frequenza</option>
+                            <option value="hourly">Oraria</option>
+                            <option value="daily">Giornaliera</option>
+                            <option value="weekly">Settimanale</option>
+                            <option value="monthly">Mensile</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn-filter-reset" onclick="scheduler.clearFilters()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Sito Web</th>
+                                    <th>Frequenza</th>
+                                    <th>Ultima Scansione</th>
+                                    <th>Prossima Scansione</th>
+                                    <th>Stato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduled-scans-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Tasks -->
+            <div class="card">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Task Attivi</h5>
+                </div>
+                <div class="card-body">
+                    <div id="active-tasks-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Controls & Stats -->
+        <div class="col-lg-4">
+            <!-- Queue Controls -->
+            <div class="card mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Controlli Queue</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success" onclick="app.purgeQueue()">
+                            <i class="bi bi-trash"></i> Pulisci Queue
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="app.pauseScheduler()">
+                            <i class="bi bi-pause-circle"></i> Pausa Scheduler
+                        </button>
+                        <button class="btn btn-outline-info" onclick="app.resumeScheduler()">
+                            <i class="bi bi-play-circle"></i> Riprendi Scheduler
+                        </button>
+                        <hr class="my-3">
+                        <button class="btn btn-outline-primary" onclick="app.showWorkerStats()">
+                            <i class="bi bi-graph-up"></i> Statistiche Worker
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Tasks Log -->
+            <div class="card">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Log Task Recenti</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recent-tasks-log" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,67 @@
+<!-- Client Form - HTMX Enabled -->
+<div class="modal fade" id="clientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {% if mode == "create" %}Nuovo Cliente{% else %}Modifica Cliente{% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <form {% if mode == "create" %}
+                      hx-post="/htmx/clients/create"
+                      hx-target="#clients-table"
+                      hx-swap="outerHTML"
+                  {% else %}
+                      hx-put="/htmx/clients/{{ client.id }}"
+                      hx-target="#client-row-{{ client.id }}"
+                      hx-swap="outerHTML"
+                  {% endif %}
+                  hx-on::after-request="closeModal('clientModal')">
+                
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome Cliente *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               name="name" 
+                               required
+                               value="{% if mode == 'edit' %}{{ client.name }}{% endif %}"
+                               placeholder="Es. Azienda XYZ"
+                               x-data
+                               x-on:input="$el.setCustomValidity('')">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_email" class="form-label">Email *</label>
+                        <input type="email" 
+                               class="form-control" 
+                               name="contact_email" 
+                               required
+                               value="{% if mode == 'edit' %}{{ client.contact_email }}{% endif %}"
+                               placeholder="cliente@example.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" 
+                                  name="description" 
+                                  rows="3"
+                                  placeholder="Descrizione del cliente...">{% if mode == 'edit' %}{{ client.description or '' }}{% endif %}</textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Annulla
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i>
+                        {% if mode == "create" %}Crea Cliente{% else %}Salva Modifiche{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

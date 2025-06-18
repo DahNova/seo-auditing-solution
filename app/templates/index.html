@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from 'macros.html' import section_header, stats_grid, card_pro, filters_bar, data_table %}
+
+{% block content %}
+    <!-- Main Content -->
+    <div class="mt-4">
+        <!-- Dashboard Section (Server-side Rendered) -->
+        {% if current_section == 'dashboard' or not current_section %}
+        {% include 'components/sections/dashboard.html' %}
+        {% endif %}
+
+        <!-- Clients Section (Server-side Rendered) -->
+        {% if current_section == 'clients' %}
+        {% include 'components/sections/clients.html' %}
+        {% endif %}
+
+        <!-- Websites Section (Server-side Rendered) -->
+        {% if current_section == 'websites' %}
+        {% include 'components/sections/websites.html' %}
+        {% endif %}
+
+        <!-- Scans Section (Server-side Rendered) -->
+        {% if current_section == 'scans' %}
+        {% include 'components/sections/scans.html' %}
+        {% endif %}
+
+        <!-- Scheduler Section (Server-side Rendered) -->
+        {% if current_section == 'scheduler' %}
+        {% include 'components/sections/scheduler.html' %}
+        {% endif %}
+
+        <!-- Scan Results Section (Server-side Rendered) -->
+        {% if current_section == 'scan_results' %}
+        {% include 'components/sections/scan_results.html' %}
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Update last-update timestamp every minute
+    function updateTimestamp() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('it-IT', { 
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
+        const element = document.getElementById('last-update');
+        if (element) {
+            element.textContent = timeString;
+        }
+    }
+    
+    // Update timestamp on load and then every minute
+    updateTimestamp();
+    setInterval(updateTimestamp, 60000);
+</script>
+{% endblock %}

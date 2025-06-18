@@ -617,6 +617,11 @@ class ScansModule {
             utils.showToast('Errore nell\'eliminazione della scansione', 'error');
         }
     }
+
+    // Alias method for templated version compatibility
+    async createScan() {
+        return this.startNewScan();
+    }
 }
 
 // Export module

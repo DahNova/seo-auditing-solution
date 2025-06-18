@@ -1,0 +1,174 @@
+<!-- SEO Auditing Solution - Reusable Macros -->
+
+<!-- Professional Section Header -->
+{% macro section_header(title, subtitle, icon, actions=[]) %}
+<div class="scheduler-header-professional">
+    <div class="header-left">
+        <div class="header-icon-modern">
+            <i class="bi bi-{{ icon }}"></i>
+        </div>
+        <div class="header-content">
+            <h2 class="scheduler-title">{{ title }}</h2>
+            {% if subtitle %}
+            <div class="scheduler-status-bar">
+                <span class="status-indicator">
+                    {{ subtitle | safe }}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if actions %}
+    <div class="header-actions-compact">
+        {% for action in actions %}
+        <button class="btn {{ action.class }}" onclick="{{ action.onclick }}" {% if action.id %}id="{{ action.id }}"{% endif %}>
+            <i class="bi bi-{{ action.icon }}"></i> {{ action.text }}
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+<!-- Stats Cards Grid -->
+{% macro stats_grid(stats) %}
+<div class="row mb-3">
+    {% for stat in stats %}
+    <div class="col-lg-3 col-md-6 mb-2">
+        <div class="stat-card-pro">
+            <div class="stat-icon stat-icon-{{ stat.type }}">
+                <i class="bi bi-{{ stat.icon }}"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">{{ stat.label }}</div>
+                <div class="stat-value" id="{{ stat.value_id }}">{{ stat.value }}</div>
+            </div>
+            {% if stat.trend %}
+            <div class="stat-trend {{ stat.trend_class }}">
+                <i class="bi bi-{{ stat.trend_icon }}"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+<!-- Professional Card with Header -->
+{% macro card_pro(title, icon, actions=[], id="") %}
+<div class="card mb-4" {% if id %}id="{{ id }}"{% endif %}>
+    <div class="card-header-pro">
+        <div class="card-header-left">
+            <h5 class="card-title-pro">
+                <i class="bi bi-{{ icon }}"></i> {{ title }}
+            </h5>
+        </div>
+        {% if actions %}
+        <div class="card-header-actions">
+            {% for action in actions %}
+            <button class="btn {{ action.class }} btn-sm" onclick="{{ action.onclick }}">
+                <i class="bi bi-{{ action.icon }}"></i> {{ action.text }}
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+<!-- Professional Filters Bar -->
+{% macro filters_bar(filters) %}
+<div class="filters-bar-pro">
+    {% for filter in filters %}
+    <div class="filter-group">
+        {% if filter.type == 'input' %}
+        <input type="text" class="filter-input-pro" id="{{ filter.id }}" placeholder="{{ filter.placeholder }}">
+        {% elif filter.type == 'select' %}
+        <select class="filter-select-pro" id="{{ filter.id }}">
+            {% for option in filter.options %}
+            <option value="{{ option.value }}">{{ option.text }}</option>
+            {% endfor %}
+        </select>
+        {% elif filter.type == 'reset' %}
+        <button class="btn-filter-reset" onclick="{{ filter.onclick }}">
+            <i class="bi bi-x"></i>
+        </button>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+<!-- Data Table -->
+{% macro data_table(headers, tbody_id, empty_message="Nessun dato disponibile") %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody id="{{ tbody_id }}">
+            <tr>
+                <td colspan="{{ headers|length }}" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="bi bi-hourglass fs-1 opacity-50"></i>
+                        <p class="mt-2">{{ empty_message }}</p>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+<!-- Navigation Menu Item -->
+{% macro nav_item(section, icon, text, active=false) %}
+<li class="nav-item">
+    <a href="/templated/{% if section != 'dashboard' %}{{ section }}{% endif %}" class="nav-link {{ 'active' if current_section == section else '' }}" data-section="{{ section }}">
+        <div class="nav-icon">
+            <i class="bi bi-{{ icon }}"></i>
+        </div>
+        <span>{{ text }}</span>
+    </a>
+</li>
+{% endmacro %}
+
+<!-- Modal Base Structure -->
+{% macro modal_base(modal_id, title, size="") %}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1">
+    <div class="modal-dialog {{ size }}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{ caller() }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+<!-- Form Field -->
+{% macro form_field(type, id, label, required=false, placeholder="", options=[], value="") %}
+<div class="mb-3">
+    <label for="{{ id }}" class="form-label">{{ label }}{% if required %} *{% endif %}</label>
+    {% if type == 'select' %}
+    <select class="form-select" id="{{ id }}" {% if required %}required{% endif %}>
+        {% if placeholder %}<option value="">{{ placeholder }}</option>{% endif %}
+        {% for option in options %}
+        <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>{{ option.text }}</option>
+        {% endfor %}
+    </select>
+    {% elif type == 'textarea' %}
+    <textarea class="form-control" id="{{ id }}" {% if required %}required{% endif %} placeholder="{{ placeholder }}">{{ value }}</textarea>
+    {% else %}
+    <input type="{{ type }}" class="form-control" id="{{ id }}" {% if required %}required{% endif %} placeholder="{{ placeholder }}" value="{{ value }}">
+    {% endif %}
+</div>
+{% endmacro %}

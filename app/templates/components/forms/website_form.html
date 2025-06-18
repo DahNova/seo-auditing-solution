@@ -1,0 +1,80 @@
+<!-- Website Form - HTMX Enabled -->
+<div class="modal fade" id="websiteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {% if mode == "create" %}Nuovo Sito Web{% else %}Modifica Sito Web{% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <form {% if mode == "create" %}
+                      hx-post="/htmx/websites/create"
+                      hx-target="#websites-table"
+                      hx-swap="outerHTML"
+                  {% else %}
+                      hx-put="/htmx/websites/{{ website.id }}"
+                      hx-target="#website-row-{{ website.id }}"
+                      hx-swap="outerHTML"
+                  {% endif %}
+                  hx-on::after-request="closeModal('websiteModal')">
+                
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome Sito *</label>
+                        <input type="text" 
+                               class="form-control" 
+                               name="name" 
+                               required
+                               value="{% if mode == 'edit' %}{{ website.name }}{% endif %}"
+                               placeholder="Es. Sito Principale"
+                               x-data
+                               x-on:input="$el.setCustomValidity('')">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="domain" class="form-label">Dominio *</label>
+                        <input type="url" 
+                               class="form-control" 
+                               name="domain" 
+                               required
+                               value="{% if mode == 'edit' %}{{ website.domain }}{% endif %}"
+                               placeholder="https://example.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Cliente *</label>
+                        <select class="form-select" name="client_id" required>
+                            <option value="">Seleziona cliente...</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}"
+                                    {% if mode == 'edit' and website.client_id == client.id %}selected{% endif %}>
+                                {{ client.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" 
+                                  name="description" 
+                                  rows="3"
+                                  placeholder="Descrizione del sito web...">{% if mode == 'edit' %}{{ website.description or '' }}{% endif %}</textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Annulla
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i>
+                        {% if mode == "create" %}Crea Sito Web{% else %}Salva Modifiche{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

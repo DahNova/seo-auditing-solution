@@ -1,0 +1,74 @@
+<tr class="table-row-modern" id="client-row-{{ client.id }}">
+    <td class="col-name">
+        <div class="client-info">
+            <div class="client-icon">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            <div class="client-details">
+                <div class="client-name">{{ client.name }}</div>
+                {% if client.company %}
+                <div class="client-company">{{ client.company }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+    <td class="col-email">
+        <div class="email-info">
+            <a href="mailto:{{ client.contact_email }}" class="email-link">
+                {{ client.contact_email }}
+            </a>
+        </div>
+    </td>
+    <td class="col-phone">
+        <div class="phone-info">
+            {% if client.contact_phone %}
+            <a href="tel:{{ client.contact_phone }}" class="phone-link">
+                {{ client.contact_phone }}
+            </a>
+            {% else %}
+            <span class="text-muted">--</span>
+            {% endif %}
+        </div>
+    </td>
+    <td class="col-websites">
+        <div class="websites-count">
+            <span class="count-number">{{ client.websites_count }}</span>
+            <span class="count-label">siti</span>
+        </div>
+    </td>
+    <td class="col-status">
+        <span class="badge badge-success">{{ client.status }}</span>
+    </td>
+    <td class="col-updated">
+        <div class="date-info">
+            {% if client.updated_at %}
+            <div class="date-main">{{ client.updated_at.strftime('%d/%m/%Y') }}</div>
+            <div class="date-time">{{ client.updated_at.strftime('%H:%M') }}</div>
+            {% elif client.created_at %}
+            <div class="date-main">{{ client.created_at.strftime('%d/%m/%Y') }}</div>
+            <div class="date-time">{{ client.created_at.strftime('%H:%M') }}</div>
+            {% else %}
+            <div class="date-main">--</div>
+            {% endif %}
+        </div>
+    </td>
+    <td class="col-actions">
+        <div class="action-buttons">
+            <button class="btn btn-sm btn-outline-primary" 
+                    hx-get="/htmx/clients/{{ client.id }}/edit"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML"
+                    title="Modifica">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" 
+                    hx-delete="/htmx/clients/{{ client.id }}"
+                    hx-target="#client-row-{{ client.id }}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Sei sicuro di voler eliminare questo cliente?"
+                    title="Elimina">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>

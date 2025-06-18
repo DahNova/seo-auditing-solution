@@ -1,0 +1,115 @@
+<!-- Header Top Bar -->
+<div class="header-top">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="header-info">
+                    <span class="badge bg-success pulse-animation">
+                        <i class="bi bi-circle-fill"></i> Sistema Attivo
+                    </span>
+                    <span class="text-muted ms-3">
+                        <i class="bi bi-clock"></i> Ultimo aggiornamento: <span id="last-update">In tempo reale</span>
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="header-actions">
+                    <button class="btn btn-outline-light btn-sm me-2" onclick="app.refreshData()">
+                        <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                    </button>
+                    <div class="dropdown d-inline-block">
+                        <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> Admin
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Impostazioni</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle"></i> Aiuto</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Navigation Header -->
+<header class="main-header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <!-- Logo e Brand -->
+            <div class="col-lg-3 col-md-4">
+                <div class="brand-section">
+                    <div class="logo-container">
+                        <div class="logo-icon">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+                        <div class="brand-text">
+                            <h1 class="brand-title">SEO<span class="brand-accent">Audit</span></h1>
+                            <p class="brand-subtitle">Nova Tools</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Menu -->
+            <div class="col-lg-6 col-md-5">
+                <nav class="main-nav">
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a href="/templated/" class="nav-link {% if current_section == 'dashboard' %}active{% endif %}" data-section="dashboard">
+                                <div class="nav-icon">
+                                    <i class="bi bi-speedometer2"></i>
+                                </div>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/templated/clients" class="nav-link {% if current_section == 'clients' %}active{% endif %}" data-section="clients">
+                                <div class="nav-icon">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <span>Clienti</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/templated/websites" class="nav-link {% if current_section == 'websites' %}active{% endif %}" data-section="websites">
+                                <div class="nav-icon">
+                                    <i class="bi bi-globe"></i>
+                                </div>
+                                <span>Siti Web</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/templated/scans" class="nav-link {% if current_section == 'scans' %}active{% endif %}" data-section="scans">
+                                <div class="nav-icon">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                                <span>Scansioni</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/templated/scheduler" class="nav-link {% if current_section == 'scheduler' %}active{% endif %}" data-section="scheduler">
+                                <div class="nav-icon">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                                <span>Scheduler</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="col-lg-3 col-md-3">
+                <div class="header-cta">
+                    <button class="btn btn-gradient btn-lg" onclick="app.showNewScanModal()">
+                        <i class="bi bi-rocket-takeoff"></i>
+                        <span class="btn-text">Nuova Scansione</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>

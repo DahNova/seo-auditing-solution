@@ -32,7 +32,7 @@ async def create_sample_data():
         
         # Create sample client
         client = Client(
-            name="Dexa Agency",
+            name="Nova Tools",
             description="Sample client for testing",
             contact_email="test@dexa.com"
         )

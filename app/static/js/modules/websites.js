@@ -611,6 +611,11 @@ class WebsitesModule {
             utils.showToast('Errore nell\'avvio della scansione', 'error');
         }
     }
+
+    // Alias method for templated version compatibility
+    async createWebsite() {
+        return this.addWebsite();
+    }
 }
 
 // Export module

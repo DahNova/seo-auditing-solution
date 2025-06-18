@@ -9,15 +9,29 @@ class SEOAuditingApp {
         this.setupEventListeners();
         this.setupModernFeatures();
         await this.loadInitialData();
-        this.showSection('dashboard');
+        
+        // Don't force dashboard for templated pages
+        if (!window.location.pathname.startsWith('/templated/')) {
+            this.showSection('dashboard');
+        }
     }
 
     setupEventListeners() {
         // Navigation
         document.querySelectorAll('[data-section]').forEach(link => {
             link.addEventListener('click', (e) => {
+                // Don't prevent default for templated navigation links
+                const linkElement = e.target.closest('[data-section]');
+                const href = linkElement.getAttribute('href');
+                
+                // If it's a templated URL, allow normal navigation
+                if (href && href.startsWith('/templated/')) {
+                    return; // Let the browser handle the navigation
+                }
+                
+                // For old SPA navigation (href="#"), prevent default
                 e.preventDefault();
-                const section = e.target.closest('[data-section]').dataset.section;
+                const section = linkElement.dataset.section;
                 this.showSection(section);
             });
         });
@@ -218,14 +232,30 @@ class SEOAuditingApp {
 
     // Module delegation methods for backward compatibility
     refreshClientsData() {
+        // For templated pages, just reload the page
+        if (window.location.pathname.startsWith('/templated/')) {
+            window.location.reload();
+            return;
+        }
         return clients.refreshData();
     }
 
     refreshWebsitesData() {
+        // For templated pages, just reload the page
+        if (window.location.pathname.startsWith('/templated/')) {
+            window.location.reload();
+            return;
+        }
         return websites.refreshData();
     }
 
     refreshScansData() {
+        // For templated pages, just reload the page
+        if (window.location.pathname.startsWith('/templated/')) {
+            window.location.reload();
+            return;
+        }
+        // For SPA, use the old method
         return scans.refreshData();
     }
 
@@ -239,6 +269,43 @@ class SEOAuditingApp {
 
     clearWebsitesFilters() {
         return websites.clearFilters();
+    }
+
+    // Scan action methods for templated compatibility
+    async cancelScan(scanId) {
+        try {
+            await scans.cancelScan(scanId);
+            // For templated pages, reload to show updated data
+            if (window.location.pathname.startsWith('/templated/')) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error cancelling scan:', error);
+        }
+    }
+
+    async retryScan(scanId) {
+        try {
+            await scans.retryScan(scanId);
+            // For templated pages, reload to show updated data
+            if (window.location.pathname.startsWith('/templated/')) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error retrying scan:', error);
+        }
+    }
+
+    async deleteScan(scanId) {
+        try {
+            await scans.deleteScan(scanId);
+            // For templated pages, reload to show updated data
+            if (window.location.pathname.startsWith('/templated/')) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error deleting scan:', error);
+        }
     }
 
     clearScansFilters() {

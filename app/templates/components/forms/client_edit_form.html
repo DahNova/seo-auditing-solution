@@ -1,0 +1,76 @@
+<!-- Edit Client Modal -->
+<div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editClientModalLabel">
+                    <i class="bi bi-pencil-square"></i> Modifica Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form hx-put="/htmx/clients/{{ client.id }}"
+                  hx-target="#clients-table"
+                  hx-swap="innerHTML"
+                  hx-on::after-request="if(event.detail.successful) { bootstrap.Modal.getInstance(document.getElementById('editClientModal')).hide(); }">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-client-name" class="form-label">
+                                    <i class="bi bi-person"></i> Nome Cliente *
+                                </label>
+                                <input type="text" class="form-control" id="edit-client-name" name="name" 
+                                       value="{{ client.name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-client-email" class="form-label">
+                                    <i class="bi bi-envelope"></i> Email di Contatto *
+                                </label>
+                                <input type="email" class="form-control" id="edit-client-email" name="contact_email" 
+                                       value="{{ client.contact_email }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-client-phone" class="form-label">
+                                    <i class="bi bi-telephone"></i> Telefono
+                                </label>
+                                <input type="tel" class="form-control" id="edit-client-phone" name="contact_phone" 
+                                       value="{{ client.contact_phone or '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-client-company" class="form-label">
+                                    <i class="bi bi-building"></i> Azienda
+                                </label>
+                                <input type="text" class="form-control" id="edit-client-company" name="company" 
+                                       value="{{ client.company or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-client-notes" class="form-label">
+                            <i class="bi bi-sticky"></i> Note
+                        </label>
+                        <textarea class="form-control" id="edit-client-notes" name="notes" rows="3">{{ client.notes or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Annulla
+                    </button>
+                    <button type="submit" class="btn btn-gradient-primary">
+                        <i class="bi bi-check-circle"></i> Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

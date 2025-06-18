@@ -1,0 +1,76 @@
+{% macro stats_card(title, value_id, trend_text, trend_id, icon, card_class, icon_class) %}
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="modern-stats-card {{ card_class }} fade-in">
+        <div class="stats-card-bg"></div>
+        <div class="stats-card-content">
+            <div class="stats-icon-container">
+                <div class="stats-icon {{ icon_class }}">
+                    <i class="bi {{ icon }}"></i>
+                </div>
+            </div>
+            <div class="stats-data">
+                <div class="stats-label">{{ title }}</div>
+                <div class="stats-number" id="{{ value_id }}">0</div>
+                <div class="stats-trend {% if trend_class %}{{ trend_class }}{% endif %}">
+                    <i class="bi {% if trend_icon %}{{ trend_icon }}{% endif %}"></i>
+                    <span id="{{ trend_id }}">{{ trend_text }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="stats-card-shine"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro dashboard_stats_row() %}
+<!-- Modern Stats Cards Row -->
+<div class="row mb-4 dashboard-stats-row">
+    {{ stats_card(
+        title="Clienti Attivi",
+        value_id="total-clients", 
+        trend_text="+0 questo mese",
+        trend_id="clients-growth",
+        icon="bi-people",
+        card_class="clients-card",
+        icon_class="clients-icon",
+        trend_class="positive",
+        trend_icon="bi-trending-up"
+    ) }}
+    
+    {{ stats_card(
+        title="Siti Monitorati",
+        value_id="total-websites", 
+        trend_text="0 attivi",
+        trend_id="active-websites",
+        icon="bi-globe",
+        card_class="websites-card",
+        icon_class="websites-icon",
+        trend_class="info",
+        trend_icon="bi-activity"
+    ) }}
+    
+    {{ stats_card(
+        title="Scansioni Complete",
+        value_id="total-scans", 
+        trend_text="mai",
+        trend_id="last-scan-time",
+        icon="bi-search",
+        card_class="scans-card",
+        icon_class="scans-icon",
+        trend_class="neutral",
+        trend_icon="bi-clock"
+    ) }}
+    
+    {{ stats_card(
+        title="Problemi Critici",
+        value_id="critical-issues-total", 
+        trend_text="Richiedono attenzione",
+        trend_id="",
+        icon="bi-exclamation-triangle",
+        card_class="issues-card",
+        icon_class="issues-icon",
+        trend_class="warning",
+        trend_icon="bi-exclamation-triangle"
+    ) }}
+</div>
+{% endmacro %}

@@ -1,0 +1,346 @@
+{% from 'macros.html' import section_header, stats_grid, card_pro %}
+
+<!-- Dashboard Section -->
+<div id="dashboard-section" class="content-section">
+    <!-- Modern Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="dashboard-header">
+                <div class="dashboard-title-section">
+                    <div class="dashboard-icon">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <div class="dashboard-title-content">
+                        <h1 class="dashboard-title">Dashboard <span class="title-accent">Professionale</span></h1>
+                        <p class="dashboard-subtitle">Panoramica completa delle performance SEO dei tuoi clienti</p>
+                        <div class="dashboard-stats-mini">
+                            <span class="mini-stat">
+                                <i class="bi bi-lightning-charge"></i> 
+                                <span id="mini-active-scans">0</span> scansioni attive
+                            </span>
+                            <span class="mini-stat">
+                                <i class="bi bi-clock"></i> 
+                                Ultimo update: <span id="mini-last-update">ora</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modern Stats Cards Row -->
+    <div class="row mb-4 dashboard-stats-row">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card clients-card fade-in">
+                <div class="stats-card-bg"></div>
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon clients-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Clienti Attivi</div>
+                        <div class="stats-number" id="total-clients">{{ dashboard_stats.total_clients }}</div>
+                        <div class="stats-trend positive">
+                            <i class="bi bi-trending-up"></i>
+                            <span id="clients-growth">{{ dashboard_stats.clients_growth }}</span> questo mese
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card-shine"></div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card websites-card fade-in">
+                <div class="stats-card-bg"></div>
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon websites-icon">
+                            <i class="bi bi-globe"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Siti Monitorati</div>
+                        <div class="stats-number" id="total-websites">{{ dashboard_stats.total_websites }}</div>
+                        <div class="stats-trend info">
+                            <i class="bi bi-activity"></i>
+                            <span id="active-websites">{{ dashboard_stats.active_websites }}</span> attivi
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card-shine"></div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card scans-card fade-in">
+                <div class="stats-card-bg"></div>
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon scans-icon">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Scansioni Complete</div>
+                        <div class="stats-number" id="total-scans">{{ dashboard_stats.total_scans }}</div>
+                        <div class="stats-trend neutral">
+                            <i class="bi bi-clock"></i>
+                            <span id="last-scan-time">{{ dashboard_stats.last_scan_time }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card-shine"></div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="modern-stats-card issues-card fade-in">
+                <div class="stats-card-bg"></div>
+                <div class="stats-card-content">
+                    <div class="stats-icon-container">
+                        <div class="stats-icon issues-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="stats-data">
+                        <div class="stats-label">Problemi Critici</div>
+                        <div class="stats-number" id="critical-issues-total">{{ dashboard_stats.critical_issues }}</div>
+                        <div class="stats-trend warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Richiedono attenzione
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-card-shine"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="row">
+        <!-- Recent Scans & Performance -->
+        <div class="col-lg-8">
+            <!-- Modern Recent Scans -->
+            <div class="modern-dashboard-card recent-scans-card slide-in-right">
+                <div class="card-header-modern">
+                    <div class="card-header-content">
+                        <div class="card-icon">
+                            <i class="bi bi-activity"></i>
+                        </div>
+                        <div class="card-title-section">
+                            <h5 class="card-title-modern">Scansioni Recenti</h5>
+                            <p class="card-subtitle-modern">Monitora l'attività di scansione in tempo reale</p>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <a href="/templated/scans" class="btn btn-modern-outline">
+                            Vedi tutte <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body-modern">
+                    <div id="recent-scans-list" class="scans-list-modern">
+                        {% if recent_scans %}
+                            {% for scan in recent_scans[:5] %}
+                            {% if scan.status == 'completed' %}
+                            <a href="/templated/scan/{{ scan.id }}/results" class="scan-item-modern scan-item-link">
+                            {% else %}
+                            <div class="scan-item-modern">
+                            {% endif %}
+                                <div class="scan-icon">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                                <div class="scan-content">
+                                    <div class="scan-title">Scansione #{{ scan.id }}</div>
+                                    <div class="scan-details">
+                                        {{ scan.created_at.strftime('%d/%m/%Y %H:%M') }} • 
+                                        <span class="badge badge-{{ 'success' if scan.status == 'completed' else 'warning' if scan.status == 'running' else 'secondary' }}">
+                                            {{ scan.status.title() }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="scan-score">
+                                    {% if scan.seo_score %}
+                                        <span class="score-value">{{ scan.seo_score }}</span>
+                                    {% else %}
+                                        <span class="score-pending">--</span>
+                                    {% endif %}
+                                </div>
+                            {% if scan.status == 'completed' %}
+                            </a>
+                            {% else %}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-search-heart fs-1"></i>
+                                <p class="mb-0">Nessuna scansione recente</p>
+                                <small>Avvia la prima scansione per vedere i risultati qui</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern SEO Health Overview -->
+            <div class="modern-dashboard-card health-overview-card slide-in-right">
+                <div class="card-header-modern">
+                    <div class="card-header-content">
+                        <div class="card-icon health-icon">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div class="card-title-section">
+                            <h5 class="card-title-modern">Stato SEO <span class="title-accent">Complessivo</span></h5>
+                            <p class="card-subtitle-modern">Analisi delle performance aggregate di tutti i siti</p>
+                        </div>
+                    </div>
+                    <div class="health-score-preview">
+                        <div class="score-indicator">
+                            <span class="score-value" id="overall-score">{{ dashboard_stats.overall_score }}</span>
+                            <span class="score-label">Score</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body-modern">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="dashboardHealthChart" width="300" height="200"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="health-insights" class="health-insights-modern">
+                                <h6 class="insights-title">Insights SEO</h6>
+                                <div class="insight-item">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    <span>{{ dashboard_stats.total_websites }} siti monitorati attivamente</span>
+                                </div>
+                                <div class="insight-item">
+                                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                                    <span>{{ dashboard_stats.critical_issues }} problemi critici da risolvere</span>
+                                </div>
+                                <div class="insight-item">
+                                    <i class="bi bi-graph-up text-info"></i>
+                                    <span>Score medio: {{ dashboard_stats.overall_score }}/100</span>
+                                </div>
+                                {% if dashboard_stats.total_scans > 0 %}
+                                <div class="insight-item">
+                                    <i class="bi bi-clock text-primary"></i>
+                                    <span>Ultima scansione: {{ dashboard_stats.last_scan_time }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Quick Actions & Alerts -->
+        <div class="col-lg-4">
+            <!-- Modern Quick Actions -->
+            <div class="modern-dashboard-card quick-actions-card slide-in-right">
+                <div class="card-header-modern">
+                    <div class="card-header-content">
+                        <div class="card-icon lightning-icon">
+                            <i class="bi bi-lightning"></i>
+                        </div>
+                        <div class="card-title-section">
+                            <h5 class="card-title-modern">Azioni <span class="title-accent">Rapide</span></h5>
+                            <p class="card-subtitle-modern">Operazioni frequenti a portata di click</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body-modern">
+                    <div class="actions-grid">
+                        <button class="action-btn client-action" onclick="app.showAddClientModal()">
+                            <div class="action-icon">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nuovo Cliente</span>
+                                <span class="action-desc">Aggiungi cliente</span>
+                            </div>
+                        </button>
+                        <button class="action-btn website-action" onclick="app.showAddWebsiteModal()">
+                            <div class="action-icon">
+                                <i class="bi bi-globe-europe-africa"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nuovo Sito</span>
+                                <span class="action-desc">Aggiungi sito web</span>
+                            </div>
+                        </button>
+                        <button class="action-btn scan-action" onclick="app.showNewScanModal()">
+                            <div class="action-icon">
+                                <i class="bi bi-play-circle"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Avvia Scan</span>
+                                <span class="action-desc">Nuova scansione</span>
+                            </div>
+                        </button>
+                        <button class="action-btn report-action" onclick="app.viewAllReports()">
+                            <div class="action-icon">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Report</span>
+                                <span class="action-desc">Tutti i report</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Critical Alerts -->
+            <div class="modern-dashboard-card alerts-card slide-in-right">
+                <div class="card-header-modern danger-header">
+                    <div class="card-header-content">
+                        <div class="card-icon alert-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div class="card-title-section">
+                            <h5 class="card-title-modern">Alert <span class="title-accent danger">Critici</span></h5>
+                            <p class="card-subtitle-modern">Problemi che richiedono attenzione immediata</p>
+                        </div>
+                    </div>
+                    <div class="alert-counter">
+                        <span class="counter-value" id="alert-counter">{{ dashboard_stats.critical_issues }}</span>
+                    </div>
+                </div>
+                <div class="card-body-modern">
+                    <div id="critical-alerts" class="alerts-list-modern">
+                        {% if dashboard_stats.critical_issues > 0 %}
+                            <div class="alert-item">
+                                <div class="alert-icon">
+                                    <i class="bi bi-exclamation-triangle text-danger"></i>
+                                </div>
+                                <div class="alert-content">
+                                    <div class="alert-title">Problemi Critici Rilevati</div>
+                                    <div class="alert-desc">{{ dashboard_stats.critical_issues }} problemi richiedono attenzione immediata</div>
+                                </div>
+                                <div class="alert-action">
+                                    <button class="btn btn-sm btn-outline-danger" onclick="app.showSection('scans')">
+                                        Visualizza
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-shield-check fs-1 text-success"></i>
+                                <p class="mb-0">Nessun alert critico</p>
+                                <small>Tutti i siti sono in buono stato</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

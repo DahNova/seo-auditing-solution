@@ -1,0 +1,150 @@
+<!-- Scans Table - HTMX Enabled -->
+<div class="table-responsive" id="scans-table">
+    <table class="table table-modern">
+        <thead>
+            <tr>
+                <th class="col-id">
+                    <i class="bi bi-hash"></i> ID
+                </th>
+                <th class="col-website">
+                    <i class="bi bi-globe"></i> Sito Web
+                </th>
+                <th class="col-client">
+                    <i class="bi bi-person"></i> Cliente
+                </th>
+                <th class="col-status">
+                    <i class="bi bi-activity"></i> Stato
+                </th>
+                <th class="col-score">
+                    <i class="bi bi-star"></i> Score SEO
+                </th>
+                <th class="col-issues">
+                    <i class="bi bi-exclamation-triangle"></i> Problemi
+                </th>
+                <th class="col-pages">
+                    <i class="bi bi-file-text"></i> Pagine
+                </th>
+                <th class="col-date">
+                    <i class="bi bi-calendar"></i> Data
+                </th>
+                <th class="col-actions">
+                    <i class="bi bi-gear"></i> Azioni
+                </th>
+            </tr>
+        </thead>
+        <tbody class="table-body-modern">
+            {% for scan in scans %}
+            <tr class="table-row-modern" id="scan-row-{{ scan.id }}">
+                <td class="col-id">
+                    <span class="scan-id">#{{ scan.id }}</span>
+                </td>
+                <td class="col-website">
+                    <div class="website-info">
+                        <div class="website-name">{{ scan.website_name }}</div>
+                        <div class="scan-type text-muted">{{ scan.scan_type }}</div>
+                    </div>
+                </td>
+                <td class="col-client">
+                    <div class="client-badge">
+                        <i class="bi bi-person-circle"></i>
+                        <span>{{ scan.client_name }}</span>
+                    </div>
+                </td>
+                <td class="col-status">
+                    {% set status_class = 'success' if scan.status == 'completed' else 'warning' if scan.status == 'running' else 'danger' if scan.status == 'failed' else 'secondary' %}
+                    {% set status_icon = 'check-circle' if scan.status == 'completed' else 'clock' if scan.status == 'running' else 'x-circle' if scan.status == 'failed' else 'pause-circle' %}
+                    <span class="badge badge-{{ status_class }}">
+                        <i class="bi bi-{{ status_icon }}"></i>
+                        {{ scan.status.title() }}
+                    </span>
+                </td>
+                <td class="col-score">
+                    {% if scan.seo_score %}
+                    <div class="score-display">
+                        {% set score_class = 'text-success' if scan.seo_score >= 80 else 'text-warning' if scan.seo_score >= 60 else 'text-danger' %}
+                        <span class="score-value {{ score_class }}">{{ scan.seo_score }}</span>
+                        <span class="score-max">/100</span>
+                    </div>
+                    {% else %}
+                    <span class="text-muted">--</span>
+                    {% endif %}
+                </td>
+                <td class="col-issues">
+                    <div class="issues-count">
+                        {% if scan.issues_count > 0 %}
+                        <span class="count-number text-warning">{{ scan.issues_count }}</span>
+                        {% else %}
+                        <span class="count-number text-success">0</span>
+                        {% endif %}
+                        <span class="count-label">problemi</span>
+                    </div>
+                </td>
+                <td class="col-pages">
+                    <div class="pages-count">
+                        <span class="count-number">{{ scan.pages_scanned or 0 }}</span>
+                        <span class="count-label">pagine</span>
+                    </div>
+                </td>
+                <td class="col-date">
+                    <div class="date-info">
+                        {% if scan.created_at %}
+                        <div class="date-main">{{ scan.created_at.strftime('%d/%m/%Y') }}</div>
+                        <div class="date-time">{{ scan.created_at.strftime('%H:%M') }}</div>
+                        {% if scan.completed_at %}
+                        <div class="completion-time text-muted">Completata: {{ scan.completed_at.strftime('%H:%M') }}</div>
+                        {% endif %}
+                        {% else %}
+                        <div class="date-main">--</div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="col-actions">
+                    <div class="action-buttons">
+                        {% if scan.status == 'completed' %}
+                        <a href="/templated/scan/{{ scan.id }}/results" class="btn btn-sm btn-outline-info" title="Visualizza Risultati">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="/api/v1/scans/{{ scan.id }}/report" class="btn btn-sm btn-outline-success" title="Download Report" target="_blank">
+                            <i class="bi bi-download"></i>
+                        </a>
+                        {% elif scan.status == 'running' %}
+                        <button class="btn btn-sm btn-outline-warning" 
+                                hx-post="/api/v1/scans/{{ scan.id }}/cancel"
+                                hx-target="#scan-row-{{ scan.id }}"
+                                hx-swap="outerHTML"
+                                title="Annulla">
+                            <i class="bi bi-stop-circle"></i>
+                        </button>
+                        {% elif scan.status == 'failed' %}
+                        <button class="btn btn-sm btn-outline-primary" 
+                                hx-post="/api/v1/scans/{{ scan.id }}/retry"
+                                hx-target="#scan-row-{{ scan.id }}"
+                                hx-swap="outerHTML"
+                                title="Riprova">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-sm btn-outline-danger" 
+                                hx-delete="/htmx/scans/{{ scan.id }}"
+                                hx-target="#scan-row-{{ scan.id }}"
+                                hx-swap="outerHTML"
+                                hx-confirm="Sei sicuro di voler eliminare questa scansione?"
+                                title="Elimina">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not scans %}
+            <tr>
+                <td colspan="9" class="text-center py-5 text-muted">
+                    <i class="bi bi-search-heart fs-1"></i>
+                    <p class="mb-0">Nessuna scansione presente</p>
+                    <small>Avvia la prima scansione per iniziare il monitoraggio SEO</small>
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

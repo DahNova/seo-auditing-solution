@@ -1,0 +1,25 @@
+<!-- Mobile Navigation Toggle -->
+<div class="mobile-nav-toggle d-lg-none">
+    <button class="btn btn-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav">
+        <i class="bi bi-list"></i> Menu Navigazione
+    </button>
+    <div class="collapse" id="mobileNav">
+        <div class="mobile-nav-menu">
+            <a href="/templated/" class="mobile-nav-link {% if current_section == 'dashboard' %}active{% endif %}" data-section="dashboard">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <a href="/templated/clients" class="mobile-nav-link {% if current_section == 'clients' %}active{% endif %}" data-section="clients">
+                <i class="bi bi-people"></i> Clienti
+            </a>
+            <a href="/templated/websites" class="mobile-nav-link {% if current_section == 'websites' %}active{% endif %}" data-section="websites">
+                <i class="bi bi-globe"></i> Siti Web
+            </a>
+            <a href="/templated/scans" class="mobile-nav-link {% if current_section == 'scans' %}active{% endif %}" data-section="scans">
+                <i class="bi bi-search"></i> Scansioni
+            </a>
+            <a href="/templated/scheduler" class="mobile-nav-link {% if current_section == 'scheduler' %}active{% endif %}" data-section="scheduler">
+                <i class="bi bi-clock-history"></i> Scheduler
+            </a>
+        </div>
+    </div>
+</div>

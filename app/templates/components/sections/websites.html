@@ -1,0 +1,114 @@
+{% from 'macros.html' import section_header, data_table %}
+
+<!-- Websites Section -->
+<div id="websites-section" class="content-section">
+    <!-- Modern Websites Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modern-section-header">
+                <div class="section-header-content">
+                    <div class="section-icon">
+                        <i class="bi bi-globe"></i>
+                    </div>
+                    <div class="section-title-content">
+                        <h1 class="section-title">Gestione <span class="title-accent">Siti Web</span></h1>
+                        <p class="section-subtitle">Monitora tutti i siti web dei tuoi clienti e le loro performance SEO</p>
+                        <div class="section-stats-mini">
+                            <span class="mini-stat">
+                                <i class="bi bi-globe-americas"></i> 
+                                <span id="websites-count-header">{{ websites_count }}</span> siti monitorati
+                            </span>
+                            <span class="mini-stat">
+                                <i class="bi bi-search"></i> 
+                                <span id="total-scans-header">{{ total_scans }}</span> scansioni totali
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-gradient-section" onclick="showAddWebsiteModal()">
+                        <i class="bi bi-globe-americas"></i> Nuovo Sito Web
+                    </button>
+                    <button class="btn btn-outline-gradient-section" onclick="window.location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Search & Filters Card -->
+    <div class="modern-filters-card slide-in-right mb-4">
+        <div class="filters-card-body">
+            <div class="row align-items-center">
+                <div class="col-lg-3 mb-3 mb-lg-0">
+                    <div class="search-input-container">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="form-control search-input" id="website-search" placeholder="Cerca siti per nome o URL...">
+                    </div>
+                </div>
+                <div class="col-lg-3 mb-3 mb-lg-0">
+                    <select class="form-select filter-select" id="client-filter">
+                        <option value="">📋 Tutti i clienti</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 mb-3 mb-lg-0">
+                    <select class="form-select filter-select" id="website-sort">
+                        <option value="name">🔤 Ordina per nome</option>
+                        <option value="client">👤 Per cliente</option>
+                        <option value="scans">📊 Per scansioni</option>
+                        <option value="created">📅 Più recenti</option>
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <button class="btn btn-filter-clear w-100" onclick="window.location.reload()">
+                        <i class="bi bi-x-circle"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modern Websites Table Card -->
+    <div class="modern-table-card slide-in-right">
+        <div class="table-card-header">
+            <div class="table-card-title-section">
+                <div class="table-card-icon">
+                    <i class="bi bi-table"></i>
+                </div>
+                <div>
+                    <h5 class="table-card-title">Elenco Siti Web</h5>
+                    <p class="table-card-subtitle">Gestisci tutti i siti web dei tuoi clienti</p>
+                </div>
+            </div>
+            <div class="table-card-actions">
+                <div class="results-counter">
+                    <span class="counter-label">Mostrando</span>
+                    <span class="counter-value" id="websites-shown">{{ websites|length }}</span>
+                    <span class="counter-label">di</span>
+                    <span class="counter-value" id="websites-total">{{ websites_count }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="table-card-body">
+            {% include 'components/tables/websites_table.html' %}
+        </div>
+        <div class="table-card-footer">
+            <div class="pagination-info">
+                <span class="pagination-text">Righe per pagina:</span>
+                <select class="form-select pagination-select" id="websites-per-page">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div id="websites-pagination" class="pagination-controls">
+                <!-- Pagination buttons will be added by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>

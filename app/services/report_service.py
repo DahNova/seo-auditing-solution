@@ -46,7 +46,7 @@ class ReportService:
             spaceAfter=12
         )
     
-    async def generate_scan_report(self, scan: Scan, website: Website, pages: List[Page], issues: List[Issue]) -> str:
+    def generate_scan_report(self, scan: Scan, website: Website, pages: List[Page], issues: List[Issue]) -> str:
         """Generate a comprehensive PDF report for a scan"""
         
         # Create temporary file for the PDF

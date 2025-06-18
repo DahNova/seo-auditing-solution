@@ -1,0 +1,172 @@
+<!-- Schedule Scan Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuova Programmazione Scansione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm">
+                    <div class="mb-3">
+                        <label for="scheduleWebsite" class="form-label">Sito Web *</label>
+                        <select class="form-select" id="scheduleWebsite" required>
+                            <option value="">Seleziona sito web...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scheduleFrequency" class="form-label">Frequenza Scansione *</label>
+                        <select class="form-select" id="scheduleFrequency" required>
+                            <option value="daily">Giornaliera</option>
+                            <option value="weekly">Settimanale</option>
+                            <option value="monthly" selected>Mensile</option>
+                        </select>
+                        <div class="form-text">La frequenza determina quanto spesso il sito verrà scansionato automaticamente.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scheduleMaxPages" class="form-label">Massimo Pagine da Scansionare</label>
+                        <input type="number" class="form-control" id="scheduleMaxPages" value="1000" min="1" max="10000">
+                        <div class="form-text">Limite massimo di pagine da analizzare per scansione.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scheduleMaxDepth" class="form-label">Profondità Massima</label>
+                        <input type="number" class="form-control" id="scheduleMaxDepth" value="5" min="1" max="10">
+                        <div class="form-text">Livelli di navigazione massimi da seguire.</div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="scheduleRobotsRespect" checked>
+                        <label class="form-check-label" for="scheduleRobotsRespect">
+                            Rispetta robots.txt
+                        </label>
+                        <div class="form-text">Se attivato, la scansione rispetterà le direttive del file robots.txt.</div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="scheduleIncludeExternal">
+                        <label class="form-check-label" for="scheduleIncludeExternal">
+                            Includi link esterni
+                        </label>
+                        <div class="form-text">Se attivato, verranno analizzati anche i link verso siti esterni.</div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="scheduleStartNow">
+                        <label class="form-check-label" for="scheduleStartNow">
+                            Avvia prima scansione immediatamente
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="scheduler.createSchedule()">
+                    <i class="bi bi-check-circle"></i> Crea Programmazione
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Schedule Modal -->
+<div class="modal fade" id="bulkScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Programmazione Bulk</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Programmazione di massa:</strong> Questa funzione creerà automaticamente programmazioni per tutti i siti web attivi che non ne hanno ancora una.
+                </div>
+                <form id="bulkScheduleForm">
+                    <div class="mb-3">
+                        <label for="bulkFrequency" class="form-label">Frequenza per Tutti i Siti *</label>
+                        <select class="form-select" id="bulkFrequency" required>
+                            <option value="hourly">🕐 Oraria</option>
+                            <option value="daily">🌅 Giornaliera</option>
+                            <option value="weekly" selected>📅 Settimanale</option>
+                            <option value="monthly">🗓️ Mensile</option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="bulkOnlyUnscheduled" checked>
+                        <label class="form-check-label" for="bulkOnlyUnscheduled">
+                            Solo siti senza programmazione esistente
+                        </label>
+                        <div class="form-text">Se attivato, verrà saltato chi ha già una programmazione attiva.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-warning" onclick="scheduler.createBulkSchedules()">
+                    <i class="bi bi-lightning"></i> Avvia Programmazione Bulk
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifica Programmazione Scansione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editScheduleForm">
+                    <input type="hidden" id="editWebsiteId">
+                    <div class="mb-3">
+                        <label class="form-label">Sito Web</label>
+                        <input type="text" class="form-control" id="editWebsiteDomain" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editScheduleFrequency" class="form-label">Frequenza Scansione *</label>
+                        <select class="form-select" id="editScheduleFrequency" required>
+                            <option value="daily">Giornaliera</option>
+                            <option value="weekly">Settimanale</option>
+                            <option value="monthly">Mensile</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editScheduleMaxPages" class="form-label">Massimo Pagine da Scansionare</label>
+                        <input type="number" class="form-control" id="editScheduleMaxPages" min="1" max="10000">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editScheduleMaxDepth" class="form-label">Profondità Massima</label>
+                        <input type="number" class="form-control" id="editScheduleMaxDepth" min="1" max="10">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="editScheduleRobotsRespect">
+                        <label class="form-check-label" for="editScheduleRobotsRespect">
+                            Rispetta robots.txt
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="editScheduleIncludeExternal">
+                        <label class="form-check-label" for="editScheduleIncludeExternal">
+                            Includi link esterni
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="editScheduleActive">
+                        <label class="form-check-label" for="editScheduleActive">
+                            Programmazione attiva
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="scheduler.deleteScheduleFromModal()">
+                    <i class="bi bi-trash"></i> Elimina Programmazione
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="scheduler.updateSchedule()">
+                    <i class="bi bi-check-circle"></i> Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,163 @@
+{% from 'macros.html' import section_header, stats_grid, card_pro, filters_bar, data_table %}
+
+<!-- Scheduler Section -->
+<div id="scheduler-section" class="content-section">
+    
+    <!-- Professional Scheduler Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            {{ section_header(
+                title='Scheduler <span class="accent-text">Management</span>',
+                subtitle='<span class="status-indicator" id="scheduler-status"><i class="bi bi-circle-fill text-success"></i> Sistema Operativo</span><span class="separator">•</span><span class="live-stats"><i class="bi bi-calendar-check"></i> <span id="scheduled-count-header">0</span> programmate</span><span class="separator">•</span><span class="live-stats"><i class="bi bi-cpu"></i> <span id="workers-count-header">0</span> workers</span>',
+                icon='clock-history',
+                actions=[
+                    {'class': 'btn-pro-primary', 'onclick': 'scheduler.showScheduleModal()', 'icon': 'plus-lg', 'text': 'Nuova'},
+                    {'class': 'btn-pro-secondary', 'onclick': 'scheduler.refreshData()', 'icon': 'arrow-clockwise', 'id': 'scheduler-refresh', 'text': ''}
+                ]
+            ) }}
+        </div>
+    </div>
+
+    <!-- Compact Professional Stats -->
+    <div class="row mb-3">
+        <div class="col-lg-3 col-md-6 mb-2">
+            <div class="stat-card-pro">
+                <div class="stat-icon stat-icon-workers">
+                    <i class="bi bi-cpu"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Workers</div>
+                    <div class="stat-value" id="active-workers">0</div>
+                </div>
+                <div class="stat-status" id="worker-status-indicator">
+                    <i class="bi bi-circle-fill text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-2">
+            <div class="stat-card-pro">
+                <div class="stat-icon stat-icon-queue">
+                    <i class="bi bi-list-task"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Queue</div>
+                    <div class="stat-value" id="queue-size">0</div>
+                </div>
+                <div class="stat-trend" id="queue-trend">
+                    <i class="bi bi-dash"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-2">
+            <div class="stat-card-pro">
+                <div class="stat-icon stat-icon-completed">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Oggi</div>
+                    <div class="stat-value" id="processed-today">0</div>
+                </div>
+                <div class="stat-trend positive">
+                    <i class="bi bi-arrow-up"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-2">
+            <div class="stat-card-pro">
+                <div class="stat-icon stat-icon-scheduled">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Programmate</div>
+                    <div class="stat-value" id="scheduled-scans-count">0</div>
+                </div>
+                <div class="stat-trend">
+                    <i class="bi bi-calendar"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Scheduled Scans -->
+        <div class="col-lg-8">
+            {% call card_pro(
+                title='Scansioni Programmate',
+                icon='calendar-event',
+                actions=[
+                    {'class': 'btn btn-pro-outline-warning', 'onclick': 'scheduler.showBulkScheduleModal()', 'icon': 'lightning', 'text': 'Bulk'},
+                    {'class': 'btn btn-pro-primary', 'onclick': 'scheduler.showScheduleModal()', 'icon': 'plus', 'text': 'Nuova'}
+                ]
+            ) %}
+                {{ filters_bar([
+                    {'type': 'input', 'id': 'schedule-search', 'placeholder': 'Cerca sito web...'},
+                    {'type': 'select', 'id': 'schedule-status-filter', 'options': [
+                        {'value': '', 'text': 'Tutti'},
+                        {'value': 'active', 'text': 'Attivi'},
+                        {'value': 'inactive', 'text': 'Inattivi'},
+                        {'value': 'error', 'text': 'Errori'}
+                    ]},
+                    {'type': 'select', 'id': 'schedule-frequency-filter', 'options': [
+                        {'value': '', 'text': 'Frequenza'},
+                        {'value': 'hourly', 'text': 'Oraria'},
+                        {'value': 'daily', 'text': 'Giornaliera'},
+                        {'value': 'weekly', 'text': 'Settimanale'},
+                        {'value': 'monthly', 'text': 'Mensile'}
+                    ]},
+                    {'type': 'reset', 'onclick': 'scheduler.clearFilters()'}
+                ]) }}
+                
+                <div class="card-body">
+                    {{ data_table(
+                        headers=['Sito Web', 'Frequenza', 'Ultima Scansione', 'Prossima Scansione', 'Stato', 'Azioni'],
+                        tbody_id='scheduled-scans-table-body',
+                        empty_message='Nessuna programmazione configurata'
+                    ) }}
+                </div>
+            {% endcall %}
+
+            <!-- Active Tasks -->
+            {% call card_pro(title='Task Attivi', icon='activity') %}
+                <div class="card-body">
+                    <div id="active-tasks-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            {% endcall %}
+        </div>
+
+        <!-- Sidebar: Controls & Stats -->
+        <div class="col-lg-4">
+            <!-- Queue Controls -->
+            {% call card_pro(title='Controlli Queue', icon='gear') %}
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success" onclick="scheduler.purgeQueue()">
+                            <i class="bi bi-trash"></i> Pulisci Queue
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="scheduler.pauseScheduler()">
+                            <i class="bi bi-pause-circle"></i> Pausa Scheduler
+                        </button>
+                        <button class="btn btn-outline-info" onclick="scheduler.resumeScheduler()">
+                            <i class="bi bi-play-circle"></i> Riprendi Scheduler
+                        </button>
+                        <hr class="my-3">
+                        <button class="btn btn-outline-primary" onclick="app.showWorkerStats()">
+                            <i class="bi bi-graph-up"></i> Statistiche Worker
+                        </button>
+                    </div>
+                </div>
+            {% endcall %}
+
+            <!-- Recent Tasks Log -->
+            {% call card_pro(title='Log Task Recenti', icon='list-ul') %}
+                <div class="card-body">
+                    <div id="recent-tasks-list" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            {% endcall %}
+        </div>
+    </div>
+</div>

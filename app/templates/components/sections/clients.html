@@ -1,0 +1,112 @@
+{% from 'macros.html' import section_header, data_table %}
+
+<!-- Clients Section -->
+<div id="clients-section" class="content-section">
+    <!-- Modern Clients Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="modern-section-header">
+                <div class="section-header-content">
+                    <div class="section-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="section-title-content">
+                        <h1 class="section-title">Gestione <span class="title-accent">Clienti</span></h1>
+                        <p class="section-subtitle">Amministra i tuoi clienti e monitora le loro performance SEO</p>
+                        <div class="section-stats-mini">
+                            <span class="mini-stat">
+                                <i class="bi bi-person-check"></i> 
+                                <span id="clients-count-header">{{ clients_count }}</span> clienti attivi
+                            </span>
+                            <span class="mini-stat">
+                                <i class="bi bi-globe-europe-africa"></i> 
+                                <span id="total-websites-header">{{ total_websites }}</span> siti monitorati
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-gradient-section" onclick="showAddClientModal()">
+                        <i class="bi bi-person-plus"></i> Nuovo Cliente
+                    </button>
+                    <button class="btn btn-outline-gradient-section" onclick="window.location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Search & Filters Card -->
+    <div class="modern-filters-card slide-in-right mb-4">
+        <div class="filters-card-body">
+            <div class="row align-items-center">
+                <div class="col-lg-4 mb-3 mb-lg-0">
+                    <div class="search-input-container">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="form-control search-input" id="client-search" placeholder="Cerca clienti per nome o email...">
+                    </div>
+                </div>
+                <div class="col-lg-3 mb-3 mb-lg-0">
+                    <select class="form-select filter-select" id="client-filter">
+                        <option value="">📋 Tutti i clienti</option>
+                        <option value="active">✅ Clienti attivi</option>
+                        <option value="inactive">❌ Clienti inattivi</option>
+                    </select>
+                </div>
+                <div class="col-lg-3 mb-3 mb-lg-0">
+                    <select class="form-select filter-select" id="client-sort">
+                        <option value="name">🔤 Ordina per nome</option>
+                        <option value="created">📅 Più recenti</option>
+                        <option value="websites">🌐 Per siti web</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <button class="btn btn-filter-clear w-100" onclick="window.location.reload()">
+                        <i class="bi bi-x-circle"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modern Clients Table Card -->
+    <div class="modern-table-card slide-in-right">
+        <div class="table-card-header">
+            <div class="table-card-title-section">
+                <div class="table-card-icon">
+                    <i class="bi bi-table"></i>
+                </div>
+                <div>
+                    <h5 class="table-card-title">Elenco Clienti</h5>
+                    <p class="table-card-subtitle">Gestisci tutti i tuoi clienti da un'unica interfaccia</p>
+                </div>
+            </div>
+            <div class="table-card-actions">
+                <div class="results-counter">
+                    <span class="counter-label">Mostrando</span>
+                    <span class="counter-value" id="clients-shown">{{ clients|length }}</span>
+                    <span class="counter-label">di</span>
+                    <span class="counter-value" id="clients-total">{{ clients_count }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="table-card-body">
+            {% include 'components/tables/clients_table.html' %}
+        </div>
+        <div class="table-card-footer">
+            <div class="pagination-info">
+                <span class="pagination-text">Righe per pagina:</span>
+                <select class="form-select pagination-select" id="clients-per-page">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div id="clients-pagination" class="pagination-controls">
+                <!-- Pagination buttons will be added by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,109 @@
+<!-- Scan Form - HTMX Enabled -->
+<div class="modal fade" id="scanModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuova Scansione SEO</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <form hx-post="/htmx/scans/create"
+                  hx-target="#scans-table"
+                  hx-swap="outerHTML"
+                  hx-on::after-request="closeModal('scanModal')">
+                
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="website_id" class="form-label">Sito Web *</label>
+                        <select class="form-select" name="website_id" required>
+                            <option value="">Seleziona sito web...</option>
+                            {% for website in websites %}
+                            <option value="{{ website.id }}">
+                                {{ website.name }} ({{ website.client_name }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_pages" class="form-label">Massimo Pagine</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       name="max_pages" 
+                                       value="1000"
+                                       min="1" 
+                                       max="10000">
+                                <div class="form-text">Limite massimo di pagine da analizzare (1-10000).</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_depth" class="form-label">Profondità Massima</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       name="max_depth" 
+                                       value="5"
+                                       min="1" 
+                                       max="10">
+                                <div class="form-text">Livelli di navigazione massimi da seguire (1-10).</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   name="respect_robots" 
+                                   id="respect_robots" 
+                                   checked>
+                            <label class="form-check-label" for="respect_robots">
+                                Rispetta robots.txt
+                            </label>
+                            <div class="form-text">Se attivato, la scansione rispetterà le direttive del file robots.txt.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   name="include_external" 
+                                   id="include_external">
+                            <label class="form-check-label" for="include_external">
+                                Includi link esterni
+                            </label>
+                            <div class="form-text">Se attivato, verranno analizzati anche i link verso siti esterni.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   name="generate_report" 
+                                   id="generate_report" 
+                                   checked>
+                            <label class="form-check-label" for="generate_report">
+                                Genera report automatico
+                            </label>
+                            <div class="form-text">Se attivato, verrà generato automaticamente un report PDF al completamento.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Annulla
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-rocket-takeoff"></i>
+                        Avvia Scansione
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

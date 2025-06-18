@@ -1,0 +1,63 @@
+{% from 'components/section_header.html' import section_header %}
+{% from 'components/filter_bar.html' import filter_bar %}
+{% from 'components/data_table.html' import data_table %}
+
+<!-- Clients Section -->
+<div id="clients-section" class="content-section" style="display: none;">
+    {{ section_header(
+        title="Gestione",
+        accent_text="Clienti",
+        subtitle="Amministra i tuoi clienti e monitora le loro performance SEO",
+        icon="bi-people",
+        stats=[
+            {"icon": "bi-person-check", "id": "clients-count-header", "default": "0", "label": "clienti attivi"},
+            {"icon": "bi-globe-europe-africa", "id": "total-websites-header", "default": "0", "label": "siti monitorati"}
+        ],
+        actions=[
+            {"class": "btn-gradient-section", "icon": "bi-person-plus", "label": "Nuovo Cliente", "onclick": "app.showAddClientModal()"},
+            {"class": "btn-outline-gradient-section", "icon": "bi-arrow-clockwise", "label": "Aggiorna", "onclick": "app.refreshClientsData()"}
+        ]
+    ) }}
+
+    {{ filter_bar(
+        search_config={"id": "client-search", "placeholder": "Cerca clienti per nome o email..."},
+        filters=[
+            {
+                "id": "client-filter",
+                "label": "📋 Tutti i clienti",
+                "col_size": 3,
+                "options": [
+                    {"value": "active", "label": "✅ Clienti attivi"},
+                    {"value": "inactive", "label": "❌ Clienti inattivi"}
+                ]
+            },
+            {
+                "id": "client-sort",
+                "label": "🔤 Ordina per nome",
+                "col_size": 3,
+                "options": [
+                    {"value": "created", "label": "📅 Più recenti"},
+                    {"value": "websites", "label": "🌐 Per siti web"}
+                ]
+            }
+        ],
+        clear_function="app.clearClientsFilters()"
+    ) }}
+    
+    {{ data_table(
+        title="Elenco Clienti",
+        subtitle="Gestisci tutti i tuoi clienti da un'unica interfaccia",
+        icon="bi-table",
+        columns=[
+            {"class": "col-name", "icon": "bi-person", "label": "Nome Cliente"},
+            {"class": "col-email", "icon": "bi-envelope", "label": "Contatto"},
+            {"class": "col-websites", "icon": "bi-globe", "label": "Siti Web"},
+            {"class": "col-status", "icon": "bi-activity", "label": "Stato"},
+            {"class": "col-updated", "icon": "bi-clock", "label": "Ultimo Aggiornamento"},
+            {"class": "col-actions", "icon": "bi-gear", "label": "Azioni"}
+        ],
+        table_id="clients-table-body",
+        pagination_id="clients-pagination",
+        counter_ids={"shown": "clients-shown", "total": "clients-total"}
+    ) }}
+</div>

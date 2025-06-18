@@ -1,0 +1,74 @@
+<tr class="table-row-modern" id="website-row-{{ website.id }}">
+    <td class="col-name">
+        <div class="website-info">
+            <div class="website-icon">
+                <i class="bi bi-globe-europe-africa"></i>
+            </div>
+            <div class="website-details">
+                <div class="website-name">{{ website.name }}</div>
+            </div>
+        </div>
+    </td>
+    <td class="col-url">
+        <div class="url-info">
+            <a href="{{ website.url }}" target="_blank" class="url-link">
+                {{ website.url }}
+                <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+        </div>
+    </td>
+    <td class="col-client">
+        <div class="client-badge">
+            <i class="bi bi-person-circle"></i>
+            <span>{{ website.client_name }}</span>
+        </div>
+    </td>
+    <td class="col-scans">
+        <div class="scans-count">
+            <span class="count-number">{{ website.scans_count }}</span>
+            <span class="count-label">scansioni</span>
+        </div>
+    </td>
+    <td class="col-status">
+        <span class="badge badge-success">{{ website.status }}</span>
+    </td>
+    <td class="col-updated">
+        <div class="date-info">
+            {% if website.updated_at %}
+            <div class="date-main">{{ website.updated_at.strftime('%d/%m/%Y') }}</div>
+            <div class="date-time">{{ website.updated_at.strftime('%H:%M') }}</div>
+            {% elif website.created_at %}
+            <div class="date-main">{{ website.created_at.strftime('%d/%m/%Y') }}</div>
+            <div class="date-time">{{ website.created_at.strftime('%H:%M') }}</div>
+            {% else %}
+            <div class="date-main">--</div>
+            {% endif %}
+        </div>
+    </td>
+    <td class="col-actions">
+        <div class="action-buttons">
+            <button class="btn btn-sm btn-outline-info" 
+                    hx-get="/htmx/modals/add-scan"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML"
+                    title="Nuova Scansione">
+                <i class="bi bi-search"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary" 
+                    hx-get="/htmx/websites/{{ website.id }}/edit"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML"
+                    title="Modifica">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" 
+                    hx-delete="/htmx/websites/{{ website.id }}"
+                    hx-target="#website-row-{{ website.id }}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Sei sicuro di voler eliminare questo sito web?"
+                    title="Elimina">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>

@@ -1,0 +1,78 @@
+{% from 'components/section_header.html' import section_header %}
+{% from 'components/filter_bar.html' import filter_bar %}
+{% from 'components/data_table.html' import data_table %}
+
+<!-- Websites Section -->
+<div id="websites-section" class="content-section" style="display: none;">
+    {{ section_header(
+        title="Siti",
+        accent_text="Web",
+        subtitle="Monitora e gestisci tutti i siti web dei tuoi clienti",
+        icon="bi-globe",
+        icon_class="websites-section-icon",
+        stats=[
+            {"icon": "bi-globe-europe-africa", "id": "websites-count-header", "default": "0", "label": "siti attivi"},
+            {"icon": "bi-activity", "id": "scanning-websites-header", "default": "0", "label": "in scansione"},
+            {"icon": "bi-clock", "id": "next-scan-header", "default": "--", "label": "Prossima:"}
+        ],
+        actions=[
+            {"class": "btn-gradient-section", "icon": "bi-plus-circle", "label": "Nuovo Sito", "onclick": "app.showAddWebsiteModal()"},
+            {"class": "btn-outline-gradient-section", "icon": "bi-arrow-clockwise", "label": "Aggiorna", "onclick": "app.refreshWebsitesData()"}
+        ]
+    ) }}
+
+    {{ filter_bar(
+        search_config={"id": "website-search", "placeholder": "Cerca per dominio, nome o cliente..."},
+        filters=[
+            {
+                "id": "website-client-filter",
+                "label": "👥 Tutti i clienti",
+                "col_size": 2,
+                "options": []
+            },
+            {
+                "id": "website-status-filter",
+                "label": "📊 Tutti gli stati",
+                "col_size": 2,
+                "options": [
+                    {"value": "active", "label": "✅ Attivi"},
+                    {"value": "scanning", "label": "🔄 In scansione"},
+                    {"value": "error", "label": "❌ Errori"}
+                ]
+            },
+            {
+                "id": "website-frequency-filter",
+                "label": "⏰ Tutte le frequenze",
+                "col_size": 2,
+                "options": [
+                    {"value": "daily", "label": "🌅 Giornaliera"},
+                    {"value": "weekly", "label": "📅 Settimanale"},
+                    {"value": "monthly", "label": "🗓️ Mensile"}
+                ]
+            }
+        ],
+        clear_function="app.clearWebsitesFilters()"
+    ) }}
+    
+    {{ data_table(
+        title="Elenco Siti Web",
+        subtitle="Monitora performance e stato di tutti i siti",
+        icon="bi-list-ul",
+        icon_class="websites-card-icon",
+        columns=[
+            {"class": "col-domain", "icon": "bi-globe", "label": "Dominio"},
+            {"class": "col-name", "icon": "bi-tag", "label": "Nome"},
+            {"class": "col-client", "icon": "bi-person", "label": "Cliente"},
+            {"class": "col-frequency", "icon": "bi-clock", "label": "Frequenza"},
+            {"class": "col-last-scan", "icon": "bi-calendar-check", "label": "Ultima Scansione"},
+            {"class": "col-status", "icon": "bi-activity", "label": "Stato"},
+            {"class": "col-actions", "icon": "bi-gear", "label": "Azioni"}
+        ],
+        table_id="websites-table-body",
+        pagination_id="websites-pagination",
+        counter_ids={"shown": "websites-shown", "total": "websites-total"},
+        additional_actions=[
+            {"class": "btn-success", "icon": "bi-play-circle", "label": "Scansiona Tutti", "onclick": "app.bulkScanWebsites()"}
+        ]
+    ) }}
+</div>

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 from datetime import datetime
 import tempfile
@@ -199,9 +200,9 @@ async def retry_scan(
             detail="Scan not found"
         )
     
-    # Get website
+    # Get website with client relationship
     website_result = await db.execute(
-        select(Website).where(Website.id == scan.website_id)
+        select(Website).options(selectinload(Website.client)).where(Website.id == scan.website_id)
     )
     website = website_result.scalar_one_or_none()
     
@@ -260,9 +261,9 @@ async def download_scan_report(
             detail="Report can only be generated for completed scans"
         )
     
-    # Get website
+    # Get website with client relationship
     website_result = await db.execute(
-        select(Website).where(Website.id == scan.website_id)
+        select(Website).options(selectinload(Website.client)).where(Website.id == scan.website_id)
     )
     website = website_result.scalar_one_or_none()
     
@@ -286,7 +287,7 @@ async def download_scan_report(
     try:
         # Generate PDF report
         report_service = ReportService()
-        pdf_path = await report_service.generate_scan_report(scan, website, pages, issues)
+        pdf_path = report_service.generate_scan_report(scan, website, pages, issues)
         
         # Create filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -371,9 +372,9 @@ async def download_scan_report(
             detail="Report can only be generated for completed scans"
         )
     
-    # Get website
+    # Get website with client relationship
     website_result = await db.execute(
-        select(Website).where(Website.id == scan.website_id)
+        select(Website).options(selectinload(Website.client)).where(Website.id == scan.website_id)
     )
     website = website_result.scalar_one_or_none()
     
@@ -397,7 +398,7 @@ async def download_scan_report(
     try:
         # Generate PDF report
         report_service = ReportService()
-        pdf_path = await report_service.generate_scan_report(scan, website, pages, issues)
+        pdf_path = report_service.generate_scan_report(scan, website, pages, issues)
         
         # Create filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
