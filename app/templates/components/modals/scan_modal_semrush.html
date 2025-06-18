@@ -1,0 +1,177 @@
+<!-- New Scan Modal - SEMrush Style -->
+<div class="modal fade" id="newScanModal" tabindex="-1" aria-labelledby="newScanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered scan-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newScanModalLabel">
+                    <i class="bi bi-rocket-takeoff"></i>
+                    Avvia Nuova Scansione SEO
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newScanForm">
+                    <div class="form-group">
+                        <label for="scanWebsite" class="form-label">
+                            Sito Web <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="scanWebsite" name="scanWebsite" required>
+                            <option value="">Seleziona il sito da scansionare</option>
+                            {% for website in websites %}
+                            <option value="{{ website.id }}">{{ website.name }} ({{ website.client_name }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Seleziona il sito web da scansionare
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scanType" class="form-label">
+                            Tipo di Scansione
+                        </label>
+                        <select class="form-select" id="scanType" name="scanType">
+                            <option value="full">Scansione Completa (Raccomandata)</option>
+                            <option value="quick">Scansione Rapida</option>
+                            <option value="deep">Scansione Approfondita</option>
+                        </select>
+                        <div class="form-text">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                La scansione completa analizza tutte le pagine principali del sito
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scanDepth" class="form-label">
+                            Profondità Scansione
+                        </label>
+                        <select class="form-select" id="scanDepth" name="scanDepth">
+                            <option value="3">3 livelli (Veloce)</option>
+                            <option value="5" selected>5 livelli (Bilanciata)</option>
+                            <option value="10">10 livelli (Approfondita)</option>
+                            <option value="0">Tutte le pagine (Completa)</option>
+                        </select>
+                        <div class="form-text">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Maggiore profondità = più pagine analizzate = tempi più lunghi
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Opzioni Avanzate</label>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scanImages" name="scanImages" checked>
+                            <label class="form-check-label" for="scanImages">
+                                Analizza immagini (ALT, dimensioni, ottimizzazione)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scanLinks" name="scanLinks" checked>
+                            <label class="form-check-label" for="scanLinks">
+                                Verifica link interni ed esterni
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scanPerformance" name="scanPerformance">
+                            <label class="form-check-label" for="scanPerformance">
+                                Analisi performance e velocità pagine
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scanMobile" name="scanMobile">
+                            <label class="form-check-label" for="scanMobile">
+                                Test responsive e mobile-friendly
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scanNotes" class="form-label">
+                            Note Scansione
+                        </label>
+                        <textarea class="form-control" id="scanNotes" name="scanNotes" rows="2" placeholder="Note aggiuntive per questa scansione..."></textarea>
+                    </div>
+                </form>
+                
+                <!-- Scan Estimate -->
+                <div class="alert alert-info mt-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-clock me-2"></i>
+                        <div>
+                            <strong>Tempo stimato:</strong> <span id="scanEstimate">5-10 minuti</span><br>
+                            <small class="text-muted">Il tempo dipende dalla dimensione del sito e dalle opzioni selezionate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-primary" onclick="scans.startNewScan()">
+                    <i class="bi bi-rocket-takeoff"></i>
+                    Avvia Scansione
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scan Progress Modal - SEMrush Style -->
+<div class="modal fade" id="scanProgressModal" tabindex="-1" aria-labelledby="scanProgressModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered scan-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scanProgressModalLabel">
+                    <i class="bi bi-activity"></i>
+                    Scansione in Corso
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-4">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                <h6 id="scanProgressTitle">Avvio scansione...</h6>
+                <p class="text-muted mb-3" id="scanProgressDescription">Preparazione della scansione del sito web</p>
+                
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 0%" id="scanProgressBar"></div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="small text-muted">Pagine Scansionate</div>
+                        <div class="h6 mb-0" id="pagesScanned">0</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="small text-muted">Problemi Trovati</div>
+                        <div class="h6 mb-0" id="issuesFound">0</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="small text-muted">Tempo Trascorso</div>
+                        <div class="h6 mb-0" id="timeElapsed">00:00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="scans.cancelScan()">
+                    <i class="bi bi-stop-circle"></i>
+                    Annulla Scansione
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

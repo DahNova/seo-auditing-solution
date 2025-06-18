@@ -18,6 +18,9 @@
     <!-- SEMrush-inspired navigation styling for templated interface -->
     <link rel="stylesheet" href="/static/css/navigation-semrush.css">
     
+    <!-- SEMrush-inspired modals styling -->
+    <link rel="stylesheet" href="/static/css/modals-semrush.css">
+    
     <!-- Conditional CSS for specific sections -->
     {% if current_section == 'scan_results' %}
     <link rel="stylesheet" href="/static/css/scan-results-semrush.css">
@@ -39,6 +42,10 @@
     <link rel="stylesheet" href="/static/css/scans-semrush.css">
     {% endif %}
     
+    {% if current_section == 'scheduler' %}
+    <link rel="stylesheet" href="/static/css/scheduler-semrush.css">
+    {% endif %}
+    
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -54,6 +61,12 @@
     
     <!-- Modal Container for HTMX -->
     <div id="modal-container"></div>
+    
+    <!-- SEMrush-style Modals -->
+    {% include 'components/modals/client_modal_semrush.html' %}
+    {% include 'components/modals/website_modal_semrush.html' %}
+    {% include 'components/modals/scan_modal_semrush.html' %}
+    {% include 'components/modals/schedule_modal_semrush.html' %}
     
     <!-- JavaScript Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

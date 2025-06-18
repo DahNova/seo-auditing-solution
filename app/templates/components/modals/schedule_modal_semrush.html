@@ -1,0 +1,317 @@
+<!-- New Schedule Modal - SEMrush Style -->
+<div class="modal fade" id="newScheduleModal" tabindex="-1" aria-labelledby="newScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered schedule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newScheduleModalLabel">
+                    <i class="bi bi-calendar-plus"></i>
+                    Nuova Programmazione Scansione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newScheduleForm">
+                    <div class="form-group">
+                        <label for="scheduleWebsite" class="form-label">
+                            Sito Web <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="scheduleWebsite" name="scheduleWebsite" required>
+                            <option value="">Seleziona il sito da monitorare</option>
+                            {% for website in websites %}
+                            <option value="{{ website.id }}">{{ website.name }} ({{ website.client_name }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Seleziona il sito web da monitorare
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scheduleFrequency" class="form-label">
+                            Frequenza Scansione <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="scheduleFrequency" name="scheduleFrequency" required>
+                            <option value="">Seleziona frequenza</option>
+                            <option value="daily">Giornaliera</option>
+                            <option value="weekly" selected>Settimanale (Raccomandata)</option>
+                            <option value="monthly">Mensile</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Seleziona la frequenza delle scansioni
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="scheduleTime" class="form-label">
+                                    Orario Scansione
+                                </label>
+                                <input type="time" class="form-control" id="scheduleTime" name="scheduleTime" value="02:00">
+                                <div class="form-text">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Consigliato: orari notturni per non impattare il traffico
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="scheduleWeekDay" style="display: none;">
+                            <div class="form-group">
+                                <label for="scheduleDay" class="form-label">
+                                    Giorno della Settimana
+                                </label>
+                                <select class="form-select" id="scheduleDay" name="scheduleDay">
+                                    <option value="1">Lunedì</option>
+                                    <option value="2">Martedì</option>
+                                    <option value="3">Mercoledì</option>
+                                    <option value="4">Giovedì</option>
+                                    <option value="5">Venerdì</option>
+                                    <option value="6">Sabato</option>
+                                    <option value="0" selected>Domenica</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="scheduleMonthDay" style="display: none;">
+                            <div class="form-group">
+                                <label for="scheduleMonthDayNum" class="form-label">
+                                    Giorno del Mese
+                                </label>
+                                <select class="form-select" id="scheduleMonthDayNum" name="scheduleMonthDayNum">
+                                    <option value="1" selected>1° del mese</option>
+                                    <option value="15">15 del mese</option>
+                                    <option value="last">Ultimo giorno</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scheduleScanType" class="form-label">
+                            Tipo di Scansione
+                        </label>
+                        <select class="form-select" id="scheduleScanType" name="scheduleScanType">
+                            <option value="full" selected>Scansione Completa</option>
+                            <option value="quick">Scansione Rapida</option>
+                            <option value="critical">Solo Problemi Critici</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Opzioni Monitoraggio</label>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scheduleEmailNotify" name="scheduleEmailNotify" checked>
+                            <label class="form-check-label" for="scheduleEmailNotify">
+                                Invia email di notifica al completamento
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scheduleAlertIssues" name="scheduleAlertIssues" checked>
+                            <label class="form-check-label" for="scheduleAlertIssues">
+                                Alert per nuovi problemi critici
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="scheduleActive" name="scheduleActive" checked>
+                            <label class="form-check-label" for="scheduleActive">
+                                Programmazione attiva
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="scheduleNotes" class="form-label">
+                            Note Programmazione
+                        </label>
+                        <textarea class="form-control" id="scheduleNotes" name="scheduleNotes" rows="2" placeholder="Note aggiuntive per questa programmazione..."></textarea>
+                    </div>
+                </form>
+                
+                <!-- Schedule Preview -->
+                <div class="alert alert-success mt-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-calendar-check me-2"></i>
+                        <div>
+                            <strong>Prossima scansione:</strong> <span id="nextSchedulePreview">Domenica alle 02:00</span><br>
+                            <small class="text-muted">La programmazione inizierà dalla prossima ricorrenza disponibile</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-primary" onclick="scheduler.createSchedule()">
+                    <i class="bi bi-calendar-plus"></i>
+                    Crea Programmazione
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal - SEMrush Style -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered schedule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editScheduleModalLabel">
+                    <i class="bi bi-pencil-square"></i>
+                    Modifica Programmazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editScheduleForm">
+                    <input type="hidden" id="editScheduleId">
+                    
+                    <div class="form-group">
+                        <label for="editScheduleWebsite" class="form-label">
+                            Sito Web <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="editScheduleWebsite" name="editScheduleWebsite" required>
+                            <option value="">Seleziona il sito da monitorare</option>
+                            {% for website in websites %}
+                            <option value="{{ website.id }}">{{ website.name }} ({{ website.client_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editScheduleFrequency" class="form-label">
+                            Frequenza Scansione <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="editScheduleFrequency" name="editScheduleFrequency" required>
+                            <option value="daily">Giornaliera</option>
+                            <option value="weekly">Settimanale</option>
+                            <option value="monthly">Mensile</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="editScheduleTime" class="form-label">
+                                    Orario Scansione
+                                </label>
+                                <input type="time" class="form-control" id="editScheduleTime" name="editScheduleTime">
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="editScheduleWeekDay">
+                            <div class="form-group">
+                                <label for="editScheduleDay" class="form-label">
+                                    Giorno della Settimana
+                                </label>
+                                <select class="form-select" id="editScheduleDay" name="editScheduleDay">
+                                    <option value="1">Lunedì</option>
+                                    <option value="2">Martedì</option>
+                                    <option value="3">Mercoledì</option>
+                                    <option value="4">Giovedì</option>
+                                    <option value="5">Venerdì</option>
+                                    <option value="6">Sabato</option>
+                                    <option value="0">Domenica</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Opzioni Monitoraggio</label>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editScheduleEmailNotify" name="editScheduleEmailNotify">
+                            <label class="form-check-label" for="editScheduleEmailNotify">
+                                Invia email di notifica al completamento
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editScheduleAlertIssues" name="editScheduleAlertIssues">
+                            <label class="form-check-label" for="editScheduleAlertIssues">
+                                Alert per nuovi problemi critici
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editScheduleActive" name="editScheduleActive">
+                            <label class="form-check-label" for="editScheduleActive">
+                                Programmazione attiva
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="scheduler.deleteScheduleFromModal()">
+                    <i class="bi bi-trash"></i>
+                    Elimina Programmazione
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-success" onclick="scheduler.updateSchedule()">
+                    <i class="bi bi-check-circle"></i>
+                    Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Schedule frequency change handler
+document.getElementById('scheduleFrequency')?.addEventListener('change', function() {
+    const frequency = this.value;
+    const weekDay = document.getElementById('scheduleWeekDay');
+    const monthDay = document.getElementById('scheduleMonthDay');
+    
+    if (frequency === 'weekly') {
+        weekDay.style.display = 'block';
+        monthDay.style.display = 'none';
+    } else if (frequency === 'monthly') {
+        weekDay.style.display = 'none';
+        monthDay.style.display = 'block';
+    } else {
+        weekDay.style.display = 'none';
+        monthDay.style.display = 'none';
+    }
+    
+    updateSchedulePreview();
+});
+
+// Update schedule preview
+function updateSchedulePreview() {
+    const frequency = document.getElementById('scheduleFrequency')?.value;
+    const time = document.getElementById('scheduleTime')?.value || '02:00';
+    const day = document.getElementById('scheduleDay')?.value;
+    const preview = document.getElementById('nextSchedulePreview');
+    
+    if (!preview) return;
+    
+    const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+    
+    let text = '';
+    if (frequency === 'daily') {
+        text = `Ogni giorno alle ${time}`;
+    } else if (frequency === 'weekly') {
+        text = `Ogni ${days[day]} alle ${time}`;
+    } else if (frequency === 'monthly') {
+        text = `Ogni mese alle ${time}`;
+    }
+    
+    preview.textContent = text;
+}
+
+// Initialize preview on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateSchedulePreview();
+});
+</script>

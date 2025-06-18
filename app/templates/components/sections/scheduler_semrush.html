@@ -1,0 +1,345 @@
+<!-- SEO Scheduler Management - SEMrush-Inspired Compact Design -->
+<div class="scheduler-content">
+    
+    <!-- Compact Header -->
+    <div class="scheduler-header-compact">
+        <div class="scheduler-header-content">
+            <h1>Scheduler Management</h1>
+            <p>Gestisci e monitora le scansioni programmate automatiche</p>
+            <div class="scheduler-stats-inline">
+                <div class="scheduler-stat-item">
+                    <i class="bi bi-calendar-check"></i>
+                    <span id="scheduled-count">{{ scheduler_stats.total_schedules }}</span> programmate
+                </div>
+                <div class="scheduler-stat-item">
+                    <i class="bi bi-cpu"></i>
+                    <span id="workers-count">{{ scheduler_stats.workers_online }}</span> workers
+                </div>
+                <div class="scheduler-stat-item">
+                    <i class="bi bi-list-task"></i>
+                    <span id="queue-count">{{ scheduler_stats.queue_size }}</span> in coda
+                </div>
+            </div>
+        </div>
+        <div class="scheduler-header-actions">
+            <button class="btn-primary-scheduler" onclick="showScheduleModal()">
+                <i class="bi bi-plus-circle"></i> Nuova Programmazione
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="scheduler-stats">
+        <!-- Workers Status -->
+        <div class="scheduler-stat-card">
+            <div class="scheduler-stat-header">
+                <div class="scheduler-stat-icon workers">
+                    <i class="bi bi-cpu"></i>
+                </div>
+            </div>
+            <div class="scheduler-stat-value" id="active-workers">{{ scheduler_stats.workers_online }}</div>
+            <div class="scheduler-stat-label">Workers Attivi</div>
+            <div class="scheduler-stat-status online">
+                <i class="bi bi-circle-fill"></i>
+                Sistema Operativo
+            </div>
+        </div>
+
+        <!-- Queue Status -->
+        <div class="scheduler-stat-card">
+            <div class="scheduler-stat-header">
+                <div class="scheduler-stat-icon queue">
+                    <i class="bi bi-list-task"></i>
+                </div>
+            </div>
+            <div class="scheduler-stat-value" id="queue-size">{{ scheduler_stats.queue_size }}</div>
+            <div class="scheduler-stat-label">Task in Coda</div>
+            <div class="scheduler-stat-status {{ 'busy' if scheduler_stats.queue_size > 0 else 'online' }}">
+                <i class="bi bi-{{ 'exclamation-circle' if scheduler_stats.queue_size > 0 else 'check-circle' }}"></i>
+                {{ 'In elaborazione' if scheduler_stats.queue_size > 0 else 'Coda vuota' }}
+            </div>
+        </div>
+
+        <!-- Scheduled Scans -->
+        <div class="scheduler-stat-card">
+            <div class="scheduler-stat-header">
+                <div class="scheduler-stat-icon scheduled">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+            </div>
+            <div class="scheduler-stat-value">{{ scheduler_stats.total_schedules }}</div>
+            <div class="scheduler-stat-label">Scansioni Programmate</div>
+            <div class="scheduler-stat-status online">
+                <i class="bi bi-circle-fill"></i>
+                {{ scheduler_stats.active_schedules }} attive
+            </div>
+        </div>
+
+        <!-- Task Activity -->
+        <div class="scheduler-stat-card">
+            <div class="scheduler-stat-header">
+                <div class="scheduler-stat-icon tasks">
+                    <i class="bi bi-activity"></i>
+                </div>
+            </div>
+            <div class="scheduler-stat-value" id="recent-tasks">0</div>
+            <div class="scheduler-stat-label">Task Recenti</div>
+            <div class="scheduler-stat-status online">
+                <i class="bi bi-clock"></i>
+                Ultima ora
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="scheduler-grid">
+        <!-- Scheduled Scans Table -->
+        <div class="scheduler-card">
+            <div class="scheduler-card-header">
+                <div class="scheduler-card-header-content">
+                    <div class="scheduler-card-icon">
+                        <i class="bi bi-calendar-week"></i>
+                    </div>
+                    <h3 class="scheduler-card-title">Scansioni Programmate</h3>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedules()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <div class="scheduler-card-body">
+                {% if schedules %}
+                <div class="schedules-table-container">
+                    <table class="schedules-table">
+                        <thead>
+                            <tr>
+                                <th>Programmazione</th>
+                                <th>Frequenza</th>
+                                <th>Status</th>
+                                <th>Prossima</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules[:10] %}
+                            <tr>
+                                <td>
+                                    <div class="schedule-info">
+                                        <div class="schedule-icon">
+                                            <i class="bi bi-calendar-check"></i>
+                                        </div>
+                                        <div class="schedule-details">
+                                            <div class="schedule-name">{{ schedule.website.name if schedule.website else 'Sito Sconosciuto' }}</div>
+                                            <div class="schedule-website">{{ schedule.website.domain if schedule.website else 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="frequency-badge {{ schedule.frequency }}">
+                                        <i class="bi bi-{{ 'calendar-day' if schedule.frequency == 'daily' else 'calendar-week' if schedule.frequency == 'weekly' else 'calendar' }}"></i>
+                                        {{ schedule.frequency.title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if schedule.is_active else 'disabled' }}">
+                                        <i class="bi bi-{{ 'check-circle' if schedule.is_active else 'pause-circle' }}"></i>
+                                        {{ 'Attiva' if schedule.is_active else 'Disabilitata' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        {% if schedule.next_run %}
+                                        {{ schedule.next_run.strftime('%d/%m %H:%M') }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="schedule-actions">
+                                        <button class="btn-action btn-edit" onclick="editSchedule({{ schedule.id }})" title="Modifica">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        {% if schedule.is_active %}
+                                        <button class="btn-action btn-pause" onclick="pauseSchedule({{ schedule.id }})" title="Pausa">
+                                            <i class="bi bi-pause"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn-action btn-edit" onclick="resumeSchedule({{ schedule.id }})" title="Riprendi">
+                                            <i class="bi bi-play"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn-action btn-delete" onclick="deleteSchedule({{ schedule.id }})" title="Elimina">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="scheduler-empty">
+                    <i class="bi bi-calendar-x"></i>
+                    <h3>Nessuna programmazione attiva</h3>
+                    <p>Configura la prima scansione automatica per iniziare</p>
+                    <button class="btn btn-primary" onclick="showScheduleModal()">
+                        <i class="bi bi-plus-circle"></i> Crea Programmazione
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Quick Controls -->
+            <div class="scheduler-card">
+                <div class="scheduler-card-header">
+                    <div class="scheduler-card-header-content">
+                        <div class="scheduler-card-icon">
+                            <i class="bi bi-gear"></i>
+                        </div>
+                        <h3 class="scheduler-card-title">Controlli Rapidi</h3>
+                    </div>
+                </div>
+                <div class="scheduler-card-body">
+                    <div class="scheduler-controls">
+                        <button class="btn-control primary" onclick="pauseAllSchedules()">
+                            <i class="bi bi-pause-circle"></i> Pausa Tutto
+                        </button>
+                        <button class="btn-control secondary" onclick="resumeAllSchedules()">
+                            <i class="bi bi-play-circle"></i> Riprendi
+                        </button>
+                    </div>
+                    <div class="scheduler-controls">
+                        <button class="btn-control secondary" onclick="purgeQueue()">
+                            <i class="bi bi-trash"></i> Pulisci Coda
+                        </button>
+                        <button class="btn-control secondary" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Task Activity -->
+            <div class="scheduler-card">
+                <div class="scheduler-card-header">
+                    <div class="scheduler-card-header-content">
+                        <div class="scheduler-card-icon">
+                            <i class="bi bi-activity"></i>
+                        </div>
+                        <h3 class="scheduler-card-title">Attività Recenti</h3>
+                    </div>
+                </div>
+                <div class="scheduler-card-body">
+                    <div class="task-list" id="recent-tasks-list">
+                        <!-- Tasks will be populated via JavaScript -->
+                        <div class="scheduler-empty">
+                            <i class="bi bi-clock-history"></i>
+                            <h4>Nessuna attività</h4>
+                            <p>Le attività recenti appariranno qui</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Scheduler management functions
+function showScheduleModal() {
+    if (window.app && window.app.showScheduleModal) {
+        window.app.showScheduleModal();
+    } else {
+        console.log('Show schedule modal');
+    }
+}
+
+function editSchedule(scheduleId) {
+    if (window.app && window.app.editSchedule) {
+        window.app.editSchedule(scheduleId);
+    } else {
+        console.log('Edit schedule:', scheduleId);
+    }
+}
+
+function pauseSchedule(scheduleId) {
+    if (confirm('Sei sicuro di voler mettere in pausa questa programmazione?')) {
+        if (window.app && window.app.pauseSchedule) {
+            window.app.pauseSchedule(scheduleId);
+        } else {
+            console.log('Pause schedule:', scheduleId);
+        }
+    }
+}
+
+function resumeSchedule(scheduleId) {
+    if (window.app && window.app.resumeSchedule) {
+        window.app.resumeSchedule(scheduleId);
+    } else {
+        console.log('Resume schedule:', scheduleId);
+    }
+}
+
+function deleteSchedule(scheduleId) {
+    if (confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+        if (window.app && window.app.deleteSchedule) {
+            window.app.deleteSchedule(scheduleId);
+        } else {
+            console.log('Delete schedule:', scheduleId);
+        }
+    }
+}
+
+function pauseAllSchedules() {
+    if (confirm('Sei sicuro di voler mettere in pausa tutte le programmazioni?')) {
+        if (window.app && window.app.pauseAllSchedules) {
+            window.app.pauseAllSchedules();
+        } else {
+            console.log('Pause all schedules');
+        }
+    }
+}
+
+function resumeAllSchedules() {
+    if (window.app && window.app.resumeAllSchedules) {
+        window.app.resumeAllSchedules();
+    } else {
+        console.log('Resume all schedules');
+    }
+}
+
+function purgeQueue() {
+    if (confirm('Sei sicuro di voler pulire la coda dei task?')) {
+        if (window.app && window.app.purgeQueue) {
+            window.app.purgeQueue();
+        } else {
+            console.log('Purge queue');
+        }
+    }
+}
+
+function refreshSchedules() {
+    if (window.app && window.app.refreshSchedules) {
+        window.app.refreshSchedules();
+    } else {
+        window.location.reload();
+    }
+}
+
+function refreshData() {
+    if (window.app && window.app.refreshData) {
+        window.app.refreshData();
+    } else {
+        window.location.reload();
+    }
+}
+
+// Auto-refresh scheduler data every 30 seconds
+setInterval(function() {
+    refreshData();
+}, 30000);
+</script>

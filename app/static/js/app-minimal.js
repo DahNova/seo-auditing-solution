@@ -43,6 +43,276 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 SEO Auditing Solution - HTMX Version Loaded');
 });
 
+// Simple namespace objects for modal compatibility
+const clients = {
+    createClient: function() {
+        const form = document.getElementById('addClientForm');
+        if (form) {
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('clientName'),
+                contact_email: formData.get('clientEmail'),
+                contact_phone: formData.get('clientPhone') || null,
+                notes: formData.get('clientNotes') || null
+            };
+            
+            fetch('/api/v1/clients/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Cliente creato con successo', 'success');
+                    closeModal('addClientModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella creazione del cliente', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    },
+    
+    updateClient: function() {
+        const form = document.getElementById('editClientForm');
+        const clientId = document.getElementById('editClientId').value;
+        
+        if (form && clientId) {
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('editClientName'),
+                contact_email: formData.get('editClientEmail'),
+                contact_phone: formData.get('editClientPhone') || null,
+                notes: formData.get('editClientNotes') || null
+            };
+            
+            fetch(`/api/v1/clients/${clientId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Cliente aggiornato con successo', 'success');
+                    closeModal('editClientModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'aggiornamento del cliente', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    },
+    
+    deleteClientFromModal: function() {
+        const clientId = document.getElementById('editClientId').value;
+        if (clientId && confirm('Sei sicuro di voler eliminare questo cliente?')) {
+            fetch(`/api/v1/clients/${clientId}`, { method: 'DELETE' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Cliente eliminato con successo', 'success');
+                    closeModal('editClientModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'eliminazione del cliente', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    }
+};
+
+const websites = {
+    createWebsite: function() {
+        const form = document.getElementById('addWebsiteForm');
+        if (form) {
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('websiteName'),
+                domain: formData.get('websiteUrl'),
+                client_id: parseInt(formData.get('websiteClient')),
+                description: formData.get('websiteDescription') || null,
+                is_active: formData.get('websiteActive') === 'on'
+            };
+            
+            fetch('/api/v1/websites/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Sito web creato con successo', 'success');
+                    closeModal('addWebsiteModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella creazione del sito web', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    },
+    
+    updateWebsite: function() {
+        const form = document.getElementById('editWebsiteForm');
+        const websiteId = document.getElementById('editWebsiteId').value;
+        
+        if (form && websiteId) {
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('editWebsiteName'),
+                domain: formData.get('editWebsiteUrl'),
+                client_id: parseInt(formData.get('editWebsiteClient')),
+                description: formData.get('editWebsiteDescription') || null,
+                is_active: formData.get('editWebsiteActive') === 'on'
+            };
+            
+            fetch(`/api/v1/websites/${websiteId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Sito web aggiornato con successo', 'success');
+                    closeModal('editWebsiteModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'aggiornamento del sito web', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    },
+    
+    deleteWebsiteFromModal: function() {
+        const websiteId = document.getElementById('editWebsiteId').value;
+        if (websiteId && confirm('Sei sicuro di voler eliminare questo sito web?')) {
+            fetch(`/api/v1/websites/${websiteId}`, { method: 'DELETE' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Sito web eliminato con successo', 'success');
+                    closeModal('editWebsiteModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'eliminazione del sito web', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    }
+};
+
+const scans = {
+    startNewScan: function() {
+        const form = document.getElementById('newScanForm');
+        if (form) {
+            const formData = new FormData(form);
+            const data = {
+                website_id: parseInt(formData.get('scanWebsite')),
+                scan_type: formData.get('scanType') || 'full',
+                depth: parseInt(formData.get('scanDepth')) || 5,
+                options: {
+                    images: formData.get('scanImages') === 'on',
+                    links: formData.get('scanLinks') === 'on',
+                    performance: formData.get('scanPerformance') === 'on',
+                    mobile: formData.get('scanMobile') === 'on'
+                },
+                notes: formData.get('scanNotes') || null
+            };
+            
+            fetch('/api/v1/scans/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Scansione avviata con successo', 'success');
+                    closeModal('newScanModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'avvio della scansione', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    }
+};
+
+const scheduler = {
+    createSchedule: function() {
+        const form = document.getElementById('newScheduleForm');
+        if (form) {
+            const formData = new FormData(form);
+            const data = {
+                website_id: parseInt(formData.get('scheduleWebsite')),
+                frequency: formData.get('scheduleFrequency'),
+                time: formData.get('scheduleTime'),
+                day: formData.get('scheduleDay') ? parseInt(formData.get('scheduleDay')) : null,
+                scan_type: formData.get('scheduleScanType') || 'full',
+                email_notify: formData.get('scheduleEmailNotify') === 'on',
+                alert_issues: formData.get('scheduleAlertIssues') === 'on',
+                is_active: formData.get('scheduleActive') === 'on',
+                notes: formData.get('scheduleNotes') || null
+            };
+            
+            fetch('/api/v1/scheduler/schedules/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Programmazione creata con successo', 'success');
+                    closeModal('newScheduleModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella creazione della programmazione', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    }
+};
+
+// Global functions for easy access
+function showAddClientModal() { showModal('addClientModal'); }
+function showAddWebsiteModal() { showModal('addWebsiteModal'); }
+function showNewScanModal() { showModal('newScanModal'); }
+function showScheduleModal() { showModal('newScheduleModal'); }
+
 // Modal Management
 function showModal(modalId) {
     const modalElement = document.getElementById(modalId);

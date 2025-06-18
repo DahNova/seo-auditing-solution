@@ -1,0 +1,175 @@
+<!-- Add Website Modal - SEMrush Style -->
+<div class="modal fade" id="addWebsiteModal" tabindex="-1" aria-labelledby="addWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered website-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addWebsiteModalLabel">
+                    <i class="bi bi-globe-europe-africa"></i>
+                    Aggiungi Nuovo Sito Web
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWebsiteForm">
+                    <div class="form-group">
+                        <label for="websiteName" class="form-label">
+                            Nome Sito <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="websiteName" name="websiteName" required placeholder="Es. Sito Aziendale">
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Il nome del sito è obbligatorio
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="websiteUrl" class="form-label">
+                            URL Sito Web <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-link-45deg"></i>
+                            </span>
+                            <input type="url" class="form-control" id="websiteUrl" name="websiteUrl" required placeholder="https://example.com">
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Inserisci un URL valido (es. https://example.com)
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="websiteClient" class="form-label">
+                            Cliente <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="websiteClient" name="websiteClient" required>
+                            <option value="">Seleziona un cliente</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Seleziona il cliente proprietario del sito
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="websiteDescription" class="form-label">
+                            Descrizione
+                        </label>
+                        <textarea class="form-control" id="websiteDescription" name="websiteDescription" rows="3" placeholder="Breve descrizione del sito web..."></textarea>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="websiteActive" name="websiteActive" checked>
+                        <label class="form-check-label" for="websiteActive">
+                            Sito web attivo per il monitoraggio
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-primary" onclick="websites.createWebsite()">
+                    <i class="bi bi-check-circle"></i>
+                    Crea Sito Web
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Website Modal - SEMrush Style -->
+<div class="modal fade" id="editWebsiteModal" tabindex="-1" aria-labelledby="editWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered website-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editWebsiteModalLabel">
+                    <i class="bi bi-pencil-square"></i>
+                    Modifica Sito Web
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editWebsiteForm">
+                    <input type="hidden" id="editWebsiteId">
+                    
+                    <div class="form-group">
+                        <label for="editWebsiteName" class="form-label">
+                            Nome Sito <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="editWebsiteName" name="editWebsiteName" required>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Il nome del sito è obbligatorio
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editWebsiteUrl" class="form-label">
+                            URL Sito Web <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-link-45deg"></i>
+                            </span>
+                            <input type="url" class="form-control" id="editWebsiteUrl" name="editWebsiteUrl" required>
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Inserisci un URL valido (es. https://example.com)
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editWebsiteClient" class="form-label">
+                            Cliente <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="editWebsiteClient" name="editWebsiteClient" required>
+                            <option value="">Seleziona un cliente</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Seleziona il cliente proprietario del sito
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editWebsiteDescription" class="form-label">
+                            Descrizione
+                        </label>
+                        <textarea class="form-control" id="editWebsiteDescription" name="editWebsiteDescription" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editWebsiteActive" name="editWebsiteActive">
+                        <label class="form-check-label" for="editWebsiteActive">
+                            Sito web attivo per il monitoraggio
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="websites.deleteWebsiteFromModal()">
+                    <i class="bi bi-trash"></i>
+                    Elimina Sito
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-success" onclick="websites.updateWebsite()">
+                    <i class="bi bi-check-circle"></i>
+                    Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

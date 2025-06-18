@@ -1,0 +1,153 @@
+<!-- Add Client Modal - SEMrush Style -->
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered client-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addClientModalLabel">
+                    <i class="bi bi-person-plus"></i>
+                    Aggiungi Nuovo Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addClientForm">
+                    <div class="form-group">
+                        <label for="clientName" class="form-label">
+                            Nome Cliente <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="clientName" name="clientName" required placeholder="Es. Azienda XYZ">
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Il nome del cliente è obbligatorio
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientEmail" class="form-label">
+                            Email <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-envelope"></i>
+                            </span>
+                            <input type="email" class="form-control" id="clientEmail" name="clientEmail" required placeholder="cliente@example.com">
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Inserisci un indirizzo email valido
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientPhone" class="form-label">
+                            Telefono
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-telephone"></i>
+                            </span>
+                            <input type="tel" class="form-control" id="clientPhone" name="clientPhone" placeholder="+39 123 456 7890">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientNotes" class="form-label">
+                            Note Aggiuntive
+                        </label>
+                        <textarea class="form-control" id="clientNotes" name="clientNotes" rows="3" placeholder="Informazioni aggiuntive sul cliente..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-primary" onclick="clients.createClient()">
+                    <i class="bi bi-check-circle"></i>
+                    Crea Cliente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Client Modal - SEMrush Style -->
+<div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered client-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editClientModalLabel">
+                    <i class="bi bi-pencil-square"></i>
+                    Modifica Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editClientForm">
+                    <input type="hidden" id="editClientId">
+                    
+                    <div class="form-group">
+                        <label for="editClientName" class="form-label">
+                            Nome Cliente <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="editClientName" name="editClientName" required>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Il nome del cliente è obbligatorio
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editClientEmail" class="form-label">
+                            Email <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-envelope"></i>
+                            </span>
+                            <input type="email" class="form-control" id="editClientEmail" name="editClientEmail" required>
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Inserisci un indirizzo email valido
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editClientPhone" class="form-label">
+                            Telefono
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-telephone"></i>
+                            </span>
+                            <input type="tel" class="form-control" id="editClientPhone" name="editClientPhone">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editClientNotes" class="form-label">
+                            Note Aggiuntive
+                        </label>
+                        <textarea class="form-control" id="editClientNotes" name="editClientNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="clients.deleteClientFromModal()">
+                    <i class="bi bi-trash"></i>
+                    Elimina Cliente
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i>
+                    Annulla
+                </button>
+                <button type="button" class="btn btn-success" onclick="clients.updateClient()">
+                    <i class="bi bi-check-circle"></i>
+                    Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
