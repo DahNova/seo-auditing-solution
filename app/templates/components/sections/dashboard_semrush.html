@@ -1,0 +1,229 @@
+<!-- SEO Dashboard - SEMrush-Inspired Compact Design -->
+<div class="dashboard-content">
+    
+    <!-- Compact Header -->
+    <div class="dashboard-header-compact">
+        <h1 class="dashboard-title-compact">Dashboard SEO</h1>
+        <p class="dashboard-subtitle-compact">Panoramica performance clienti e attività di monitoraggio</p>
+    </div>
+
+    <!-- Essential Stats Grid -->
+    <div class="stats-grid">
+        <!-- Clients Stats -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <div class="stats-icon clients">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+            <div class="stats-value">{{ dashboard_stats.total_clients }}</div>
+            <div class="stats-label">Clienti Attivi</div>
+            <div class="stats-trend positive">
+                <i class="bi bi-trending-up"></i>
+                {{ dashboard_stats.clients_growth }} questo mese
+            </div>
+        </div>
+
+        <!-- Websites Stats -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <div class="stats-icon websites">
+                    <i class="bi bi-globe"></i>
+                </div>
+            </div>
+            <div class="stats-value">{{ dashboard_stats.total_websites }}</div>
+            <div class="stats-label">Siti Monitorati</div>
+            <div class="stats-trend neutral">
+                <i class="bi bi-activity"></i>
+                {{ dashboard_stats.active_websites }} attivi
+            </div>
+        </div>
+
+        <!-- Scans Stats -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <div class="stats-icon scans">
+                    <i class="bi bi-search"></i>
+                </div>
+            </div>
+            <div class="stats-value">{{ dashboard_stats.total_scans }}</div>
+            <div class="stats-label">Scansioni Complete</div>
+            <div class="stats-trend neutral">
+                <i class="bi bi-clock"></i>
+                {{ dashboard_stats.last_scan_time }}
+            </div>
+        </div>
+
+        <!-- Issues Stats -->
+        <div class="stats-card">
+            <div class="stats-card-header">
+                <div class="stats-icon issues">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+            <div class="stats-value">{{ dashboard_stats.critical_issues }}</div>
+            <div class="stats-label">Problemi Critici</div>
+            {% if dashboard_stats.critical_issues > 0 %}
+            <div class="stats-trend negative">
+                <i class="bi bi-exclamation-triangle"></i>
+                Richiedono attenzione
+            </div>
+            {% else %}
+            <div class="stats-trend positive">
+                <i class="bi bi-check-circle"></i>
+                Tutto in ordine
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="dashboard-grid">
+        <!-- Recent Scans -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <div class="card-header-content">
+                    <div class="card-icon">
+                        <i class="bi bi-activity"></i>
+                    </div>
+                    <h3 class="card-title">Scansioni Recenti</h3>
+                </div>
+                <a href="/templated/scans" class="btn btn-outline-primary btn-sm">
+                    Vedi tutte <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="scans-list">
+                    {% if recent_scans %}
+                        {% for scan in recent_scans[:5] %}
+                        {% if scan.status == 'completed' %}
+                        <a href="/templated/scan/{{ scan.id }}/results" class="scan-item">
+                        {% else %}
+                        <div class="scan-item">
+                        {% endif %}
+                            <div class="scan-item-icon">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <div class="scan-content">
+                                <div class="scan-title">Scansione #{{ scan.id }}</div>
+                                <div class="scan-meta">
+                                    {{ scan.created_at.strftime('%d/%m/%Y %H:%M') if scan.created_at else 'N/A' }} • 
+                                    <span class="badge {{ 'success' if scan.status == 'completed' else 'warning' if scan.status == 'running' else 'info' }}">
+                                        {{ scan.status.title() }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="scan-score">
+                                {% if scan.seo_score %}
+                                    {{ scan.seo_score }}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </div>
+                        {% if scan.status == 'completed' %}
+                        </a>
+                        {% else %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-search"></i>
+                            <div class="empty-state-title">Nessuna scansione</div>
+                            <div class="empty-state-desc">Avvia la prima scansione per vedere i risultati</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Quick Actions -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-header-content">
+                        <div class="card-icon">
+                            <i class="bi bi-lightning"></i>
+                        </div>
+                        <h3 class="card-title">Azioni Rapide</h3>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="actions-grid">
+                        <button class="action-btn" onclick="app.showAddClientModal()">
+                            <div class="action-btn-icon">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nuovo Cliente</span>
+                                <span class="action-desc">Aggiungi cliente</span>
+                            </div>
+                        </button>
+                        
+                        <button class="action-btn" onclick="app.showAddWebsiteModal()">
+                            <div class="action-btn-icon">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Nuovo Sito</span>
+                                <span class="action-desc">Aggiungi sito</span>
+                            </div>
+                        </button>
+                        
+                        <button class="action-btn" onclick="app.showNewScanModal()">
+                            <div class="action-btn-icon">
+                                <i class="bi bi-play-circle"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Avvia Scan</span>
+                                <span class="action-desc">Nuova scansione</span>
+                            </div>
+                        </button>
+                        
+                        <a href="/templated/scans" class="action-btn">
+                            <div class="action-btn-icon">
+                                <i class="bi bi-file-text"></i>
+                            </div>
+                            <div class="action-content">
+                                <span class="action-title">Report</span>
+                                <span class="action-desc">Tutti i report</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Critical Alerts -->
+            {% if dashboard_stats.critical_issues > 0 %}
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-header-content">
+                        <div class="card-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <h3 class="card-title">Alert Critici</h3>
+                    </div>
+                    <span class="badge danger">{{ dashboard_stats.critical_issues }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="alerts-list">
+                        <div class="alert-item">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <div class="alert-content">
+                                <div class="alert-title">Problemi Critici Rilevati</div>
+                                <div class="alert-desc">{{ dashboard_stats.critical_issues }} problemi richiedono attenzione immediata</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/templated/scans" class="btn btn-outline-danger btn-sm w-100">
+                        Visualizza Dettagli
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

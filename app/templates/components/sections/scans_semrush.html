@@ -1,0 +1,273 @@
+<!-- SEO Scans Management - SEMrush-Inspired Compact Design -->
+<div class="scans-content">
+    
+    <!-- Compact Header -->
+    <div class="scans-header-compact">
+        <div class="scans-header-content">
+            <h1>Monitoraggio Scansioni</h1>
+            <p>Gestisci e monitora tutte le scansioni SEO dei tuoi siti web</p>
+            <div class="scans-stats-inline">
+                <div class="scans-stat-item">
+                    <i class="bi bi-search"></i>
+                    <span>{{ scans_count }} scansioni totali</span>
+                </div>
+                <div class="scans-stat-item">
+                    <i class="bi bi-check-circle"></i>
+                    <span>{{ completed_scans }} completate</span>
+                </div>
+                <div class="scans-stat-item">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>{{ avg_score | round(1) }} score medio</span>
+                </div>
+            </div>
+        </div>
+        <div class="scans-header-actions">
+            <button class="btn-primary-scans" onclick="showNewScanModal()">
+                <i class="bi bi-play-circle"></i> Nuova Scansione
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="scans-filters">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="form-control" id="scan-search" placeholder="Cerca scansioni per ID o sito web...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select filter-select" id="website-filter">
+                    <option value="">Tutti i siti web</option>
+                    {% for website in websites %}
+                    <option value="{{ website.id }}">{{ website.name }} ({{ website.client_name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select filter-select" id="status-filter">
+                    <option value="">Tutti gli stati</option>
+                    <option value="completed">Completate</option>
+                    <option value="running">In corso</option>
+                    <option value="failed">Fallite</option>
+                    <option value="pending">In attesa</option>
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scans Table -->
+    <div class="scans-table-container">
+        {% if scans %}
+        <table class="scans-table">
+            <thead>
+                <tr>
+                    <th>Scansione</th>
+                    <th>Cliente</th>
+                    <th>Metriche</th>
+                    <th>Score SEO</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scan in scans %}
+                <tr data-website-id="{{ scan.website_id }}" data-status="{{ scan.status }}">
+                    <td>
+                        <div class="scan-info">
+                            <div class="scan-icon">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <div class="scan-details">
+                                <div class="scan-id">Scansione #{{ scan.id }}</div>
+                                <div class="scan-website">{{ scan.website_name }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="client-info">{{ scan.client_name }}</div>
+                    </td>
+                    <td>
+                        <div class="scan-metrics">
+                            <div class="scan-metric">
+                                <strong>{{ scan.pages_scanned or 0 }}</strong> pagine
+                            </div>
+                            <div class="scan-metric">
+                                <strong>{{ scan.issues_count }}</strong> problemi
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if scan.seo_score %}
+                        <div class="seo-score {{ 'excellent' if scan.seo_score >= 80 else 'good' if scan.seo_score >= 60 else 'fair' if scan.seo_score >= 40 else 'poor' }}">
+                            {{ scan.seo_score }}
+                        </div>
+                        {% else %}
+                        <div class="seo-score unknown">--</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge {{ scan.status }}">
+                            {% if scan.status == 'completed' %}
+                            <i class="bi bi-check-circle"></i>
+                            Completata
+                            {% elif scan.status == 'running' %}
+                            <i class="bi bi-clock"></i>
+                            In corso
+                            {% elif scan.status == 'failed' %}
+                            <i class="bi bi-x-circle"></i>
+                            Fallita
+                            {% else %}
+                            <i class="bi bi-circle"></i>
+                            {{ scan.status.title() }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="date-info">
+                            {{ scan.created_at.strftime('%d/%m/%Y %H:%M') if scan.created_at else 'N/A' }}
+                        </div>
+                        {% if scan.completed_at %}
+                        <div class="date-info">
+                            Completata: {{ scan.completed_at.strftime('%H:%M') }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="scan-actions">
+                            {% if scan.status == 'completed' %}
+                            <a href="/templated/scan/{{ scan.id }}/results" class="btn-action btn-view" title="Visualizza Risultati">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/api/v1/scans/{{ scan.id }}/report" target="_blank" class="btn-action btn-download" title="Scarica Report">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            {% elif scan.status == 'failed' %}
+                            <button class="btn-action btn-retry" onclick="retryScan({{ scan.id }})" title="Riprova">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            {% elif scan.status == 'running' %}
+                            <button class="btn-action btn-cancel" onclick="cancelScan({{ scan.id }})" title="Annulla">
+                                <i class="bi bi-stop-circle"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="scans-empty">
+            <i class="bi bi-search"></i>
+            <h3>Nessuna scansione trovata</h3>
+            <p>Avvia la prima scansione per iniziare l'analisi SEO dei tuoi siti web</p>
+            <button class="btn btn-primary" onclick="showNewScanModal()">
+                <i class="bi bi-play-circle"></i> Avvia Scansione
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if scans %}
+    <!-- Summary Stats -->
+    <div class="scans-summary">
+        <div class="summary-card">
+            <div class="summary-value">{{ scans_count }}</div>
+            <div class="summary-label">Scansioni Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ completed_scans }}</div>
+            <div class="summary-label">Completate</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ avg_score | round(1) }}</div>
+            <div class="summary-label">Score Medio</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ websites | length }}</div>
+            <div class="summary-label">Siti Monitorati</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Scan search functionality
+document.getElementById('scan-search').addEventListener('input', function(e) {
+    filterScans();
+});
+
+// Website filter functionality
+document.getElementById('website-filter').addEventListener('change', function(e) {
+    filterScans();
+});
+
+// Status filter functionality
+document.getElementById('status-filter').addEventListener('change', function(e) {
+    filterScans();
+});
+
+function filterScans() {
+    const searchTerm = document.getElementById('scan-search').value.toLowerCase();
+    const websiteFilter = document.getElementById('website-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const rows = document.querySelectorAll('.scans-table tbody tr');
+    
+    rows.forEach(row => {
+        const scanId = row.querySelector('.scan-id').textContent.toLowerCase();
+        const websiteName = row.querySelector('.scan-website').textContent.toLowerCase();
+        const clientName = row.querySelector('.client-info').textContent.toLowerCase();
+        const websiteId = row.getAttribute('data-website-id');
+        const status = row.getAttribute('data-status');
+        
+        const matchesSearch = scanId.includes(searchTerm) || 
+                            websiteName.includes(searchTerm) || 
+                            clientName.includes(searchTerm);
+        const matchesWebsite = !websiteFilter || websiteId === websiteFilter;
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        if (matchesSearch && matchesWebsite && matchesStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Scan management functions
+function retryScan(scanId) {
+    if (confirm('Sei sicuro di voler riprovare questa scansione?')) {
+        if (window.app && window.app.retryScan) {
+            window.app.retryScan(scanId);
+        } else {
+            console.log('Retry scan:', scanId);
+        }
+    }
+}
+
+function cancelScan(scanId) {
+    if (confirm('Sei sicuro di voler annullare questa scansione?')) {
+        if (window.app && window.app.cancelScan) {
+            window.app.cancelScan(scanId);
+        } else {
+            console.log('Cancel scan:', scanId);
+        }
+    }
+}
+
+function showNewScanModal() {
+    if (window.app && window.app.showNewScanModal) {
+        window.app.showNewScanModal();
+    } else {
+        console.log('Show new scan modal');
+    }
+}
+</script>

@@ -340,7 +340,12 @@
                     Performance delle Pagine
                 </h2>
                 <p class="sr-section-subtitle">
+                    {% if pagination %}
+                    Mostrando pagine {{ pagination.start_item }}-{{ pagination.end_item }} di {{ pagination.total_items }} totali
+                    (Pagina {{ pagination.current_page }} di {{ pagination.total_pages }})
+                    {% else %}
                     Analisi dettagliata delle {{ pages|length }} pagine scansionate con score SEO e problemi per pagina
+                    {% endif %}
                 </p>
             </div>
             
@@ -404,6 +409,85 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination Controls -->
+                {% if pagination and pagination.total_pages > 1 %}
+                <div style="padding: 1.5rem; border-top: 1px solid var(--sr-border); background: var(--sr-gray-50);">
+                    <div style="display: flex; justify-content: between; align-items: center; gap: 1rem;">
+                        <!-- Left: Items info -->
+                        <div style="font-size: 0.875rem; color: var(--sr-text-muted);">
+                            Mostrando {{ pagination.start_item }}-{{ pagination.end_item }} di {{ pagination.total_items }}
+                        </div>
+                        
+                        <!-- Center: Page controls -->
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: auto;">
+                            <!-- Previous button -->
+                            {% if pagination.has_prev %}
+                            <a href="/templated/scan/{{ scan.id }}/results?page={{ pagination.prev_page }}" 
+                               class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem;">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                            {% else %}
+                            <span class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem; opacity: 0.5; cursor: not-allowed;">
+                                <i class="bi bi-chevron-left"></i>
+                            </span>
+                            {% endif %}
+                            
+                            <!-- Page numbers -->
+                            {% set start_page = (pagination.current_page - 2) if pagination.current_page > 2 else 1 %}
+                            {% set end_page = (pagination.current_page + 2) if (pagination.current_page + 2) <= pagination.total_pages else pagination.total_pages %}
+                            
+                            {% if start_page > 1 %}
+                            <a href="/templated/scan/{{ scan.id }}/results?page=1" 
+                               class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem; min-width: 40px;">1</a>
+                            {% if start_page > 2 %}
+                            <span style="padding: 0.5rem; color: var(--sr-text-muted);">...</span>
+                            {% endif %}
+                            {% endif %}
+                            
+                            {% for page_num in range(start_page, end_page + 1) %}
+                            {% if page_num == pagination.current_page %}
+                            <span class="sr-btn sr-btn-primary" style="padding: 0.5rem 0.75rem; min-width: 40px;">{{ page_num }}</span>
+                            {% else %}
+                            <a href="/templated/scan/{{ scan.id }}/results?page={{ page_num }}" 
+                               class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem; min-width: 40px;">{{ page_num }}</a>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if end_page < pagination.total_pages %}
+                            {% if end_page < pagination.total_pages - 1 %}
+                            <span style="padding: 0.5rem; color: var(--sr-text-muted);">...</span>
+                            {% endif %}
+                            <a href="/templated/scan/{{ scan.id }}/results?page={{ pagination.total_pages }}" 
+                               class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem; min-width: 40px;">{{ pagination.total_pages }}</a>
+                            {% endif %}
+                            
+                            <!-- Next button -->
+                            {% if pagination.has_next %}
+                            <a href="/templated/scan/{{ scan.id }}/results?page={{ pagination.next_page }}" 
+                               class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem;">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                            {% else %}
+                            <span class="sr-btn sr-btn-outline" style="padding: 0.5rem 0.75rem; opacity: 0.5; cursor: not-allowed;">
+                                <i class="bi bi-chevron-right"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Right: Per page selector -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.875rem; color: var(--sr-text-muted);">Per pagina:</span>
+                            <select onchange="changePagination(this.value)" style="padding: 0.25rem 0.5rem; border: 1px solid var(--sr-border); border-radius: 4px; font-size: 0.875rem;">
+                                <option value="25" {% if pagination.per_page == 25 %}selected{% endif %}>25</option>
+                                <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50</option>
+                                <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100</option>
+                                <option value="200" {% if pagination.per_page == 200 %}selected{% endif %}>200</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 {% else %}
                 <div class="sr-empty-state">
                     <div class="sr-empty-icon">
@@ -629,4 +713,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 });
+
+// Pagination functionality
+function changePagination(perPage) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('per_page', perPage);
+    currentUrl.searchParams.set('page', '1'); // Reset to first page
+    window.location.href = currentUrl.toString();
+}
 </script>

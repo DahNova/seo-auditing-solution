@@ -1,0 +1,174 @@
+<!-- SEO Clients Management - SEMrush-Inspired Compact Design -->
+<div class="clients-content">
+    
+    <!-- Compact Header -->
+    <div class="clients-header-compact">
+        <div class="clients-header-content">
+            <h1>Gestione Clienti</h1>
+            <p>Amministra i tuoi clienti e monitora le loro performance SEO</p>
+            <div class="clients-stats-inline">
+                <div class="clients-stat-item">
+                    <i class="bi bi-person-check"></i>
+                    <span>{{ clients_count }} clienti attivi</span>
+                </div>
+                <div class="clients-stat-item">
+                    <i class="bi bi-globe"></i>
+                    <span>{{ total_websites }} siti monitorati</span>
+                </div>
+            </div>
+        </div>
+        <div class="clients-header-actions">
+            <button class="btn-primary-clients" onclick="showAddClientModal()">
+                <i class="bi bi-person-plus"></i> Nuovo Cliente
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="clients-filters">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="form-control" id="client-search" placeholder="Cerca clienti per nome o email...">
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clients Table -->
+    <div class="clients-table-container">
+        {% if clients %}
+        <table class="clients-table">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Siti Web</th>
+                    <th>Status</th>
+                    <th>Creato</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td>
+                        <div class="client-name">{{ client.name }}</div>
+                        <div class="client-email">{{ client.contact_email }}</div>
+                    </td>
+                    <td>
+                        <div class="client-stats">
+                            <div class="client-stat">
+                                <strong>{{ client.websites_count }}</strong> siti web
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge active">
+                            <i class="bi bi-circle-fill"></i>
+                            Attivo
+                        </span>
+                    </td>
+                    <td>
+                        <div class="date-info">
+                            {{ client.created_at.strftime('%d/%m/%Y') if client.created_at else 'N/A' }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="client-actions">
+                            <button class="btn-action btn-edit" onclick="editClient({{ client.id }})" title="Modifica">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteClient({{ client.id }})" title="Elimina">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="clients-empty">
+            <i class="bi bi-people"></i>
+            <h3>Nessun cliente trovato</h3>
+            <p>Aggiungi il primo cliente per iniziare a monitorare i siti web</p>
+            <button class="btn btn-primary" onclick="showAddClientModal()">
+                <i class="bi bi-person-plus"></i> Aggiungi Cliente
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if clients %}
+    <!-- Summary Stats -->
+    <div class="clients-summary">
+        <div class="summary-card">
+            <div class="summary-value">{{ clients_count }}</div>
+            <div class="summary-label">Clienti Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ total_websites }}</div>
+            <div class="summary-label">Siti Monitorati</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ (total_websites / clients_count) | round(1) if clients_count > 0 else 0 }}</div>
+            <div class="summary-label">Siti per Cliente</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Client search functionality
+document.getElementById('client-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('.clients-table tbody tr');
+    
+    rows.forEach(row => {
+        const clientName = row.querySelector('.client-name').textContent.toLowerCase();
+        const clientEmail = row.querySelector('.client-email').textContent.toLowerCase();
+        
+        if (clientName.includes(searchTerm) || clientEmail.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Client management functions
+function editClient(clientId) {
+    // Use existing app functionality
+    if (window.app && window.app.editClient) {
+        window.app.editClient(clientId);
+    } else {
+        console.log('Edit client:', clientId);
+    }
+}
+
+function deleteClient(clientId) {
+    if (confirm('Sei sicuro di voler eliminare questo cliente?')) {
+        // Use existing app functionality
+        if (window.app && window.app.deleteClient) {
+            window.app.deleteClient(clientId);
+        } else {
+            console.log('Delete client:', clientId);
+        }
+    }
+}
+
+function showAddClientModal() {
+    // Use existing app functionality
+    if (window.app && window.app.showAddClientModal) {
+        window.app.showAddClientModal();
+    } else {
+        console.log('Show add client modal');
+    }
+}
+</script>

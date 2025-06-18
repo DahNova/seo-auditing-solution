@@ -1,0 +1,387 @@
+/* 
+ * SEO Audit Tool - SEMrush-Inspired Clients Management
+ * Compact and professional clients styling
+ * ADAPT • IMPROVE • OVERCOME
+ */
+
+/* ===== CLIENTS COLOR SYSTEM ===== */
+:root {
+  /* Inherit base colors for consistency */
+  --cl-primary: var(--nav-primary, #ff642f);
+  --cl-secondary: var(--nav-secondary, #2e5bff);
+  --cl-dark: var(--nav-dark, #1a202c);
+  
+  /* Clients specific colors */
+  --cl-bg: #ffffff;
+  --cl-bg-gray: #f8fafc;
+  --cl-border: #e2e8f0;
+  --cl-text: #2d3748;
+  --cl-text-light: #718096;
+  --cl-text-muted: #a0aec0;
+  
+  /* Status colors */
+  --cl-success: #22c55e;
+  --cl-warning: #f59e0b;
+  --cl-danger: #ef4444;
+  --cl-info: #3b82f6;
+  
+  /* Effects */
+  --cl-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --cl-shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  /* Typography */
+  --cl-font-family: var(--nav-font-family, 'Inter', sans-serif);
+  
+  /* Spacing */
+  --cl-space-sm: 0.5rem;
+  --cl-space-md: 1rem;
+  --cl-space-lg: 1.5rem;
+  --cl-space-xl: 2rem;
+  
+  /* Transitions */
+  --cl-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== CLIENTS LAYOUT ===== */
+.clients-content {
+  font-family: var(--cl-font-family);
+  color: var(--cl-text);
+  line-height: 1.6;
+}
+
+/* ===== COMPACT HEADER ===== */
+.clients-header-compact {
+  background: linear-gradient(135deg, var(--cl-dark) 0%, var(--cl-primary) 100%);
+  padding: var(--cl-space-lg);
+  border-radius: 12px;
+  color: white;
+  margin-bottom: var(--cl-space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.clients-header-content h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 var(--cl-space-sm) 0;
+}
+
+.clients-header-content p {
+  font-size: 1rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.clients-stats-inline {
+  display: flex;
+  gap: var(--cl-space-lg);
+  margin-top: var(--cl-space-sm);
+  font-size: 0.875rem;
+}
+
+.clients-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.clients-header-actions {
+  display: flex;
+  gap: var(--cl-space-sm);
+}
+
+.btn-primary-clients {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: var(--cl-space-sm) var(--cl-space-md);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: var(--cl-transition);
+}
+
+.btn-primary-clients:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+.clients-filters {
+  background: var(--cl-bg);
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
+  padding: var(--cl-space-lg);
+  margin-bottom: var(--cl-space-xl);
+  box-shadow: var(--cl-shadow);
+}
+
+.search-box {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-box input {
+  padding-left: 2.5rem;
+  border: 1px solid var(--cl-border);
+  border-radius: 8px;
+  transition: var(--cl-transition);
+}
+
+.search-box input:focus {
+  border-color: var(--cl-primary);
+  box-shadow: 0 0 0 3px rgba(255, 100, 47, 0.1);
+}
+
+.search-box i {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cl-text-muted);
+}
+
+/* ===== CLIENTS TABLE ===== */
+.clients-table-container {
+  background: var(--cl-bg);
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--cl-shadow);
+}
+
+.clients-table {
+  width: 100%;
+  margin: 0;
+}
+
+.clients-table thead {
+  background: var(--cl-bg-gray);
+}
+
+.clients-table th {
+  padding: var(--cl-space-md);
+  border-bottom: 1px solid var(--cl-border);
+  font-weight: 600;
+  color: var(--cl-text);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.clients-table td {
+  padding: var(--cl-space-md);
+  border-bottom: 1px solid var(--cl-border);
+  vertical-align: middle;
+}
+
+.clients-table tbody tr {
+  transition: var(--cl-transition);
+}
+
+.clients-table tbody tr:hover {
+  background: var(--cl-bg-gray);
+}
+
+/* ===== CLIENT ROW ELEMENTS ===== */
+.client-name {
+  font-weight: 600;
+  color: var(--cl-text);
+  margin-bottom: 0.25rem;
+}
+
+.client-email {
+  font-size: 0.875rem;
+  color: var(--cl-text-light);
+}
+
+.client-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.client-stat {
+  font-size: 0.75rem;
+  color: var(--cl-text-muted);
+}
+
+.client-stat strong {
+  color: var(--cl-text);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--cl-success);
+}
+
+.status-badge.inactive {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--cl-text-muted);
+}
+
+.date-info {
+  font-size: 0.75rem;
+  color: var(--cl-text-muted);
+}
+
+/* ===== ACTION BUTTONS ===== */
+.client-actions {
+  display: flex;
+  gap: var(--cl-space-sm);
+}
+
+.btn-action {
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: var(--cl-transition);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--cl-info);
+}
+
+.btn-edit:hover {
+  background: var(--cl-info);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.btn-delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--cl-danger);
+}
+
+.btn-delete:hover {
+  background: var(--cl-danger);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* ===== STATS SUMMARY ===== */
+.clients-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--cl-space-md);
+  margin-bottom: var(--cl-space-xl);
+}
+
+.summary-card {
+  background: var(--cl-bg);
+  border: 1px solid var(--cl-border);
+  border-radius: 8px;
+  padding: var(--cl-space-md);
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cl-primary);
+  margin-bottom: 0.25rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: var(--cl-text-light);
+}
+
+/* ===== EMPTY STATE ===== */
+.clients-empty {
+  text-align: center;
+  padding: var(--cl-space-xl);
+  color: var(--cl-text-muted);
+}
+
+.clients-empty i {
+  font-size: 3rem;
+  margin-bottom: var(--cl-space-md);
+  opacity: 0.5;
+}
+
+.clients-empty h3 {
+  margin-bottom: var(--cl-space-sm);
+  color: var(--cl-text-light);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 991.98px) {
+  .clients-header-compact {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--cl-space-md);
+  }
+  
+  .clients-stats-inline {
+    justify-content: center;
+  }
+  
+  .clients-table-container {
+    overflow-x: auto;
+  }
+  
+  .clients-table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .clients-header-compact {
+    padding: var(--cl-space-md);
+  }
+  
+  .clients-header-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .client-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .btn-action {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-primary-clients { color: var(--cl-primary) !important; }
+.text-success-clients { color: var(--cl-success) !important; }
+.text-warning-clients { color: var(--cl-warning) !important; }
+.text-danger-clients { color: var(--cl-danger) !important; }
+
+/* ===== NO ANIMATIONS (Pragmatic Approach) ===== */
+* {
+  animation: none !important;
+  transition-duration: 0.2s !important;
+}
+
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.clients-table:focus-within,
+.btn-action:focus {
+  outline: 2px solid var(--cl-primary);
+  outline-offset: 2px;
+}

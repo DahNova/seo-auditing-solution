@@ -178,7 +178,7 @@ async def dashboard_section(request: Request, db: AsyncSession = Depends(get_db)
             "recent_scans": []
         }
     
-    return templates.TemplateResponse("components/sections/dashboard.html", context)
+    return templates.TemplateResponse("components/sections/dashboard_semrush.html", context)
 
 @router.get("/clients", response_class=HTMLResponse)
 async def clients_section(request: Request, db: AsyncSession = Depends(get_db)):
@@ -378,7 +378,20 @@ async def scans_section(request: Request, db: AsyncSession = Depends(get_db)):
     return templates.TemplateResponse("index.html", context)
 
 @router.get("/scan/{scan_id}/results", response_class=HTMLResponse)
-async def scan_results(request: Request, scan_id: int, db: AsyncSession = Depends(get_db)):
+async def scan_results(
+    request: Request, 
+    scan_id: int, 
+    page: int = 1,
+    per_page: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    # Validate per_page parameter
+    if per_page not in [25, 50, 100, 200]:
+        per_page = 50
+    
+    # Validate page parameter
+    if page < 1:
+        page = 1
     """Serve Scan Results page with real data"""
     
     try:
@@ -396,9 +409,22 @@ async def scan_results(request: Request, scan_id: int, db: AsyncSession = Depend
             
         scan, website_name, client_name = scan_data
         
-        # Get scan pages (no limit)
+        # Get total pages count first
+        total_pages_result = await db.execute(
+            select(func.count(Page.id)).where(Page.scan_id == scan_id)
+        )
+        total_pages_count = total_pages_result.scalar() or 0
+        
+        # Calculate pagination
+        offset = (page - 1) * per_page
+        total_pages_pagination = (total_pages_count + per_page - 1) // per_page
+        
+        # Get paginated pages
         pages_result = await db.execute(
-            select(Page).where(Page.scan_id == scan_id).order_by(Page.url)
+            select(Page).where(Page.scan_id == scan_id)
+            .order_by(Page.seo_score.desc().nulls_last(), Page.url)
+            .offset(offset)
+            .limit(per_page)
         )
         pages = pages_result.scalars().all()
         
@@ -470,6 +496,18 @@ async def scan_results(request: Request, scan_id: int, db: AsyncSession = Depend
             ],
             "issues_by_severity": issues_by_severity,
             "issues_by_type": issues_by_type,
+            "pagination": {
+                "current_page": page,
+                "per_page": per_page,
+                "total_pages": total_pages_pagination,
+                "total_items": total_pages_count,
+                "has_prev": page > 1,
+                "has_next": page < total_pages_pagination,
+                "prev_page": page - 1 if page > 1 else None,
+                "next_page": page + 1 if page < total_pages_pagination else None,
+                "start_item": offset + 1 if total_pages_count > 0 else 0,
+                "end_item": min(offset + per_page, total_pages_count)
+            },
             "current_section": "scan_results"
         }
         

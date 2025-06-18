@@ -6,22 +6,22 @@
     <div class="mt-4">
         <!-- Dashboard Section (Server-side Rendered) -->
         {% if current_section == 'dashboard' or not current_section %}
-        {% include 'components/sections/dashboard.html' %}
+        {% include 'components/sections/dashboard_semrush.html' %}
         {% endif %}
 
         <!-- Clients Section (Server-side Rendered) -->
         {% if current_section == 'clients' %}
-        {% include 'components/sections/clients.html' %}
+        {% include 'components/sections/clients_semrush.html' %}
         {% endif %}
 
         <!-- Websites Section (Server-side Rendered) -->
         {% if current_section == 'websites' %}
-        {% include 'components/sections/websites.html' %}
+        {% include 'components/sections/websites_semrush.html' %}
         {% endif %}
 
         <!-- Scans Section (Server-side Rendered) -->
         {% if current_section == 'scans' %}
-        {% include 'components/sections/scans.html' %}
+        {% include 'components/sections/scans_semrush.html' %}
         {% endif %}
 
         <!-- Scheduler Section (Server-side Rendered) -->

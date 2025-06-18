@@ -1,0 +1,225 @@
+<!-- SEO Websites Management - SEMrush-Inspired Compact Design -->
+<div class="websites-content">
+    
+    <!-- Compact Header -->
+    <div class="websites-header-compact">
+        <div class="websites-header-content">
+            <h1>Gestione Siti Web</h1>
+            <p>Monitora i siti web dei tuoi clienti e le loro performance SEO</p>
+            <div class="websites-stats-inline">
+                <div class="websites-stat-item">
+                    <i class="bi bi-globe"></i>
+                    <span>{{ websites_count }} siti web</span>
+                </div>
+                <div class="websites-stat-item">
+                    <i class="bi bi-search"></i>
+                    <span>{{ total_scans }} scansioni totali</span>
+                </div>
+            </div>
+        </div>
+        <div class="websites-header-actions">
+            <button class="btn-primary-websites" onclick="showAddWebsiteModal()">
+                <i class="bi bi-plus-circle"></i> Nuovo Sito Web
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="websites-filters">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="form-control" id="website-search" placeholder="Cerca siti web per nome o URL...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select filter-select" id="client-filter">
+                    <option value="">Tutti i clienti</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 text-end">
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Websites Table -->
+    <div class="websites-table-container">
+        {% if websites %}
+        <table class="websites-table">
+            <thead>
+                <tr>
+                    <th>Sito Web</th>
+                    <th>Cliente</th>
+                    <th>Scansioni</th>
+                    <th>Status</th>
+                    <th>Creato</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for website in websites %}
+                <tr data-client-id="{{ website.client_id }}">
+                    <td>
+                        <div class="website-info">
+                            <div class="website-icon">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <div class="website-details">
+                                <div class="website-name">{{ website.name }}</div>
+                                <a href="{{ website.url }}" target="_blank" class="website-url">
+                                    {{ website.url }}
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="client-info">{{ website.client_name }}</div>
+                    </td>
+                    <td>
+                        <div class="website-stats">
+                            <div class="website-stat">
+                                <strong>{{ website.scans_count }}</strong> scansioni
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge active">
+                            <i class="bi bi-circle-fill"></i>
+                            Attivo
+                        </span>
+                    </td>
+                    <td>
+                        <div class="date-info">
+                            {{ website.created_at.strftime('%d/%m/%Y') if website.created_at else 'N/A' }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="website-actions">
+                            <button class="btn-action btn-scan" onclick="startScan({{ website.id }})" title="Avvia Scansione">
+                                <i class="bi bi-play-circle"></i>
+                            </button>
+                            <button class="btn-action btn-edit" onclick="editWebsite({{ website.id }})" title="Modifica">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteWebsite({{ website.id }})" title="Elimina">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="websites-empty">
+            <i class="bi bi-globe"></i>
+            <h3>Nessun sito web trovato</h3>
+            <p>Aggiungi il primo sito web per iniziare le scansioni SEO</p>
+            <button class="btn btn-primary" onclick="showAddWebsiteModal()">
+                <i class="bi bi-plus-circle"></i> Aggiungi Sito Web
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if websites %}
+    <!-- Summary Stats -->
+    <div class="websites-summary">
+        <div class="summary-card">
+            <div class="summary-value">{{ websites_count }}</div>
+            <div class="summary-label">Siti Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ total_scans }}</div>
+            <div class="summary-label">Scansioni Totali</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ (total_scans / websites_count) | round(1) if websites_count > 0 else 0 }}</div>
+            <div class="summary-label">Scansioni per Sito</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ clients | length }}</div>
+            <div class="summary-label">Clienti Unici</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Website search functionality
+document.getElementById('website-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    filterWebsites();
+});
+
+// Client filter functionality
+document.getElementById('client-filter').addEventListener('change', function(e) {
+    filterWebsites();
+});
+
+function filterWebsites() {
+    const searchTerm = document.getElementById('website-search').value.toLowerCase();
+    const clientFilter = document.getElementById('client-filter').value;
+    const rows = document.querySelectorAll('.websites-table tbody tr');
+    
+    rows.forEach(row => {
+        const websiteName = row.querySelector('.website-name').textContent.toLowerCase();
+        const websiteUrl = row.querySelector('.website-url').textContent.toLowerCase();
+        const clientName = row.querySelector('.client-info').textContent.toLowerCase();
+        const clientId = row.getAttribute('data-client-id');
+        
+        const matchesSearch = websiteName.includes(searchTerm) || 
+                            websiteUrl.includes(searchTerm) || 
+                            clientName.includes(searchTerm);
+        const matchesClient = !clientFilter || clientId === clientFilter;
+        
+        if (matchesSearch && matchesClient) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Website management functions
+function startScan(websiteId) {
+    if (window.app && window.app.startScanForWebsite) {
+        window.app.startScanForWebsite(websiteId);
+    } else {
+        console.log('Start scan for website:', websiteId);
+    }
+}
+
+function editWebsite(websiteId) {
+    if (window.app && window.app.editWebsite) {
+        window.app.editWebsite(websiteId);
+    } else {
+        console.log('Edit website:', websiteId);
+    }
+}
+
+function deleteWebsite(websiteId) {
+    if (confirm('Sei sicuro di voler eliminare questo sito web?')) {
+        if (window.app && window.app.deleteWebsite) {
+            window.app.deleteWebsite(websiteId);
+        } else {
+            console.log('Delete website:', websiteId);
+        }
+    }
+}
+
+function showAddWebsiteModal() {
+    if (window.app && window.app.showAddWebsiteModal) {
+        window.app.showAddWebsiteModal();
+    } else {
+        console.log('Show add website modal');
+    }
+}
+</script>

@@ -15,9 +15,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     
-    <!-- Conditional CSS for scan results -->
+    <!-- SEMrush-inspired navigation styling for templated interface -->
+    <link rel="stylesheet" href="/static/css/navigation-semrush.css">
+    
+    <!-- Conditional CSS for specific sections -->
     {% if current_section == 'scan_results' %}
     <link rel="stylesheet" href="/static/css/scan-results-semrush.css">
+    {% endif %}
+    
+    {% if current_section == 'dashboard' %}
+    <link rel="stylesheet" href="/static/css/dashboard-semrush.css">
+    {% endif %}
+    
+    {% if current_section == 'clients' %}
+    <link rel="stylesheet" href="/static/css/clients-semrush.css">
+    {% endif %}
+    
+    {% if current_section == 'websites' %}
+    <link rel="stylesheet" href="/static/css/websites-semrush.css">
+    {% endif %}
+    
+    {% if current_section == 'scans' %}
+    <link rel="stylesheet" href="/static/css/scans-semrush.css">
     {% endif %}
     
     <!-- Chart.js -->
