@@ -125,10 +125,7 @@
                         </button>
                         {% endif %}
                         <button class="btn btn-sm btn-outline-danger" 
-                                hx-delete="/htmx/scans/{{ scan.id }}"
-                                hx-target="#scan-row-{{ scan.id }}"
-                                hx-swap="outerHTML"
-                                hx-confirm="Sei sicuro di voler eliminare questa scansione?"
+                                onclick="app.deleteScan({{ scan.id }})"
                                 title="Elimina">
                             <i class="bi bi-trash"></i>
                         </button>

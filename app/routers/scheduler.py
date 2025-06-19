@@ -39,14 +39,14 @@ async def get_scheduler_status() -> Dict[str, Any]:
             "last_updated": datetime.utcnow().isoformat()
         }
     except Exception as e:
-        # Return mock data if Celery is not available
+        # Return error status if Celery is not available
         return {
-            "worker_status": "offline",
+            "worker_status": "error",
             "worker_count": 0,
             "queue_length": 0,
             "active_tasks": 0,
             "last_updated": datetime.utcnow().isoformat(),
-            "error": "Celery not available"
+            "error": f"Celery connection failed: {str(e)}"
         }
 
 @router.get("/active-tasks")
@@ -70,18 +70,9 @@ async def get_active_tasks() -> List[Dict[str, Any]]:
                     })
         
         return tasks
-    except Exception:
-        # Return mock data if Celery is not available
-        return [
-            {
-                "id": "mock_task_1",
-                "name": "app.tasks.scan_tasks.run_website_scan",
-                "worker": "worker-1",
-                "started_at": (datetime.utcnow() - timedelta(minutes=5)).isoformat(),
-                "args": [1],
-                "kwargs": {}
-            }
-        ]
+    except Exception as e:
+        # Return empty list if Celery is not available
+        return []
 
 @router.get("/recent-tasks")
 async def get_recent_tasks(
@@ -235,8 +226,8 @@ async def get_scheduler_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, A
             
             reserved_tasks = inspect.reserved()
             queue_size = sum(len(tasks) for tasks in reserved_tasks.values()) if reserved_tasks else 0
-        except:
-            # Fallback if Celery is not available
+        except Exception:
+            # Set to 0 if Celery is not available
             workers_online = 0
             queue_size = 0
         
@@ -272,9 +263,9 @@ async def purge_queue() -> Dict[str, str]:
 async def pause_scheduler() -> Dict[str, str]:
     """Pause the scheduler (stop accepting new tasks)"""
     try:
-        # This would need to be implemented based on your scheduler setup
-        # For now, just return a success message
-        return {"message": "Scheduler paused successfully"}
+        # Pause Celery workers by sending control command
+        celery_app.control.cancel_consumer('celery')
+        return {"message": "Scheduler paused - workers stopped accepting new tasks"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error pausing scheduler: {str(e)}")
 
@@ -282,9 +273,9 @@ async def pause_scheduler() -> Dict[str, str]:
 async def resume_scheduler() -> Dict[str, str]:
     """Resume the scheduler"""
     try:
-        # This would need to be implemented based on your scheduler setup
-        # For now, just return a success message
-        return {"message": "Scheduler resumed successfully"}
+        # Resume Celery workers by adding consumer back
+        celery_app.control.add_consumer('celery')
+        return {"message": "Scheduler resumed - workers accepting new tasks"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error resuming scheduler: {str(e)}")
 
@@ -321,20 +312,10 @@ async def get_worker_stats() -> Dict[str, Any]:
             "last_updated": datetime.utcnow().isoformat()
         }
     except Exception as e:
-        # Return mock data if Celery is not available
+        # Return empty worker list if Celery is not available
         return {
-            "workers": [
-                {
-                    "name": "worker-1",
-                    "active_tasks": 1,
-                    "registered_tasks": 3,
-                    "total_tasks": 47,
-                    "pool_processes": 4,
-                    "broker": {"transport": "redis"},
-                    "clock": "10"
-                }
-            ],
-            "total_workers": 1,
+            "workers": [],
+            "total_workers": 0,
             "last_updated": datetime.utcnow().isoformat(),
-            "error": "Celery not available"
+            "error": f"Celery connection failed: {str(e)}"
         }

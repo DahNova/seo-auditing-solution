@@ -173,14 +173,19 @@
                                 <i class="bi bi-download"></i>
                             </a>
                             {% elif scan.status == 'failed' %}
-                            <button class="btn-action btn-retry" onclick="retryScan({{ scan.id }})" title="Riprova">
+                            <button class="btn-action btn-retry" onclick="app.retryScan({{ scan.id }})" title="Riprova">
                                 <i class="bi bi-arrow-clockwise"></i>
                             </button>
                             {% elif scan.status == 'running' %}
-                            <button class="btn-action btn-cancel" onclick="cancelScan({{ scan.id }})" title="Annulla">
+                            <button class="btn-action btn-cancel" onclick="app.cancelScan({{ scan.id }})" title="Annulla">
                                 <i class="bi bi-stop-circle"></i>
                             </button>
                             {% endif %}
+                            
+                            <!-- Delete button for all scans -->
+                            <button class="btn-action btn-delete" onclick="app.deleteScan({{ scan.id }})" title="Elimina">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>

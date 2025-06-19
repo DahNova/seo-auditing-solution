@@ -491,3 +491,15 @@
   outline: 2px solid var(--sc-primary);
   outline-offset: 2px;
 }
+
+/* ===== BUTTON ACTIONS STYLING ===== */
+.btn-delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--sc-danger);
+}
+
+.btn-delete:hover {
+  background: var(--sc-danger);
+  color: white;
+  transform: translateY(-1px);
+}

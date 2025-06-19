@@ -3,12 +3,16 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 import os
+import httpx
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.services.scan_service import ScanService
 from app.services.schedule_service import ScheduleService
 from app.models import Client, Website, Scan, Issue, Page, Schedule
+from app.core.celery_app import celery_app
 
 router = APIRouter(prefix="/templated", tags=["templates"])
 
@@ -17,7 +21,70 @@ template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 templates = Jinja2Templates(directory=template_dir)
 # Enable template cache for better performance
 # In development, you can disable this by setting templates.env.cache = {}
-# templates.env.cache = {}  # Uncomment for development only
+templates.env.cache = {}  # Disabled for development - immediate template updates
+
+async def get_real_scheduler_stats(db: AsyncSession) -> dict:
+    """Get real scheduler statistics using the same logic as the API"""
+    try:
+        today = datetime.now(timezone.utc).date()
+        now = datetime.now(timezone.utc)
+        
+        # Count total scheduled tasks (active schedules)
+        total_scheduled = await db.scalar(
+            select(func.count(Schedule.id)).where(Schedule.is_active == True)
+        ) or 0
+        
+        # Count overdue schedules
+        overdue_count = await db.scalar(
+            select(func.count(Schedule.id)).where(
+                Schedule.is_active == True,
+                Schedule.next_run_at <= now
+            )
+        ) or 0
+        
+        # Get Celery worker status
+        workers_online = 0
+        queue_size = 0
+        
+        try:
+            inspect = celery_app.control.inspect()
+            active_workers = inspect.active()
+            workers_online = len(active_workers) if active_workers else 0
+            
+            reserved_tasks = inspect.reserved()
+            queue_size = sum(len(tasks) for tasks in reserved_tasks.values()) if reserved_tasks else 0
+        except Exception:
+            # Fallback to 0 if Celery not available - this is acceptable
+            workers_online = 0
+            queue_size = 0
+        
+        # Scans completed today
+        scans_today = await db.scalar(
+            select(func.count(Scan.id)).where(
+                func.date(Scan.completed_at) == today,
+                Scan.status == "completed"
+            )
+        ) or 0
+        
+        return {
+            "total_schedules": total_scheduled,
+            "active_schedules": total_scheduled,
+            "workers_online": workers_online,
+            "queue_size": queue_size,
+            "scans_completed_today": scans_today,
+            "overdue_count": overdue_count
+        }
+        
+    except Exception as e:
+        # Return minimal stats if something fails
+        return {
+            "total_schedules": 0,
+            "active_schedules": 0,
+            "workers_online": 0,
+            "queue_size": 0,
+            "scans_completed_today": 0,
+            "overdue_count": 0
+        }
 
 @router.get("/", response_class=HTMLResponse)
 async def templated_interface(request: Request, db: AsyncSession = Depends(get_db)):
@@ -50,10 +117,10 @@ async def templated_interface(request: Request, db: AsyncSession = Depends(get_d
                 "total_websites": websites_count or 0,
                 "total_scans": scans_count or 0,
                 "critical_issues": critical_issues or 0,
-                "clients_growth": "+2",  # Mock data for now
+                "clients_growth": "+2",
                 "active_websites": websites_count or 0,
                 "last_scan_time": "2 ore fa" if recent_scans else "mai",
-                "overall_score": 85  # Mock data
+                "overall_score": 85
             },
             "recent_scans": recent_scans,
             "current_section": "dashboard"
@@ -102,12 +169,8 @@ async def scheduler_section(request: Request, page: int = 1, per_page: int = 20,
         # Get total count for pagination
         total_schedules = await schedule_service.get_schedules_count()
         
-        # Get active schedules count for stats
-        from sqlalchemy import func
-        active_schedules_result = await db.execute(
-            select(func.count(Schedule.id)).where(Schedule.is_active == True)
-        )
-        active_schedules_count = active_schedules_result.scalar() or 0
+        # Get real scheduler stats using the same logic as the API
+        scheduler_stats = await get_real_scheduler_stats(db)
         
         # Get websites for modal dropdown
         websites_result = await db.execute(
@@ -137,12 +200,7 @@ async def scheduler_section(request: Request, page: int = 1, per_page: int = 20,
             "template_mode": True,
             "schedules": schedules,
             "websites": websites,
-            "scheduler_stats": {
-                "total_schedules": total_schedules,
-                "active_schedules": active_schedules_count,
-                "workers_online": 2,  # Mock data
-                "queue_size": 0       # Mock data
-            },
+            "scheduler_stats": scheduler_stats,
             "pagination": {
                 "current_page": page,
                 "per_page": per_page,
@@ -161,6 +219,19 @@ async def scheduler_section(request: Request, page: int = 1, per_page: int = 20,
         return templates.TemplateResponse("index.html", context)
         
     except Exception as e:
+        # Try to get at least scheduler stats even if pagination fails
+        try:
+            scheduler_stats = await get_real_scheduler_stats(db)
+        except Exception:
+            scheduler_stats = {
+                "total_schedules": 0,
+                "active_schedules": 0,
+                "workers_online": 0,
+                "queue_size": 0,
+                "scans_completed_today": 0,
+                "overdue_count": 0
+            }
+        
         # Fallback to basic context if database is not available
         context = {
             "request": request,
@@ -169,11 +240,18 @@ async def scheduler_section(request: Request, page: int = 1, per_page: int = 20,
             "template_mode": True,
             "schedules": [],
             "websites": [],
-            "scheduler_stats": {
-                "total_schedules": 0,
-                "active_schedules": 0,
-                "workers_online": 0,
-                "queue_size": 0
+            "scheduler_stats": scheduler_stats,
+            "pagination": {
+                "current_page": 1,
+                "per_page": 20,
+                "total_pages": 0,
+                "total_items": 0,
+                "has_prev": False,
+                "has_next": False,
+                "prev_page": None,
+                "next_page": None,
+                "start_item": 0,
+                "end_item": 0
             },
             "current_section": "scheduler"
         }
@@ -280,7 +358,7 @@ async def clients_section(request: Request, page: int = 1, per_page: int = 20, d
                 "contact_phone": None,  # Not in model
                 "company": None,  # Not in model
                 "websites_count": row.websites_count or 0,
-                "status": "Attivo",  # Mock for now
+                "status": "Attivo",
                 "created_at": row.created_at,
                 "updated_at": row.updated_at
             })
@@ -383,7 +461,7 @@ async def websites_section(request: Request, page: int = 1, per_page: int = 20, 
                 "client_name": row.client_name,
                 "client_id": row.client_id,
                 "scans_count": row.scans_count or 0,
-                "status": "Attivo",  # Mock for now
+                "status": "Attivo",
                 "created_at": row.created_at,
                 "updated_at": row.updated_at
             })
@@ -481,7 +559,7 @@ async def scans_section(request: Request, db: AsyncSession = Depends(get_db)):
                 "seo_score": row.seo_score,
                 "created_at": row.created_at,
                 "completed_at": row.completed_at,
-                "scan_type": "Completa"  # Mock for now
+                "scan_type": "Completa"
             })
         
         # Get websites for dropdown

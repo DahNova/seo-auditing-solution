@@ -843,7 +843,15 @@ window.app = {
     deleteScan: function(scanId) {
         if (confirm('Sei sicuro di voler eliminare questa scansione?')) {
             fetch(`/api/v1/scans/${scanId}`, { method: 'DELETE' })
-                .then(() => window.location.reload())
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Scansione eliminata con successo', 'success');
+                        // Force reload with cache bypass
+                        window.location.reload(true);
+                    } else {
+                        showToast('Errore nell\'eliminazione della scansione', 'error');
+                    }
+                })
                 .catch(err => showToast('Errore nell\'eliminazione della scansione', 'error'));
         }
     },
