@@ -4,9 +4,11 @@ import logging
 
 from app.core.celery_app import celery_app
 from app.database import AsyncSessionLocal
-from app.models import Website, Scan
+from app.models import Website, Scan, Schedule
 from app.services.scan_service import ScanService
+from app.services.schedule_service import ScheduleService
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -106,33 +108,56 @@ def run_website_scan(self, website_id: int, scan_id: int = None):
 
 @celery_app.task
 def run_scheduled_scans():
-    """Run scheduled scans for all active websites"""
+    """Run scheduled scans based on Schedule table (NOT Website table)"""
     import asyncio
     
     async def _run_scheduled():
         async with AsyncSessionLocal() as db:
-            # Get websites that need scanning
-            now = datetime.utcnow()
-            
-            # Query for websites that haven't been scanned recently
-            result = await db.execute(
-                select(Website).where(
-                    Website.is_active == True,
-                    # Add logic for frequency-based scheduling
+            try:
+                # Get schedules that are due for execution
+                now = datetime.utcnow()
+                
+                # Query schedules that are active and due for execution
+                result = await db.execute(
+                    select(Schedule)
+                    .options(selectinload(Schedule.website))
+                    .where(
+                        Schedule.is_active == True,
+                        Schedule.next_run_at <= now
+                    )
                 )
-            )
-            websites = result.scalars().all()
-            
-            scheduled_count = 0
-            for website in websites:
-                # Check if scan is needed based on frequency
-                if _needs_scan(website, now):
-                    # Schedule scan task
-                    run_website_scan.delay(website.id)
-                    scheduled_count += 1
-            
-            logger.info(f"Scheduled {scheduled_count} scans")
-            return scheduled_count
+                due_schedules = result.scalars().all()
+                
+                scheduled_count = 0
+                for schedule in due_schedules:
+                    try:
+                        # Ensure website exists and is active
+                        if schedule.website and schedule.website.is_active:
+                            logger.info(f"Scheduling scan for website {schedule.website.domain} (schedule ID: {schedule.id})")
+                            
+                            # Schedule the scan task
+                            run_website_scan.delay(schedule.website.id)
+                            scheduled_count += 1
+                            
+                            # Update schedule for next run using ScheduleService
+                            schedule_service = ScheduleService(db)
+                            await schedule_service.mark_schedule_executed(schedule.id)
+                            
+                        else:
+                            logger.warning(f"Schedule {schedule.id} has inactive/missing website, skipping")
+                            
+                    except Exception as e:
+                        logger.error(f"Error processing schedule {schedule.id}: {str(e)}")
+                        # Mark schedule with error
+                        schedule_service = ScheduleService(db)
+                        await schedule_service.mark_schedule_executed(schedule.id, str(e))
+                
+                logger.info(f"✅ Scheduled {scheduled_count} scans from {len(due_schedules)} due schedules")
+                return scheduled_count
+                
+            except Exception as e:
+                logger.error(f"❌ Error in run_scheduled_scans: {str(e)}")
+                return 0
     
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

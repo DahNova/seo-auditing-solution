@@ -5,9 +5,10 @@ import asyncio
 from datetime import datetime, timedelta
 
 from app.database import get_db
-from app.models import Website, Scan
+from app.models import Website, Scan, Schedule
 from app.core.celery_app import celery_app
 from sqlalchemy import select, desc, func
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/api/v1/scheduler", tags=["scheduler"])
 
@@ -121,42 +122,38 @@ async def get_recent_tasks(
 
 @router.get("/scheduled-scans")
 async def get_scheduled_scans(db: AsyncSession = Depends(get_db)) -> List[Dict[str, Any]]:
-    """Get all websites with their scheduling information"""
+    """Get all scheduled scans from Schedule table"""
     try:
         result = await db.execute(
-            select(Website)
-            .where(Website.is_active == True)
-            .order_by(Website.domain)
+            select(Schedule)
+            .options(selectinload(Schedule.website))
+            .where(Schedule.is_active == True)
+            .order_by(Schedule.id)
         )
         
-        websites = result.scalars().all()
+        schedules = result.scalars().all()
         
         scheduled_scans = []
-        for website in websites:
-            # Calculate next scan time
-            next_scan_time = None
-            if website.last_scan_at:
-                frequency_hours = {
-                    'daily': 24,
-                    'weekly': 168,
-                    'monthly': 720
-                }
-                hours = frequency_hours.get(website.scan_frequency, 720)
-                next_scan_time = website.last_scan_at + timedelta(hours=hours)
-            else:
-                next_scan_time = datetime.utcnow()  # Schedule immediately if never scanned
-            
-            is_overdue = next_scan_time < datetime.utcnow()
+        for schedule in schedules:
+            if not schedule.website or not schedule.website.is_active:
+                continue
+                
+            from datetime import timezone
+            now = datetime.now(timezone.utc)
+            is_overdue = schedule.next_run_at and schedule.next_run_at <= now
             
             scheduled_scans.append({
-                "website_id": website.id,
-                "domain": website.domain,
-                "name": website.name,
-                "scan_frequency": website.scan_frequency,
-                "last_scan_at": website.last_scan_at.isoformat() if website.last_scan_at else None,
-                "next_scan_time": next_scan_time.isoformat(),
+                "schedule_id": schedule.id,
+                "website_id": schedule.website.id,
+                "domain": schedule.website.domain,
+                "name": schedule.website.name,
+                "frequency": schedule.frequency,
+                "last_run_at": schedule.last_run_at.isoformat() if schedule.last_run_at else None,
+                "next_run_at": schedule.next_run_at.isoformat() if schedule.next_run_at else None,
                 "is_overdue": is_overdue,
-                "status": "overdue" if is_overdue else "scheduled"
+                "status": "overdue" if is_overdue else "scheduled",
+                "error_count": schedule.error_count,
+                "last_error": schedule.last_error
             })
         
         return scheduled_scans
@@ -165,9 +162,11 @@ async def get_scheduled_scans(db: AsyncSession = Depends(get_db)) -> List[Dict[s
 
 @router.get("/stats")
 async def get_scheduler_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
-    """Get scheduler statistics"""
+    """Get scheduler statistics using Schedule table"""
     try:
         today = datetime.utcnow().date()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         
         # Scans completed today
         scans_today_result = await db.execute(
@@ -189,36 +188,73 @@ async def get_scheduler_stats(db: AsyncSession = Depends(get_db)) -> Dict[str, A
         )
         failed_today = failed_today_result.scalar() or 0
         
-        # Find next scheduled scan
-        websites_result = await db.execute(
-            select(Website)
-            .where(Website.is_active == True)
+        # Count total scheduled tasks (active schedules)
+        total_scheduled_result = await db.execute(
+            select(func.count(Schedule.id))
+            .where(Schedule.is_active == True)
         )
-        websites = websites_result.scalars().all()
+        total_scheduled = total_scheduled_result.scalar() or 0
+        
+        # Count overdue schedules
+        overdue_result = await db.execute(
+            select(func.count(Schedule.id))
+            .where(
+                Schedule.is_active == True,
+                Schedule.next_run_at <= now
+            )
+        )
+        overdue_count = overdue_result.scalar() or 0
+        
+        # Find next scheduled scan
+        next_schedule_result = await db.execute(
+            select(Schedule)
+            .options(selectinload(Schedule.website))
+            .where(
+                Schedule.is_active == True,
+                Schedule.next_run_at > now
+            )
+            .order_by(Schedule.next_run_at)
+            .limit(1)
+        )
+        next_schedule = next_schedule_result.scalar_one_or_none()
         
         next_scan_time = None
         next_scan_website = None
+        if next_schedule and next_schedule.website:
+            next_scan_time = next_schedule.next_run_at
+            next_scan_website = next_schedule.website.domain
         
-        for website in websites:
-            if website.last_scan_at:
-                frequency_hours = {
-                    'daily': 24,
-                    'weekly': 168,
-                    'monthly': 720
-                }
-                hours = frequency_hours.get(website.scan_frequency, 720)
-                next_time = website.last_scan_at + timedelta(hours=hours)
-                
-                if not next_scan_time or next_time < next_scan_time:
-                    next_scan_time = next_time
-                    next_scan_website = website.domain
+        # Get worker status for frontend compatibility
+        inspect = celery_app.control.inspect()
+        workers_online = 0
+        queue_size = 0
+        
+        try:
+            active_workers = inspect.active()
+            workers_online = len(active_workers) if active_workers else 0
+            
+            reserved_tasks = inspect.reserved()
+            queue_size = sum(len(tasks) for tasks in reserved_tasks.values()) if reserved_tasks else 0
+        except:
+            # Fallback if Celery is not available
+            workers_online = 0
+            queue_size = 0
         
         return {
+            # New Schedule-based metrics
             "scans_completed_today": scans_today,
             "scans_failed_today": failed_today,
+            "overdue_count": overdue_count,
             "next_scan_time": next_scan_time.isoformat() if next_scan_time else None,
             "next_scan_website": next_scan_website,
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": now.isoformat(),
+            
+            # Frontend-compatible properties
+            "total_schedules": total_scheduled,
+            "active_schedules": total_scheduled,  # Same as total for now
+            "workers_online": workers_online,
+            "queue_size": queue_size,
+            "recent_tasks_count": scans_today  # Using scans completed today as proxy
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching scheduler stats: {str(e)}")

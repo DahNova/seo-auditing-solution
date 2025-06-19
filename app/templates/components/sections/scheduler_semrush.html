@@ -391,6 +391,137 @@ function editSchedule(scheduleId) {
     }
 }
 
+// Ensure scheduler functions are available (extend existing window.scheduler)
+if (!window.scheduler) {
+    window.scheduler = {};
+}
+
+// Add updateSchedule if not already defined
+if (!window.scheduler.updateSchedule) {
+    window.scheduler.updateSchedule = function() {
+    const form = document.getElementById('editScheduleForm');
+    const scheduleId = document.getElementById('editScheduleId').value;
+    
+    if (form && scheduleId) {
+        const formData = new FormData(form);
+        const data = {
+            website_id: parseInt(formData.get('editScheduleWebsite')),
+            frequency: formData.get('editScheduleFrequency'),
+            time: formData.get('editScheduleTime'),
+            day: formData.get('editScheduleDay') ? parseInt(formData.get('editScheduleDay')) : null,
+            email_notify: formData.get('editScheduleEmailNotify') === 'on',
+            alert_issues: formData.get('editScheduleAlertIssues') === 'on',
+            is_active: formData.get('editScheduleActive') === 'on'
+        };
+        
+        fetch(`/api/v1/schedules/${scheduleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result) {
+                showToast('Programmazione aggiornata con successo', 'success');
+                closeModal('editScheduleModal');
+                window.location.reload();
+            } else {
+                showToast('Errore nell\'aggiornamento della programmazione', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Errore nella comunicazione con il server', 'error');
+        });
+    }
+};
+
+}
+
+// Add deleteScheduleFromModal if not already defined  
+if (!window.scheduler.deleteScheduleFromModal) {
+    window.scheduler.deleteScheduleFromModal = function() {
+    const scheduleId = document.getElementById('editScheduleId').value;
+    if (scheduleId && confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+        fetch(`/api/v1/schedules/${scheduleId}`, { method: 'DELETE' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Programmazione eliminata con successo', 'success');
+                    closeModal('editScheduleModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'eliminazione della programmazione', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    }
+};
+}
+
+// Global functions for modal buttons
+function updateScheduleFromModal() {
+    const form = document.getElementById('editScheduleForm');
+    const scheduleId = document.getElementById('editScheduleId').value;
+    
+    if (form && scheduleId) {
+        const formData = new FormData(form);
+        const data = {
+            website_id: parseInt(formData.get('editScheduleWebsite')),
+            frequency: formData.get('editScheduleFrequency'),
+            time: formData.get('editScheduleTime'),
+            day: formData.get('editScheduleDay') ? parseInt(formData.get('editScheduleDay')) : null,
+            email_notify: formData.get('editScheduleEmailNotify') === 'on',
+            alert_issues: formData.get('editScheduleAlertIssues') === 'on',
+            is_active: formData.get('editScheduleActive') === 'on'
+        };
+        
+        fetch(`/api/v1/schedules/${scheduleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result) {
+                showToast('Programmazione aggiornata con successo', 'success');
+                closeModal('editScheduleModal');
+                window.location.reload();
+            } else {
+                showToast('Errore nell\'aggiornamento della programmazione', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Errore nella comunicazione con il server', 'error');
+        });
+    }
+}
+
+function deleteScheduleFromModal() {
+    const scheduleId = document.getElementById('editScheduleId').value;
+    if (scheduleId && confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+        fetch(`/api/v1/schedules/${scheduleId}`, { method: 'DELETE' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Programmazione eliminata con successo', 'success');
+                    closeModal('editScheduleModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'eliminazione della programmazione', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    }
+}
+
+// Debug window.scheduler availability
+console.log('Scheduler functions available:', {
+    editSchedule: typeof window.scheduler?.editSchedule,
+    updateSchedule: typeof window.scheduler?.updateSchedule,
+    deleteScheduleFromModal: typeof window.scheduler?.deleteScheduleFromModal,
+    pauseSchedule: typeof window.scheduler?.pauseSchedule
+});
+
 function pauseSchedule(scheduleId) {
     if (confirm('Sei sicuro di voler mettere in pausa questa programmazione?')) {
         if (window.scheduler && window.scheduler.pauseSchedule) {

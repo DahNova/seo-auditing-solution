@@ -8,7 +8,7 @@ import os
 from app.database import get_db
 from app.services.scan_service import ScanService
 from app.services.schedule_service import ScheduleService
-from app.models import Client, Website, Scan, Issue, Page
+from app.models import Client, Website, Scan, Issue, Page, Schedule
 
 router = APIRouter(prefix="/templated", tags=["templates"])
 
@@ -102,6 +102,13 @@ async def scheduler_section(request: Request, page: int = 1, per_page: int = 20,
         # Get total count for pagination
         total_schedules = await schedule_service.get_schedules_count()
         
+        # Get active schedules count for stats
+        from sqlalchemy import func
+        active_schedules_result = await db.execute(
+            select(func.count(Schedule.id)).where(Schedule.is_active == True)
+        )
+        active_schedules_count = active_schedules_result.scalar() or 0
+        
         # Get websites for modal dropdown
         websites_result = await db.execute(
             select(Website, Client.name.label('client_name'))
@@ -132,7 +139,7 @@ async def scheduler_section(request: Request, page: int = 1, per_page: int = 20,
             "websites": websites,
             "scheduler_stats": {
                 "total_schedules": total_schedules,
-                "active_schedules": len([s for s in schedules if s.is_active]),
+                "active_schedules": active_schedules_count,
                 "workers_online": 2,  # Mock data
                 "queue_size": 0       # Mock data
             },

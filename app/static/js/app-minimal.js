@@ -589,9 +589,104 @@ window.scheduler = {
     },
     deleteScheduleFromModal: function() {
         const scheduleId = document.getElementById('editScheduleId').value;
-        if (scheduleId) {
-            this.deleteSchedule(scheduleId);
-            closeModal('editScheduleModal');
+        if (scheduleId && confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+            fetch(`/api/v1/schedules/${scheduleId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Programmazione eliminata con successo', 'success');
+                        closeModal('editScheduleModal');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nell\'eliminazione della programmazione', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+        }
+    },
+    deleteSchedule: function(scheduleId) {
+        if (confirm('Sei sicuro di voler eliminare questa programmazione?')) {
+            fetch(`/api/v1/schedules/${scheduleId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Programmazione eliminata con successo', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nell\'eliminazione della programmazione', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+        }
+    },
+    pauseSchedule: function(scheduleId) {
+        fetch(`/api/v1/schedules/${scheduleId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: false })
+        })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Programmazione messa in pausa', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella pausa della programmazione', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    },
+    resumeSchedule: function(scheduleId) {
+        fetch(`/api/v1/schedules/${scheduleId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: true })
+        })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Programmazione ripresa', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella ripresa della programmazione', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    },
+    pauseAllSchedules: function() {
+        if (confirm('Sei sicuro di voler mettere in pausa tutte le programmazioni?')) {
+            fetch('/api/v1/scheduler/actions/pause', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Tutte le programmazioni sono state messe in pausa', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nella pausa delle programmazioni', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+        }
+    },
+    resumeAllSchedules: function() {
+        fetch('/api/v1/scheduler/actions/resume', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Tutte le programmazioni sono state riprese', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella ripresa delle programmazioni', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    },
+    purgeQueue: function() {
+        if (confirm('Sei sicuro di voler svuotare la coda? Questo cancellerà tutti i task in attesa.')) {
+            fetch('/api/v1/scheduler/actions/purge-queue', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Coda svuotata con successo', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nello svuotamento della coda', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
         }
     },
     showBulkScheduleModal: function() {
