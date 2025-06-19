@@ -8,7 +8,7 @@ import os
 
 from app.core.config import settings
 from app.database import init_db, close_db
-from app.routers import clients, websites, scans, scheduler, schedules, templates, htmx
+from app.routers import clients, websites, scans, scheduler, schedules, templates
 
 # Configure logging
 logging.basicConfig(
@@ -50,7 +50,6 @@ app.include_router(scans.router, prefix="/api/v1")
 app.include_router(schedules.router)
 app.include_router(scheduler.router)
 app.include_router(templates.router)
-app.include_router(htmx.router)
 
 # Mount static files (after routes to avoid conflicts)
 static_dir = os.path.join(os.path.dirname(__file__), "app", "static")
@@ -59,41 +58,22 @@ if os.path.exists(static_dir):
 
 @app.get("/")
 async def root():
-    """Serve the main interface - default to static version"""
-    static_index = os.path.join(static_dir, "index.html")
-    if os.path.exists(static_index):
-        return FileResponse(static_index)
-    return {"message": "SEO Auditing Solution API - Nova Tools"}
-
-@app.get("/new")
-async def new_interface():
-    """Redirect to new templated interface"""
+    """Redirect to modern templated interface"""
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/templated/")
 
+
 @app.get("/app")
 async def web_app():
-    """Alternative route for web interface"""
-    static_index = os.path.join(static_dir, "index.html")
-    if os.path.exists(static_index):
-        return FileResponse(static_index)
-    return {"message": "Web interface not found"}
+    """Alternative route for web interface - redirect to templated"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/templated/")
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/new")
-async def new_interface():
-    """Quick redirect to new templated interface"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/templated/")
 
-@app.get("/comparison")
-async def comparison_redirect():
-    """Quick redirect to template comparison"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/templated/comparison")
 
 if __name__ == "__main__":
     import uvicorn

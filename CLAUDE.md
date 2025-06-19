@@ -13,11 +13,12 @@
 - ✅ Containerizzazione completa con Docker Compose
 
 **Frontend (Web Interface)**
-- ✅ Interfaccia web moderna con Bootstrap 5
-- ✅ JavaScript vanilla per gestione API
+- ✅ Interfaccia web moderna con Jinja2 Templates + Bootstrap 5
+- ✅ HTMX + Alpine.js per gestione API moderna
 - ✅ Design responsive e mobile-friendly
 - ✅ Localizzazione italiana
 - ✅ Dashboard con statistiche real-time
+- ✅ **MIGRAZIONE COMPLETATA**: Sistema templated sostituisce versione monolitica
 
 ### 📊 Database Schema
 
@@ -117,7 +118,8 @@
 - ✅ Health checks implementati
 
 **Accesso Servizi**
-- Web Interface: http://localhost:8000
+- Web Interface: http://localhost:8000 (AUTO-REDIRECT → /templated/)
+- Templated Interface: http://localhost:8000/templated/
 - API Docs: http://localhost:8000/docs
 - Database Admin: http://localhost:8080
 - Health Check: http://localhost:8000/health

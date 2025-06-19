@@ -22,7 +22,9 @@
       "Bash(cp:*)",
       "Bash(node:*)",
       "Bash(docker logs:*)",
-      "Bash(alembic revision:*)"
+      "Bash(alembic revision:*)",
+      "Bash(rm:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
