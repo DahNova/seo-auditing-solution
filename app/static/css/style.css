@@ -41,7 +41,7 @@ body {
 }
 
 .header-info .badge {
-    animation: pulse 2s infinite;
+    /* Removed pulse animation for better performance */
 }
 
 @keyframes pulse {
@@ -375,13 +375,13 @@ body {
 }
 
 .pulse-animation {
-    animation: pulse 2s infinite;
+    /* Removed pulse animation for better performance */
 }
 
 .header-actions .btn-outline-light {
     border-color: rgba(255, 255, 255, 0.3);
     color: rgba(255, 255, 255, 0.9);
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .header-actions .btn-outline-light:hover {
@@ -423,7 +423,7 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow-lg);
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .logo-icon:hover {
@@ -490,7 +490,7 @@ body {
     text-decoration: none;
     color: var(--secondary-color);
     border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     font-weight: 500;
     font-size: 0.875rem;
     position: relative;
@@ -506,7 +506,7 @@ body {
     bottom: 0;
     background: var(--gradient-primary);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.15s ease;
     z-index: -1;
 }
 
@@ -525,7 +525,7 @@ body {
 .nav-icon {
     margin-bottom: 4px;
     font-size: 18px;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .nav-link:hover .nav-icon,
@@ -549,7 +549,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.025em;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
@@ -563,7 +563,7 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
+    transition: left 0.2s ease;
 }
 
 .btn-gradient:hover::before {
@@ -606,7 +606,7 @@ body {
     text-decoration: none;
     color: var(--dark-color);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     font-weight: 500;
 }
 
@@ -724,7 +724,7 @@ body {
     background: white;
     border-radius: 16px;
     box-shadow: var(--shadow-lg);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     overflow: hidden;
     position: relative;
 }
@@ -738,7 +738,7 @@ body {
     height: 4px;
     background: var(--gradient-primary);
     transform: scaleX(0);
-    transition: transform 0.3s ease;
+    transition: transform 0.15s ease;
 }
 
 /* .card:hover::before {
@@ -759,7 +759,7 @@ body {
     border-radius: 12px;
     font-weight: 600;
     padding: 10px 20px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     border: 2px solid transparent;
 }
 
@@ -848,7 +848,7 @@ body {
 }
 
 .table-modern tbody tr {
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -902,7 +902,7 @@ body {
     border-radius: 12px;
     border: 2px solid rgba(99, 102, 241, 0.1);
     padding: 12px 16px;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     background: white;
 }
 
@@ -1037,7 +1037,7 @@ body {
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .stats-card::before {
@@ -1049,7 +1049,7 @@ body {
     height: 6px;
     background: var(--gradient-primary);
     transform: scaleX(0);
-    transition: transform 0.3s ease;
+    transition: transform 0.15s ease;
 }
 
 .stats-card:hover::before {
@@ -1108,7 +1108,7 @@ body {
 .progress-bar-modern {
     background: var(--gradient-primary);
     border-radius: 10px;
-    transition: width 0.6s ease;
+    transition: width 0.2s ease;
     position: relative;
 }
 
@@ -1188,7 +1188,7 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow-lg);
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .dashboard-icon:hover {
@@ -1258,7 +1258,7 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.025em;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
@@ -1272,7 +1272,7 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.6s ease;
+    transition: left 0.2s ease;
 }
 
 .btn-gradient-dashboard:hover::before {
@@ -1293,7 +1293,7 @@ body {
     border-radius: 16px;
     padding: 16px 24px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .btn-outline-gradient:hover {
@@ -1315,7 +1315,7 @@ body {
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     border: 1px solid rgba(99, 102, 241, 0.05);
     height: 200px;
     display: flex;
@@ -1331,7 +1331,7 @@ body {
     right: 0;
     height: 6px;
     transform: scaleX(0);
-    transition: transform 0.4s ease;
+    transition: transform 0.15s ease;
 }
 
 .modern-stats-card:hover::before {
@@ -1378,7 +1378,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .stats-icon i {
@@ -1448,7 +1448,7 @@ body {
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
     transform: skewX(-25deg);
-    transition: all 0.6s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     opacity: 0;
 }
 
@@ -1459,7 +1459,7 @@ body {
     box-shadow: var(--shadow-lg);
     margin-bottom: 24px;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     border: 1px solid rgba(99, 102, 241, 0.05);
 }
 
@@ -1494,7 +1494,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .card-icon i {
@@ -1537,7 +1537,7 @@ body {
     border-radius: 12px;
     padding: 8px 16px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     text-decoration: none;
 }
 
@@ -1568,7 +1568,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     cursor: pointer;
 }
 
@@ -1673,7 +1673,7 @@ body {
     padding: 8px 16px;
     background: rgba(16, 185, 129, 0.1);
     border-radius: 20px;
-    animation: pulse 2s infinite;
+    /* Removed pulse animation for better performance */
 }
 
 /* Chart Container */
@@ -1806,7 +1806,7 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow-lg);
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .section-icon:hover {
@@ -1862,7 +1862,7 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.025em;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
@@ -1876,7 +1876,7 @@ body {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.6s ease;
+    transition: left 0.2s ease;
 }
 
 .btn-gradient-section:hover::before {
@@ -1897,7 +1897,7 @@ body {
     border-radius: 16px;
     padding: 16px 24px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .btn-outline-gradient-section:hover {
@@ -1913,7 +1913,7 @@ body {
     border-radius: 20px;
     box-shadow: var(--shadow-lg);
     border: 1px solid rgba(99, 102, 241, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
     overflow: hidden;
 }
 
@@ -1945,7 +1945,7 @@ body {
     border: 2px solid rgba(99, 102, 241, 0.1);
     border-radius: 16px;
     background: rgba(99, 102, 241, 0.02);
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     font-weight: 500;
 }
 
@@ -1960,7 +1960,7 @@ body {
     border-radius: 16px;
     background: rgba(99, 102, 241, 0.02);
     font-weight: 500;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .filter-select:focus {
@@ -1976,7 +1976,7 @@ body {
     border-radius: 16px;
     padding: 12px 20px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .btn-filter-clear:hover {
@@ -1994,7 +1994,7 @@ body {
     box-shadow: var(--shadow-lg);
     border: 1px solid rgba(99, 102, 241, 0.05);
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 /* .modern-table-card:hover {
@@ -2025,7 +2025,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .table-card-icon i {
@@ -2106,7 +2106,7 @@ body {
 }
 
 .table-body-modern tr {
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     border-bottom: 1px solid rgba(99, 102, 241, 0.05);
 }
 
@@ -2163,7 +2163,7 @@ body {
     border-radius: 12px;
     padding: 8px 16px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .pagination-controls .btn:hover {
@@ -2190,7 +2190,7 @@ body {
     border-radius: 12px;
     padding: 8px 16px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .websites-quick-actions .btn-sm:hover {
@@ -2216,7 +2216,7 @@ body {
     border-radius: 12px;
     padding: 8px 16px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .scans-quick-actions .btn-sm:hover {
@@ -2440,7 +2440,7 @@ body {
 .btn {
     font-weight: 500;
     border-radius: 0.375rem;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .btn:hover {
@@ -2636,7 +2636,7 @@ body {
 
 .status-dot.scanning {
     background-color: var(--info-color);
-    animation: pulse 2s infinite;
+    /* Removed pulse animation for better performance */
 }
 
 .status-dot.error {
@@ -2662,7 +2662,7 @@ body {
 .scan-item-link {
     text-decoration: none;
     color: inherit;
-    transition: all 0.3s ease;
+    transition: opacity 0.15s ease, transform 0.15s ease;
     display: block;
 }
 

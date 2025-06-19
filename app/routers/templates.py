@@ -12,11 +12,12 @@ from app.models import Client, Website, Scan, Issue, Page
 
 router = APIRouter(prefix="/templated", tags=["templates"])
 
-# Setup Jinja2 templates with no cache
+# Setup Jinja2 templates with caching enabled for production performance
 template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 templates = Jinja2Templates(directory=template_dir)
-# Disable template cache for development
-templates.env.cache = {}
+# Enable template cache for better performance
+# In development, you can disable this by setting templates.env.cache = {}
+# templates.env.cache = {}  # Uncomment for development only
 
 @router.get("/", response_class=HTMLResponse)
 async def templated_interface(request: Request, db: AsyncSession = Depends(get_db)):
@@ -82,13 +83,45 @@ async def templated_interface(request: Request, db: AsyncSession = Depends(get_d
     return templates.TemplateResponse("index.html", context)
 
 @router.get("/scheduler", response_class=HTMLResponse)  
-async def scheduler_section(request: Request, db: AsyncSession = Depends(get_db)):
+async def scheduler_section(request: Request, page: int = 1, per_page: int = 20, db: AsyncSession = Depends(get_db)):
     """Serve Scheduler section with real data"""
     
     try:
-        # Get real scheduler data for the template
+        # Get real scheduler data for the template with pagination
         schedule_service = ScheduleService(db)
-        schedules = await schedule_service.get_schedules()
+        
+        # Calculate pagination
+        if page < 1:
+            page = 1
+        if per_page not in [10, 20, 50, 100]:
+            per_page = 20
+            
+        skip = (page - 1) * per_page
+        schedules = await schedule_service.get_schedules(skip=skip, limit=per_page)
+        
+        # Get total count for pagination
+        total_schedules = await schedule_service.get_schedules_count()
+        
+        # Get websites for modal dropdown
+        websites_result = await db.execute(
+            select(Website, Client.name.label('client_name'))
+            .join(Client, Website.client_id == Client.id)
+            .order_by(Website.name)
+        )
+        websites = [
+            {
+                "id": website.id,
+                "name": website.name,
+                "domain": website.domain,
+                "client_name": client_name
+            }
+            for website, client_name in websites_result
+        ]
+        
+        # Calculate pagination info
+        total_pages = (total_schedules + per_page - 1) // per_page
+        has_prev = page > 1
+        has_next = page < total_pages
         
         context = {
             "request": request,
@@ -96,11 +129,24 @@ async def scheduler_section(request: Request, db: AsyncSession = Depends(get_db)
             "app_version": "2.0.0",
             "template_mode": True,
             "schedules": schedules,
+            "websites": websites,
             "scheduler_stats": {
-                "total_schedules": len(schedules),
+                "total_schedules": total_schedules,
                 "active_schedules": len([s for s in schedules if s.is_active]),
                 "workers_online": 2,  # Mock data
                 "queue_size": 0       # Mock data
+            },
+            "pagination": {
+                "current_page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "total_items": total_schedules,
+                "has_prev": has_prev,
+                "has_next": has_next,
+                "prev_page": page - 1 if has_prev else None,
+                "next_page": page + 1 if has_next else None,
+                "start_item": skip + 1 if total_schedules > 0 else 0,
+                "end_item": min(skip + per_page, total_schedules)
             },
             "current_section": "scheduler"
         }
@@ -115,6 +161,7 @@ async def scheduler_section(request: Request, db: AsyncSession = Depends(get_db)
             "app_version": "2.0.0",
             "template_mode": True,
             "schedules": [],
+            "websites": [],
             "scheduler_stats": {
                 "total_schedules": 0,
                 "active_schedules": 0,
@@ -181,33 +228,60 @@ async def dashboard_section(request: Request, db: AsyncSession = Depends(get_db)
     return templates.TemplateResponse("components/sections/dashboard_semrush.html", context)
 
 @router.get("/clients", response_class=HTMLResponse)
-async def clients_section(request: Request, db: AsyncSession = Depends(get_db)):
+async def clients_section(request: Request, page: int = 1, per_page: int = 20, db: AsyncSession = Depends(get_db)):
     """Serve Clients section with real data"""
     
     try:
-        # Get all clients with website counts
-        clients_result = await db.execute(
-            select(Client).order_by(Client.name)
-        )
-        clients = clients_result.scalars().all()
+        # Calculate pagination
+        if page < 1:
+            page = 1
+        if per_page not in [10, 20, 50, 100]:
+            per_page = 20
+            
+        skip = (page - 1) * per_page
         
-        # Get website counts for each client
-        clients_data = []
-        for client in clients:
-            websites_count = await db.scalar(
-                select(func.count(Website.id)).where(Website.client_id == client.id)
+        # Get total clients count
+        total_clients_result = await db.execute(
+            select(func.count(Client.id))
+        )
+        total_clients = total_clients_result.scalar() or 0
+        
+        # Get paginated clients with website counts
+        clients_result = await db.execute(
+            select(
+                Client.id,
+                Client.name,
+                Client.contact_email,
+                Client.created_at,
+                Client.updated_at,
+                func.count(Website.id).label('websites_count')
             )
+            .outerjoin(Website, Client.id == Website.client_id)
+            .group_by(Client.id, Client.name, Client.contact_email, Client.created_at, Client.updated_at)
+            .order_by(Client.name)
+            .offset(skip)
+            .limit(per_page)
+        )
+        
+        # Process the optimized result
+        clients_data = []
+        for row in clients_result:
             clients_data.append({
-                "id": client.id,
-                "name": client.name,
-                "contact_email": client.contact_email,
+                "id": row.id,
+                "name": row.name,
+                "contact_email": row.contact_email,
                 "contact_phone": None,  # Not in model
                 "company": None,  # Not in model
-                "websites_count": websites_count or 0,
+                "websites_count": row.websites_count or 0,
                 "status": "Attivo",  # Mock for now
-                "created_at": client.created_at,
-                "updated_at": client.updated_at
+                "created_at": row.created_at,
+                "updated_at": row.updated_at
             })
+        
+        # Calculate pagination info
+        total_pages = (total_clients + per_page - 1) // per_page
+        has_prev = page > 1
+        has_next = page < total_pages
         
         context = {
             "request": request,
@@ -215,8 +289,20 @@ async def clients_section(request: Request, db: AsyncSession = Depends(get_db)):
             "app_version": "2.0.0",
             "template_mode": True,
             "clients": clients_data,
-            "clients_count": len(clients_data),
+            "clients_count": total_clients,  # Changed to total count, not just current page
             "total_websites": sum(c["websites_count"] for c in clients_data),
+            "pagination": {
+                "current_page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "total_items": total_clients,
+                "has_prev": has_prev,
+                "has_next": has_next,
+                "prev_page": page - 1 if has_prev else None,
+                "next_page": page + 1 if has_next else None,
+                "start_item": skip + 1 if total_clients > 0 else 0,
+                "end_item": min(skip + per_page, total_clients)
+            },
             "current_section": "clients"
         }
         
@@ -239,39 +325,70 @@ async def clients_section(request: Request, db: AsyncSession = Depends(get_db)):
     return templates.TemplateResponse("index.html", context)
 
 @router.get("/websites", response_class=HTMLResponse)
-async def websites_section(request: Request, db: AsyncSession = Depends(get_db)):
+async def websites_section(request: Request, page: int = 1, per_page: int = 20, db: AsyncSession = Depends(get_db)):
     """Serve Websites section with real data"""
     
     try:
-        # Get all websites with client info
-        websites_result = await db.execute(
-            select(Website, Client.name.label('client_name'))
-            .join(Client, Website.client_id == Client.id)
-            .order_by(Website.name)
-        )
-        websites_data = []
-        
-        for website, client_name in websites_result:
-            # Get scan count for this website
-            scans_count = await db.scalar(
-                select(func.count(Scan.id)).where(Scan.website_id == website.id)
-            )
+        # Calculate pagination
+        if page < 1:
+            page = 1
+        if per_page not in [10, 20, 50, 100]:
+            per_page = 20
             
+        skip = (page - 1) * per_page
+        
+        # Get total websites count
+        total_websites_result = await db.execute(
+            select(func.count(Website.id))
+        )
+        total_websites = total_websites_result.scalar() or 0
+        
+        # Get paginated websites with client info and scan counts
+        websites_result = await db.execute(
+            select(
+                Website.id,
+                Website.name,
+                Website.domain,
+                Website.client_id,
+                Website.created_at,
+                Website.updated_at,
+                Client.name.label('client_name'),
+                func.count(Scan.id).label('scans_count')
+            )
+            .join(Client, Website.client_id == Client.id)
+            .outerjoin(Scan, Website.id == Scan.website_id)
+            .group_by(
+                Website.id, Website.name, Website.domain, Website.client_id,
+                Website.created_at, Website.updated_at, Client.name
+            )
+            .order_by(Website.name)
+            .offset(skip)
+            .limit(per_page)
+        )
+        
+        # Process the optimized result
+        websites_data = []
+        for row in websites_result:
             websites_data.append({
-                "id": website.id,
-                "name": website.name,
-                "url": website.domain,  # Model uses 'domain' not 'url'
-                "client_name": client_name,
-                "client_id": website.client_id,
-                "scans_count": scans_count or 0,
+                "id": row.id,
+                "name": row.name,
+                "url": row.domain,  # Model uses 'domain' not 'url'
+                "client_name": row.client_name,
+                "client_id": row.client_id,
+                "scans_count": row.scans_count or 0,
                 "status": "Attivo",  # Mock for now
-                "created_at": website.created_at,
-                "updated_at": website.updated_at
+                "created_at": row.created_at,
+                "updated_at": row.updated_at
             })
         
         # Get clients for dropdown
         clients_result = await db.execute(select(Client).order_by(Client.name))
         clients = clients_result.scalars().all()
+        
+        # Calculate pagination info
+        total_pages = (total_websites + per_page - 1) // per_page
+        has_prev = page > 1
+        has_next = page < total_pages
         
         context = {
             "request": request,
@@ -280,8 +397,20 @@ async def websites_section(request: Request, db: AsyncSession = Depends(get_db))
             "template_mode": True,
             "websites": websites_data,
             "clients": clients,
-            "websites_count": len(websites_data),
+            "websites_count": total_websites,  # Changed to total count, not just current page
             "total_scans": sum(w["scans_count"] for w in websites_data),
+            "pagination": {
+                "current_page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "total_items": total_websites,
+                "has_prev": has_prev,
+                "has_next": has_next,
+                "prev_page": page - 1 if has_prev else None,
+                "next_page": page + 1 if has_next else None,
+                "start_item": skip + 1 if total_websites > 0 else 0,
+                "end_item": min(skip + per_page, total_websites)
+            },
             "current_section": "websites"
         }
         
@@ -305,35 +434,46 @@ async def scans_section(request: Request, db: AsyncSession = Depends(get_db)):
     """Serve Scans section with real data"""
     
     try:
-        # Get all scans with website and client info (use LEFT JOIN for missing data)
+        # Get all scans with website, client info and issues count in a single optimized query
         scans_result = await db.execute(
-            select(Scan, Website.name.label('website_name'), Client.name.label('client_name'))
+            select(
+                Scan.id,
+                Scan.website_id,
+                Scan.status,
+                Scan.pages_scanned,
+                Scan.seo_score,
+                Scan.created_at,
+                Scan.completed_at,
+                Website.name.label('website_name'),
+                Client.name.label('client_name'),
+                func.count(Issue.id).label('issues_count')
+            )
             .outerjoin(Website, Scan.website_id == Website.id)
             .outerjoin(Client, Website.client_id == Client.id)
+            .outerjoin(Page, Scan.id == Page.scan_id)
+            .outerjoin(Issue, Page.id == Issue.page_id)
+            .group_by(
+                Scan.id, Scan.website_id, Scan.status, Scan.pages_scanned,
+                Scan.seo_score, Scan.created_at, Scan.completed_at,
+                Website.name, Client.name
+            )
             .order_by(Scan.created_at.desc())
         )
         
+        # Process the optimized result
         scans_data = []
-        for scan, website_name, client_name in scans_result:
-            # Get issues count safely
-            try:
-                issues_count = await db.scalar(
-                    select(func.count(Issue.id)).where(Issue.scan_id == scan.id)
-                )
-            except:
-                issues_count = 0
-            
+        for row in scans_result:
             scans_data.append({
-                "id": scan.id,
-                "website_name": website_name or f"Website {scan.website_id}",
-                "client_name": client_name or "Cliente Sconosciuto",
-                "website_id": scan.website_id,
-                "status": scan.status,
-                "issues_count": issues_count or 0,
-                "pages_scanned": scan.pages_scanned or 0,
-                "seo_score": scan.seo_score,
-                "created_at": scan.created_at,
-                "completed_at": scan.completed_at,
+                "id": row.id,
+                "website_name": row.website_name or f"Website {row.website_id}",
+                "client_name": row.client_name or "Cliente Sconosciuto",
+                "website_id": row.website_id,
+                "status": row.status,
+                "issues_count": row.issues_count or 0,
+                "pages_scanned": row.pages_scanned or 0,
+                "seo_score": row.seo_score,
+                "created_at": row.created_at,
+                "completed_at": row.completed_at,
                 "scan_type": "Completa"  # Mock for now
             })
         

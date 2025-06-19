@@ -5,25 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SEOAudit - Dashboard Professionale | Nova Tools{% endblock %}</title>
     
-    <!-- Fonts -->
+    <!-- Fonts - optimized loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
     
-    <!-- CSS Dependencies -->
+    <!-- Critical CSS - Bootstrap and base styles -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
-    
-    <!-- SEMrush-inspired navigation styling for templated interface -->
     <link rel="stylesheet" href="/static/css/navigation-semrush.css">
     
-    <!-- SEMrush-inspired modals styling -->
-    <link rel="stylesheet" href="/static/css/modals-semrush.css">
+    <!-- Non-critical CSS - deferred loading -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="/static/css/modals-semrush.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/static/css/modals-semrush.css"></noscript>
     
-    <!-- Conditional CSS for specific sections -->
+    <!-- Section-specific CSS - deferred loading for non-critical sections -->
     {% if current_section == 'scan_results' %}
-    <link rel="stylesheet" href="/static/css/scan-results-semrush.css">
+    <link rel="stylesheet" href="/static/css/scan-results-semrush.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/static/css/scan-results-semrush.css"></noscript>
     {% endif %}
     
     {% if current_section == 'dashboard' %}
@@ -31,19 +33,23 @@
     {% endif %}
     
     {% if current_section == 'clients' %}
-    <link rel="stylesheet" href="/static/css/clients-semrush.css">
+    <link rel="stylesheet" href="/static/css/clients-semrush.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/static/css/clients-semrush.css"></noscript>
     {% endif %}
     
     {% if current_section == 'websites' %}
-    <link rel="stylesheet" href="/static/css/websites-semrush.css">
+    <link rel="stylesheet" href="/static/css/websites-semrush.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/static/css/websites-semrush.css"></noscript>
     {% endif %}
     
     {% if current_section == 'scans' %}
-    <link rel="stylesheet" href="/static/css/scans-semrush.css">
+    <link rel="stylesheet" href="/static/css/scans-semrush.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/static/css/scans-semrush.css"></noscript>
     {% endif %}
     
     {% if current_section == 'scheduler' %}
-    <link rel="stylesheet" href="/static/css/scheduler-semrush.css">
+    <link rel="stylesheet" href="/static/css/scheduler-semrush.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/static/css/scheduler-semrush.css"></noscript>
     {% endif %}
     
     <!-- Chart.js -->
@@ -75,8 +81,26 @@
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <script src="https://unpkg.com/alpinejs@3.13.0/dist/cdn.min.js" defer></script>
     
+    <!-- Core JavaScript modules for templated interface -->
+    <script src="/static/js/core/utils.js"></script>
+    <script src="/static/js/core/api-client.js"></script>
+    <script src="/static/js/core/app-state.js"></script>
+    
     <!-- Minimal Custom JavaScript -->
     <script src="/static/js/app-minimal.js"></script>
+    
+    <!-- Scheduler-specific JavaScript for scheduler section -->
+    {% if current_section == 'scheduler' %}
+    <script>
+        // Auto-load scheduler data on page load (ONE TIME ONLY)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize scheduler data loading ONCE
+            if (window.scheduler && window.scheduler.refreshData) {
+                window.scheduler.refreshData();
+            }
+        });
+    </script>
+    {% endif %}
     
     {% block extra_scripts %}{% endblock %}
 </body>

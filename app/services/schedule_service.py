@@ -66,6 +66,14 @@ class ScheduleService:
             .order_by(Schedule.created_at.desc())
         )
         return result.scalars().all()
+    
+    async def get_schedules_count(self) -> int:
+        """Get total count of schedules"""
+        from sqlalchemy import func
+        result = await self.db.execute(
+            select(func.count(Schedule.id))
+        )
+        return result.scalar() or 0
 
     async def update_schedule(self, schedule_id: int, schedule_data: ScheduleUpdate) -> Optional[Schedule]:
         """Update an existing schedule"""

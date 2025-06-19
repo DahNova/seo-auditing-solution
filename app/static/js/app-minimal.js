@@ -284,7 +284,7 @@ const scheduler = {
                 notes: formData.get('scheduleNotes') || null
             };
             
-            fetch('/api/v1/scheduler/schedules/', {
+            fetch('/api/v1/schedules/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -473,15 +473,160 @@ window.showAddScanModal = function() {
 // Scheduler functions for backward compatibility
 window.scheduler = {
     showScheduleModal: function() {
-        console.log('Schedule modal - TODO: Implement with HTMX');
-        showToast('Funzionalità in sviluppo', 'info');
+        const modal = document.getElementById('newScheduleModal');
+        if (modal) {
+            // Load websites for dropdown
+            fetch('/api/v1/websites/')
+                .then(response => response.json())
+                .then(websites => {
+                    const select = document.getElementById('scheduleWebsite');
+                    if (select) {
+                        select.innerHTML = '<option value="">Seleziona il sito da monitorare</option>';
+                        websites.forEach(website => {
+                            const option = document.createElement('option');
+                            option.value = website.id;
+                            option.textContent = `${website.name || website.domain}`;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+            
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const bootstrapModal = new bootstrap.Modal(modal);
+                bootstrapModal.show();
+            } else {
+                modal.style.display = 'block';
+                modal.classList.add('show');
+            }
+        } else {
+            console.error('Modal newScheduleModal not found');
+            showToast('Errore: modal non trovato', 'error');
+        }
+    },
+    createSchedule: function() {
+        const form = document.getElementById('newScheduleForm');
+        if (form) {
+            const formData = new FormData(form);
+            const data = {
+                website_id: parseInt(formData.get('scheduleWebsite')),
+                frequency: formData.get('scheduleFrequency'),
+                time: formData.get('scheduleTime'),
+                day: formData.get('scheduleDay') ? parseInt(formData.get('scheduleDay')) : null,
+                scan_type: formData.get('scheduleScanType') || 'full',
+                email_notify: formData.get('scheduleEmailNotify') === 'on',
+                alert_issues: formData.get('scheduleAlertIssues') === 'on',
+                is_active: formData.get('scheduleActive') === 'on',
+                notes: formData.get('scheduleNotes') || null
+            };
+            
+            // Validate required fields
+            if (!data.website_id) {
+                showToast('Seleziona un sito web', 'error');
+                return;
+            }
+            if (!data.frequency) {
+                showToast('Seleziona una frequenza', 'error');
+                return;
+            }
+            
+            fetch('/api/v1/schedules/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Programmazione creata con successo', 'success');
+                    closeModal('newScheduleModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella creazione della programmazione', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    },
+    updateSchedule: function() {
+        const form = document.getElementById('editScheduleForm');
+        const scheduleId = document.getElementById('editScheduleId').value;
+        
+        if (form && scheduleId) {
+            const formData = new FormData(form);
+            const data = {
+                website_id: parseInt(formData.get('editScheduleWebsite')),
+                frequency: formData.get('editScheduleFrequency'),
+                time: formData.get('editScheduleTime'),
+                day: formData.get('editScheduleDay') ? parseInt(formData.get('editScheduleDay')) : null,
+                email_notify: formData.get('editScheduleEmailNotify') === 'on',
+                alert_issues: formData.get('editScheduleAlertIssues') === 'on',
+                is_active: formData.get('editScheduleActive') === 'on'
+            };
+            
+            fetch(`/api/v1/schedules/${scheduleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result) {
+                    showToast('Programmazione aggiornata con successo', 'success');
+                    closeModal('editScheduleModal');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nell\'aggiornamento della programmazione', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
+        }
+    },
+    deleteScheduleFromModal: function() {
+        const scheduleId = document.getElementById('editScheduleId').value;
+        if (scheduleId) {
+            this.deleteSchedule(scheduleId);
+            closeModal('editScheduleModal');
+        }
     },
     showBulkScheduleModal: function() {
         console.log('Bulk schedule modal - TODO: Implement with HTMX');
         showToast('Funzionalità in sviluppo', 'info');
     },
     refreshData: function() {
-        window.location.reload();
+        console.log('Manual refresh of scheduler data');
+        // Only load stats when manually requested, no automatic refresh
+        fetch('/api/v1/scheduler/stats')
+            .then(response => response.json())
+            .then(stats => {
+                console.log('Scheduler stats loaded:', stats);
+                // Update stats in the UI
+                const elements = {
+                    'active-workers': stats.workers_online || 0,
+                    'queue-size': stats.queue_size || 0,
+                    'scheduled-count': stats.total_schedules || 0,
+                    'recent-tasks': stats.recent_tasks_count || 0
+                };
+                
+                Object.entries(elements).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value;
+                        console.log(`Updated ${id} to ${value}`);
+                    }
+                });
+                
+                showToast('Statistiche aggiornate', 'success');
+            })
+            .catch(err => {
+                console.error('Error loading scheduler stats:', err);
+                showToast('Errore nel caricamento statistiche', 'error');
+            });
     }
 };
 
@@ -610,31 +755,79 @@ window.app = {
     
     // Scheduler management
     editSchedule: function(scheduleId) {
-        fetch(`/api/v1/scheduler/schedules/${scheduleId}`)
-            .then(response => response.json())
+        console.log('Edit schedule:', scheduleId);
+        
+        fetch(`/api/v1/schedules/${scheduleId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(schedule => {
+                console.log('Schedule data loaded:', schedule);
+                
                 // Populate edit modal with schedule data
                 const editModal = document.getElementById('editScheduleModal');
                 if (editModal) {
-                    document.getElementById('editScheduleId').value = schedule.id;
-                    document.getElementById('editScheduleWebsite').value = schedule.website_id;
-                    document.getElementById('editScheduleFrequency').value = schedule.frequency;
-                    document.getElementById('editScheduleTime').value = schedule.time;
-                    document.getElementById('editScheduleDay').value = schedule.day || '';
-                    document.getElementById('editScheduleScanType').value = schedule.scan_type;
-                    document.getElementById('editScheduleEmailNotify').checked = schedule.email_notify;
-                    document.getElementById('editScheduleAlertIssues').checked = schedule.alert_issues;
-                    document.getElementById('editScheduleActive').checked = schedule.is_active;
-                    document.getElementById('editScheduleNotes').value = schedule.notes || '';
-                    showModal('editScheduleModal');
+                    // Fill basic fields
+                    const editScheduleId = document.getElementById('editScheduleId');
+                    const editScheduleWebsite = document.getElementById('editScheduleWebsite');
+                    const editScheduleFrequency = document.getElementById('editScheduleFrequency');
+                    const editScheduleTime = document.getElementById('editScheduleTime');
+                    const editScheduleDay = document.getElementById('editScheduleDay');
+                    const editScheduleActive = document.getElementById('editScheduleActive');
+                    
+                    if (editScheduleId) editScheduleId.value = schedule.id;
+                    if (editScheduleWebsite) editScheduleWebsite.value = schedule.website_id;
+                    if (editScheduleFrequency) editScheduleFrequency.value = schedule.frequency;
+                    if (editScheduleTime) editScheduleTime.value = schedule.time || '02:00';
+                    if (editScheduleDay) editScheduleDay.value = schedule.day || '';
+                    if (editScheduleActive) editScheduleActive.checked = schedule.is_active;
+                    
+                    // Load and populate websites dropdown for edit modal
+                    fetch('/api/v1/websites/')
+                        .then(response => response.json())
+                        .then(websites => {
+                            if (editScheduleWebsite) {
+                                editScheduleWebsite.innerHTML = '<option value="">Seleziona il sito da monitorare</option>';
+                                websites.forEach(website => {
+                                    const option = document.createElement('option');
+                                    option.value = website.id;
+                                    option.textContent = `${website.name || website.domain}`;
+                                    if (website.id === schedule.website_id) {
+                                        option.selected = true;
+                                    }
+                                    editScheduleWebsite.appendChild(option);
+                                });
+                            }
+                        })
+                        .catch(err => console.error('Error loading websites for edit modal:', err));
+                    
+                    // Show the modal
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const bootstrapModal = new bootstrap.Modal(editModal);
+                        bootstrapModal.show();
+                    } else {
+                        editModal.style.display = 'block';
+                        editModal.classList.add('show');
+                    }
                 } else {
+                    console.error('Edit modal not found');
                     showToast('Modal di modifica non trovato', 'error');
                 }
             })
-            .catch(err => showToast('Errore nel caricamento della programmazione', 'error'));
+            .catch(err => {
+                console.error('Error loading schedule for edit:', err);
+                showToast('Errore nel caricamento della programmazione', 'error');
+            });
     },
     pauseSchedule: function(scheduleId) {
-        fetch(`/api/v1/scheduler/schedules/${scheduleId}/pause`, { method: 'POST' })
+        fetch(`/api/v1/schedules/${scheduleId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: false })
+        })
             .then(response => {
                 if (response.ok) {
                     showToast('Programmazione messa in pausa', 'success');
@@ -647,7 +840,7 @@ window.app = {
     },
     deleteSchedule: function(scheduleId) {
         if (confirm('Sei sicuro di voler eliminare questa programmazione?')) {
-            fetch(`/api/v1/scheduler/schedules/${scheduleId}`, { method: 'DELETE' })
+            fetch(`/api/v1/schedules/${scheduleId}`, { method: 'DELETE' })
                 .then(response => {
                     if (response.ok) {
                         showToast('Programmazione eliminata con successo', 'success');
@@ -661,7 +854,7 @@ window.app = {
     },
     pauseAllSchedules: function() {
         if (confirm('Sei sicuro di voler mettere in pausa tutte le programmazioni?')) {
-            fetch(`/api/v1/scheduler/actions/pause`, { method: 'POST' })
+            fetch('/api/v1/scheduler/actions/pause', { method: 'POST' })
                 .then(response => {
                     if (response.ok) {
                         showToast('Tutte le programmazioni sono state messe in pausa', 'success');
@@ -672,6 +865,51 @@ window.app = {
                 })
                 .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
         }
+    },
+    resumeSchedule: function(scheduleId) {
+        fetch(`/api/v1/schedules/${scheduleId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: true })
+        })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Programmazione ripresa', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella ripresa della programmazione', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    },
+    resumeAllSchedules: function() {
+        fetch('/api/v1/scheduler/actions/resume', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Tutte le programmazioni sono state riprese', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella ripresa delle programmazioni', 'error');
+                }
+            })
+            .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+    },
+    purgeQueue: function() {
+        if (confirm('Sei sicuro di voler svuotare la coda? Questo cancellerà tutti i task in attesa.')) {
+            fetch('/api/v1/scheduler/actions/purge-queue', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Coda svuotata con successo', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nello svuotamento della coda', 'error');
+                    }
+                })
+                .catch(err => showToast('Errore nella comunicazione con il server', 'error'));
+        }
+    },
+    refreshSchedules: function() {
+        window.location.reload();
     },
     
     // Filter/navigation functions

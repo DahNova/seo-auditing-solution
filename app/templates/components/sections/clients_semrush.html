@@ -34,9 +34,18 @@
                 </div>
             </div>
             <div class="col-md-6 text-end">
-                <button class="btn btn-outline-secondary btn-sm" onclick="window.location.reload()">
-                    <i class="bi bi-arrow-clockwise"></i> Aggiorna
-                </button>
+                <div class="d-flex gap-2 justify-content-end align-items-center">
+                    <!-- Items per page selector -->
+                    <select class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                        <option value="10" {% if pagination.per_page == 10 %}selected{% endif %}>10/pagina</option>
+                        <option value="20" {% if pagination.per_page == 20 %}selected{% endif %}>20/pagina</option>
+                        <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50/pagina</option>
+                        <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100/pagina</option>
+                    </select>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="window.location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Aggiorna
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -113,6 +122,56 @@
                 {% endfor %}
             </tbody>
         </table>
+        
+        <!-- Pagination Controls -->
+        {% if pagination and pagination.total_pages > 1 %}
+        <div class="clients-pagination">
+            <div class="pagination-info">
+                <span class="text-muted">
+                    Mostrando {{ pagination.start_item }}-{{ pagination.end_item }} di {{ pagination.total_items }} clienti
+                </span>
+            </div>
+            <nav aria-label="Paginazione clienti">
+                <ul class="pagination pagination-sm justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="/templated/clients?page={{ pagination.prev_page }}&per_page={{ pagination.per_page }}" aria-label="Precedente">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo;</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in range(1, pagination.total_pages + 1) %}
+                        {% if page_num == pagination.current_page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="/templated/clients?page={{ page_num }}&per_page={{ pagination.per_page }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="/templated/clients?page={{ pagination.next_page }}&per_page={{ pagination.per_page }}" aria-label="Successivo">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
         {% else %}
         <div class="clients-empty">
             <i class="bi bi-people"></i>
@@ -174,5 +233,12 @@ function showAddClientModal() {
     } else {
         console.log('Show add client modal');
     }
+}
+
+function changeItemsPerPage(perPage) {
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('per_page', perPage);
+    currentUrl.searchParams.set('page', 1); // Reset to first page
+    window.location.href = currentUrl.toString();
 }
 </script>

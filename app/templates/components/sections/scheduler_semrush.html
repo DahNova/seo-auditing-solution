@@ -102,9 +102,18 @@
                     </div>
                     <h3 class="scheduler-card-title">Scansioni Programmate</h3>
                 </div>
-                <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedules()">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
+                <div class="d-flex gap-2">
+                    <!-- Items per page selector -->
+                    <select class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                        <option value="10" {% if pagination.per_page == 10 %}selected{% endif %}>10/pagina</option>
+                        <option value="20" {% if pagination.per_page == 20 %}selected{% endif %}>20/pagina</option>
+                        <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50/pagina</option>
+                        <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100/pagina</option>
+                    </select>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshSchedules()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
             </div>
             <div class="scheduler-card-body">
                 {% if schedules %}
@@ -120,7 +129,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for schedule in schedules[:10] %}
+                            {% for schedule in schedules %}
                             <tr>
                                 <td>
                                     <div class="schedule-info">
@@ -178,6 +187,56 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination Controls -->
+                {% if pagination and pagination.total_pages > 1 %}
+                <div class="scheduler-pagination">
+                    <div class="pagination-info">
+                        <span class="text-muted">
+                            Mostrando {{ pagination.start_item }}-{{ pagination.end_item }} di {{ pagination.total_items }} programmazioni
+                        </span>
+                    </div>
+                    <nav aria-label="Paginazione scheduler">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if pagination.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="/templated/scheduler?page={{ pagination.prev_page }}" aria-label="Precedente">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&laquo;</span>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in range(1, pagination.total_pages + 1) %}
+                                {% if page_num == pagination.current_page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="/templated/scheduler?page={{ page_num }}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="/templated/scheduler?page={{ pagination.next_page }}" aria-label="Successivo">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&raquo;</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
                 {% else %}
                 <div class="scheduler-empty">
                     <i class="bi bi-calendar-x"></i>
@@ -251,95 +310,209 @@
 <script>
 // Scheduler management functions
 function showScheduleModal() {
-    if (window.app && window.app.showScheduleModal) {
-        window.app.showScheduleModal();
+    if (window.scheduler && window.scheduler.showScheduleModal) {
+        window.scheduler.showScheduleModal();
     } else {
-        console.log('Show schedule modal');
+        console.log('Show schedule modal fallback');
+        showToast('Modal programmazione in preparazione...', 'info');
     }
 }
 
 function editSchedule(scheduleId) {
-    if (window.app && window.app.editSchedule) {
-        window.app.editSchedule(scheduleId);
+    console.log('editSchedule called with ID:', scheduleId);
+    
+    if (window.scheduler && window.scheduler.editSchedule) {
+        console.log('Using window.scheduler.editSchedule');
+        window.scheduler.editSchedule(scheduleId);
     } else {
-        console.log('Edit schedule:', scheduleId);
+        console.log('window.scheduler not available, using fallback');
+        // Direct implementation fallback
+        fetch(`/api/v1/schedules/${scheduleId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(schedule => {
+                console.log('Schedule loaded for edit:', schedule);
+                
+                // Find and populate the edit modal
+                const editModal = document.getElementById('editScheduleModal');
+                if (editModal) {
+                    // Fill form fields
+                    const editScheduleId = document.getElementById('editScheduleId');
+                    const editScheduleWebsite = document.getElementById('editScheduleWebsite');
+                    const editScheduleFrequency = document.getElementById('editScheduleFrequency');
+                    const editScheduleTime = document.getElementById('editScheduleTime');
+                    const editScheduleActive = document.getElementById('editScheduleActive');
+                    
+                    if (editScheduleId) editScheduleId.value = schedule.id;
+                    if (editScheduleFrequency) editScheduleFrequency.value = schedule.frequency;
+                    if (editScheduleTime) editScheduleTime.value = schedule.time || '02:00';
+                    if (editScheduleActive) editScheduleActive.checked = schedule.is_active;
+                    
+                    // Load websites for dropdown
+                    fetch('/api/v1/websites/')
+                        .then(response => response.json())
+                        .then(websites => {
+                            if (editScheduleWebsite) {
+                                editScheduleWebsite.innerHTML = '';
+                                websites.forEach(website => {
+                                    const option = document.createElement('option');
+                                    option.value = website.id;
+                                    option.textContent = `${website.name || website.domain}`;
+                                    if (website.id === schedule.website_id) {
+                                        option.selected = true;
+                                    }
+                                    editScheduleWebsite.appendChild(option);
+                                });
+                            }
+                            
+                            // Show the modal
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                const bootstrapModal = new bootstrap.Modal(editModal);
+                                bootstrapModal.show();
+                            } else {
+                                editModal.style.display = 'block';
+                                editModal.classList.add('show');
+                                document.body.classList.add('modal-open');
+                            }
+                        });
+                } else {
+                    console.error('editScheduleModal not found');
+                    showToast('Modal di modifica non trovato', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading schedule:', err);
+                showToast('Errore nel caricamento della programmazione', 'error');
+            });
     }
 }
 
 function pauseSchedule(scheduleId) {
     if (confirm('Sei sicuro di voler mettere in pausa questa programmazione?')) {
-        if (window.app && window.app.pauseSchedule) {
-            window.app.pauseSchedule(scheduleId);
+        if (window.scheduler && window.scheduler.pauseSchedule) {
+            window.scheduler.pauseSchedule(scheduleId);
         } else {
-            console.log('Pause schedule:', scheduleId);
+            console.log('Pause schedule fallback:', scheduleId);
+            showToast('Funzione pausa in preparazione...', 'info');
         }
     }
 }
 
 function resumeSchedule(scheduleId) {
-    if (window.app && window.app.resumeSchedule) {
-        window.app.resumeSchedule(scheduleId);
+    if (window.scheduler && window.scheduler.resumeSchedule) {
+        window.scheduler.resumeSchedule(scheduleId);
     } else {
-        console.log('Resume schedule:', scheduleId);
+        console.log('Resume schedule fallback:', scheduleId);
+        showToast('Funzione ripresa in preparazione...', 'info');
     }
 }
 
 function deleteSchedule(scheduleId) {
     if (confirm('Sei sicuro di voler eliminare questa programmazione?')) {
-        if (window.app && window.app.deleteSchedule) {
-            window.app.deleteSchedule(scheduleId);
+        if (window.scheduler && window.scheduler.deleteSchedule) {
+            window.scheduler.deleteSchedule(scheduleId);
         } else {
-            console.log('Delete schedule:', scheduleId);
+            console.log('Delete schedule fallback:', scheduleId);
+            showToast('Funzione eliminazione in preparazione...', 'info');
         }
     }
 }
 
 function pauseAllSchedules() {
     if (confirm('Sei sicuro di voler mettere in pausa tutte le programmazioni?')) {
-        if (window.app && window.app.pauseAllSchedules) {
-            window.app.pauseAllSchedules();
+        if (window.scheduler && window.scheduler.pauseAllSchedules) {
+            window.scheduler.pauseAllSchedules();
         } else {
-            console.log('Pause all schedules');
+            console.log('Pause all schedules - direct implementation');
+            fetch('/api/v1/scheduler/actions/pause', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Tutte le programmazioni sono state messe in pausa', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nella pausa delle programmazioni', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error pausing all schedules:', err);
+                    showToast('Errore nella comunicazione con il server', 'error');
+                });
         }
     }
 }
 
 function resumeAllSchedules() {
-    if (window.app && window.app.resumeAllSchedules) {
-        window.app.resumeAllSchedules();
+    if (window.scheduler && window.scheduler.resumeAllSchedules) {
+        window.scheduler.resumeAllSchedules();
     } else {
-        console.log('Resume all schedules');
+        console.log('Resume all schedules - direct implementation');
+        fetch('/api/v1/scheduler/actions/resume', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Tutte le programmazioni sono state riprese', 'success');
+                    window.location.reload();
+                } else {
+                    showToast('Errore nella ripresa delle programmazioni', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Error resuming all schedules:', err);
+                showToast('Errore nella comunicazione con il server', 'error');
+            });
     }
 }
 
 function purgeQueue() {
     if (confirm('Sei sicuro di voler pulire la coda dei task?')) {
-        if (window.app && window.app.purgeQueue) {
-            window.app.purgeQueue();
+        if (window.scheduler && window.scheduler.purgeQueue) {
+            window.scheduler.purgeQueue();
         } else {
-            console.log('Purge queue');
+            console.log('Purge queue - direct implementation');
+            fetch('/api/v1/scheduler/actions/purge-queue', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        showToast('Coda svuotata con successo', 'success');
+                        window.location.reload();
+                    } else {
+                        showToast('Errore nello svuotamento della coda', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error purging queue:', err);
+                    showToast('Errore nella comunicazione con il server', 'error');
+                });
         }
     }
 }
 
 function refreshSchedules() {
-    if (window.app && window.app.refreshSchedules) {
-        window.app.refreshSchedules();
+    if (window.scheduler && window.scheduler.refreshSchedules) {
+        window.scheduler.refreshSchedules();
     } else {
+        console.log('Refresh schedules fallback');
         window.location.reload();
     }
 }
 
 function refreshData() {
-    if (window.app && window.app.refreshData) {
-        window.app.refreshData();
+    if (window.scheduler && window.scheduler.refreshData) {
+        window.scheduler.refreshData();
     } else {
+        console.log('Refresh data fallback');
         window.location.reload();
     }
 }
 
-// Auto-refresh scheduler data every 30 seconds
-setInterval(function() {
-    refreshData();
-}, 30000);
+function changeItemsPerPage(perPage) {
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('per_page', perPage);
+    currentUrl.searchParams.set('page', 1); // Reset to first page
+    window.location.href = currentUrl.toString();
+}
+
+// Auto-refresh removed - refresh manually with button or on user action
 </script>
