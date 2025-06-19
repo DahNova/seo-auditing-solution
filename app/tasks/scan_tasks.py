@@ -19,59 +19,55 @@ def run_website_scan(self, website_id: int, scan_id: int = None):
         import asyncio
         import nest_asyncio
         
-        # Allow nested event loops
+        # Allow nested event loops in Celery workers
         nest_asyncio.apply()
         
         async def _run_scan():
+            # Get website first
             async with AsyncSessionLocal() as db:
-                try:
-                    # Get website
-                    website_result = await db.execute(
-                        select(Website).where(Website.id == website_id)
+                website_result = await db.execute(
+                    select(Website).where(Website.id == website_id)
+                )
+                website = website_result.scalar_one_or_none()
+                
+                if not website:
+                    raise ValueError(f"Website {website_id} not found")
+                
+                # Create or get scan
+                if scan_id:
+                    scan_result = await db.execute(
+                        select(Scan).where(Scan.id == scan_id)
                     )
-                    website = website_result.scalar_one_or_none()
-                    
-                    if not website:
-                        raise ValueError(f"Website {website_id} not found")
-                    
-                    # Create or get scan
-                    if scan_id:
-                        scan_result = await db.execute(
-                            select(Scan).where(Scan.id == scan_id)
-                        )
-                        scan = scan_result.scalar_one_or_none()
-                        if not scan:
-                            raise ValueError(f"Scan {scan_id} not found")
-                    else:
-                        # Create new scan
-                        scan = Scan(website_id=website_id)
-                        db.add(scan)
-                        await db.commit()
-                        await db.refresh(scan)
-                    
-                    # Run scan
-                    scan_service = ScanService()
-                    await scan_service.run_scan(scan.id, website)
-                    
-                    return scan.id
-                finally:
-                    # Ensure proper cleanup
-                    await db.close()
+                    scan = scan_result.scalar_one_or_none()
+                    if not scan:
+                        raise ValueError(f"Scan {scan_id} not found")
+                    scan_id_to_use = scan.id
+                else:
+                    # Create new scan
+                    scan = Scan(website_id=website_id)
+                    db.add(scan)
+                    await db.commit()
+                    await db.refresh(scan)
+                    scan_id_to_use = scan.id
+            
+            # Run scan with its own session management
+            scan_service = ScanService()
+            await scan_service.run_scan(scan_id_to_use, website)
+            
+            return scan_id_to_use
         
-        # Try to get existing event loop, create new one if none exists
+        # Create new event loop for Celery task
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                raise RuntimeError("Event loop is closed")
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        # Run the async function
-        result = loop.run_until_complete(_run_scan())
-        
-        logger.info(f"Scan completed successfully for website {website_id}")
-        return {"status": "completed", "scan_id": result}
+            # Run the async function
+            result = loop.run_until_complete(_run_scan())
+            logger.info(f"Scan completed successfully for website {website_id}")
+            return {"status": "completed", "scan_id": result}
+        finally:
+            # Always close the loop to prevent resource leaks
+            loop.close()
         
     except Exception as exc:
         logger.error(f"Scan failed for website {website_id}: {str(exc)}")
@@ -99,10 +95,12 @@ def run_website_scan(self, website_id: int, scan_id: int = None):
                                 scan.error_message = str(exc)
                                 await db.commit()
                 
-                loop.run_until_complete(mark_failed())
-                loop.close()
-            except:
-                pass
+                try:
+                    loop.run_until_complete(mark_failed())
+                finally:
+                    loop.close()
+            except Exception as db_error:
+                logger.error(f"Failed to mark scan as failed in database: {str(db_error)}")
                 
             return {"status": "failed", "error": str(exc)}
 

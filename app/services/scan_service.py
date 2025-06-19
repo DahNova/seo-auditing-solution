@@ -59,11 +59,25 @@ class ScanService:
                 ) as crawler:
                     
                     # Use deep crawling with domain as-is (interface handles full URL)
-                    crawl_result = await strategy.arun(
-                        start_url=website.domain,
-                        crawler=crawler,
-                        config=crawl_config
-                    )
+                    try:
+                        crawl_result = await strategy.arun(
+                            start_url=website.domain,
+                            crawler=crawler,
+                            config=crawl_config
+                        )
+                    except Exception as crawl_error:
+                        logger.warning(f"Deep crawling failed, attempting single page fallback: {str(crawl_error)}")
+                        # Fallback to single page crawling if deep crawling fails
+                        try:
+                            crawl_result = await crawler.arun(
+                                url=website.domain,
+                                config=crawl_config
+                            )
+                            # Wrap single result in list to maintain compatibility
+                            crawl_result = [crawl_result] if not hasattr(crawl_result, '__iter__') else crawl_result
+                        except Exception as fallback_error:
+                            logger.error(f"Both deep crawling and single page fallback failed: {str(fallback_error)}")
+                            raise Exception(f"Crawling completely failed: {str(fallback_error)}")
                     
                     pages_scanned = 0
                     pages_failed = 0
@@ -113,11 +127,58 @@ class ScanService:
                             pages_scanned += 1
                             
                         except Exception as e:
-                            logger.error(f"Error processing page {result.url}: {str(e)}")
+                            # Log detailed error information
+                            error_url = getattr(result, 'url', 'unknown_url')
+                            error_status = getattr(result, 'status_code', 'unknown_status')
+                            logger.error(f"Error processing page {error_url} (status: {error_status}): {str(e)}")
+                            
+                            # Still save failed page with minimal data for transparency
+                            try:
+                                failed_page = Page(
+                                    scan_id=scan_id,
+                                    url=error_url,
+                                    status_code=error_status if error_status != 'unknown_status' else 500,
+                                    response_time=getattr(result, 'response_time', None),
+                                    title=f"Failed to process: {str(e)[:100]}",
+                                    word_count=0,
+                                    seo_score=0.0,
+                                    issues_count=1
+                                )
+                                db.add(failed_page)
+                                await db.flush()
+                                
+                                # Add error issue
+                                error_issue = Issue(
+                                    page_id=failed_page.id,
+                                    issue_type="crawl_error",
+                                    severity="high",
+                                    message=f"Failed to crawl page: {str(e)}",
+                                    recommendation="Check if the URL is accessible and the content format is supported"
+                                )
+                                db.add(error_issue)
+                                total_issues += 1
+                                
+                            except Exception as save_error:
+                                logger.error(f"Failed to save error information for {error_url}: {str(save_error)}")
+                            
                             pages_failed += 1
                     
-                    # Update scan completion
-                    scan.status = "completed"
+                    # Determine scan status based on success/failure ratio
+                    total_pages = len(results_to_process)
+                    success_ratio = pages_scanned / total_pages if total_pages > 0 else 0
+                    
+                    if pages_scanned == 0:
+                        scan.status = "failed"
+                        scan.error_message = "No pages could be processed successfully"
+                    elif success_ratio >= 0.5:  # At least 50% success
+                        scan.status = "completed"
+                        if pages_failed > 0:
+                            scan.error_message = f"{pages_failed} pages failed to process but scan completed"
+                    else:
+                        scan.status = "failed"
+                        scan.error_message = f"Too many failures: {pages_failed}/{total_pages} pages failed"
+                    
+                    logger.info(f"Scan {scan_id}: {pages_scanned} succeeded, {pages_failed} failed, status: {scan.status}")
                     scan.completed_at = datetime.utcnow()
                     scan.pages_found = len(results_to_process)
                     scan.pages_scanned = pages_scanned
