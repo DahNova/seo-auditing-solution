@@ -154,8 +154,34 @@ class SyncScanService:
                     continue
                 
                 # Skip non-HTML content types - Don't save as pages but images should be analyzed within HTML pages
-                non_html_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.pdf', '.zip', '.exe', '.doc', '.xls', '.css', '.js', '.ico', '.xml', '.json']
-                if any(url.lower().endswith(ext) for ext in non_html_extensions):
+                non_html_extensions = [
+                    # Images
+                    '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.bmp', '.tiff', '.ico', 
+                    # Documents
+                    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+                    # Archives
+                    '.zip', '.rar', '.tar', '.gz', '.7z',
+                    # Executables
+                    '.exe', '.dmg', '.pkg', '.deb', '.rpm',
+                    # Fonts
+                    '.woff', '.woff2', '.ttf', '.otf', '.eot',
+                    # Data/Config
+                    '.css', '.js', '.xml', '.json', '.txt', '.csv',
+                    # Video/Audio
+                    '.mp4', '.avi', '.mov', '.wmv', '.flv', '.mp3', '.wav', '.ogg'
+                ]
+                
+                # Also check for URLs with query parameters that might be files
+                url_lower = url.lower()
+                is_non_html = any(url_lower.endswith(ext) for ext in non_html_extensions)
+                
+                # Additional check for URLs with query params pointing to files
+                if not is_non_html and '?' in url:
+                    # Check if query params suggest file download
+                    if any(param in url_lower for param in ['file=', 'download=', 'attachment=']):
+                        is_non_html = True
+                
+                if is_non_html:
                     logger.info(f"🔍 FILTERING OUT non-HTML content from pages: {url}")
                     pages_filtered += 1
                     continue
@@ -190,12 +216,21 @@ class SyncScanService:
                         schema_data = technical_data.get('schema_markup', {})
                         mobile_data = technical_data.get('mobile_optimization', {})
                         
+                        # NEW: Extract canonical URL and analyze URL structure
+                        canonical_url = self.seo_analyzer.technical_seo_analyzer.extract_canonical_url(result)
+                        url_analysis = self.seo_analyzer.technical_seo_analyzer.analyze_url_structure(url)
+                        
                         # Update page with technical data
                         page.has_schema_markup = 1 if schema_data.get('has_schema', False) else 0
                         page.schema_types = schema_data.get('schema_types', [])
                         page.mobile_score = mobile_data.get('mobile_score', 0.0)
                         page.technical_score = technical_data.get('overall_score', 0.0)
                         page.technical_seo_data = technical_data
+                        
+                        # NEW: Set canonical and URL quality data
+                        page.canonical_url = canonical_url
+                        page.url_quality_score = url_analysis.get('url_quality_score', 100.0)
+                        page.url_structure_data = url_analysis
                         
                         # Analyze issues
                         issues = loop.run_until_complete(
@@ -297,6 +332,12 @@ class SyncScanService:
         scan.pages_failed = pages_failed
         scan.total_issues = total_issues
         
+        # NEW: Post-process for deduplication and canonical analysis
+        try:
+            self._post_process_duplicates_and_canonical(db, scan)
+        except Exception as e:
+            logger.warning(f"Error in duplicate/canonical post-processing: {str(e)}")
+        
         # Calculate overall website SEO score
         db.flush()  # Ensure all pages are saved
         page_scores = [p.seo_score for p in scan.pages if p.seo_score > 0]
@@ -326,3 +367,111 @@ class SyncScanService:
             "total_issues": total_issues,
             "seo_score": scan.seo_score
         }
+    
+    def _post_process_duplicates_and_canonical(self, db: Session, scan: Scan) -> None:
+        """Post-process pages for duplicate detection and canonical analysis"""
+        
+        # Get all pages for this scan
+        pages = db.query(Page).filter(Page.scan_id == scan.id).all()
+        
+        if not pages:
+            return
+        
+        logger.info(f"🔍 Post-processing {len(pages)} pages for duplicate/canonical analysis")
+        
+        # Prepare data for duplicate analysis
+        pages_data = []
+        for page in pages:
+            pages_data.append({
+                'url': page.url,
+                'canonical_url': page.canonical_url,
+                'page_id': page.id
+            })
+        
+        # Run duplicate content analysis
+        duplicate_analysis = self.seo_analyzer.technical_seo_analyzer.detect_duplicate_content_issues(pages_data)
+        
+        # Group pages by canonical URL and set is_canonical flags
+        canonical_groups = {}
+        pages_without_canonical = []
+        
+        for page in pages:
+            if page.canonical_url:
+                canonical_url = page.canonical_url
+                if canonical_url not in canonical_groups:
+                    canonical_groups[canonical_url] = []
+                canonical_groups[canonical_url].append(page)
+            else:
+                pages_without_canonical.append(page)
+                # Pages without canonical are considered canonical themselves
+                page.canonical_url = page.url
+                page.is_canonical = 1
+        
+        # Process canonical groups
+        group_counter = 0
+        for canonical_url, group_pages in canonical_groups.items():
+            group_counter += 1
+            group_id = f"group_{scan.id}_{group_counter}"
+            
+            # Find the canonical page (the one that matches the canonical URL)
+            canonical_page = None
+            for page in group_pages:
+                if page.url == canonical_url:
+                    canonical_page = page
+                    break
+            
+            # If no page matches canonical URL, pick the first one as canonical
+            if not canonical_page and group_pages:
+                canonical_page = group_pages[0]
+                logger.warning(f"No page found for canonical URL {canonical_url}, using {canonical_page.url}")
+            
+            # Set flags for all pages in group
+            for page in group_pages:
+                page.duplicate_group_id = group_id
+                page.is_canonical = 1 if page == canonical_page else 0
+        
+        # Create issues for duplicate content problems
+        duplicate_issues = duplicate_analysis.get('duplicate_issues', [])
+        for issue_data in duplicate_issues:
+            # Create issue records for each affected page
+            affected_pages = issue_data.get('affected_pages', [])
+            for affected_url in affected_pages:
+                # Find the page object
+                affected_page = next((p for p in pages if p.url == affected_url), None)
+                if affected_page:
+                    duplicate_issue = Issue(
+                        page_id=affected_page.id,
+                        type=issue_data['type'],
+                        category=issue_data['category'],
+                        severity=issue_data['severity'],
+                        title=issue_data['type'].replace('_', ' ').title(),
+                        description=issue_data['message'],
+                        recommendation=issue_data['recommendation']
+                    )
+                    db.add(duplicate_issue)
+        
+        # Create issues for URL structure problems
+        for page in pages:
+            url_issues = page.url_structure_data.get('url_issues', [])
+            for url_issue_desc in url_issues:
+                url_issue = Issue(
+                    page_id=page.id,
+                    type='url_structure_issue',
+                    category='technical',
+                    severity='medium',
+                    title='URL Structure Issue',
+                    description=url_issue_desc,
+                    recommendation='Improve URL structure for better SEO'
+                )
+                db.add(url_issue)
+        
+        # Update scan statistics
+        total_canonical_groups = len(canonical_groups)
+        total_duplicates = sum(len(group) - 1 for group in canonical_groups.values() if len(group) > 1)
+        
+        logger.info(f"📊 Duplicate analysis complete:")
+        logger.info(f"   Canonical groups: {total_canonical_groups}")
+        logger.info(f"   Duplicate pages: {total_duplicates}")
+        logger.info(f"   Pages without canonical: {len(pages_without_canonical)}")
+        
+        db.flush()  # Save all changes

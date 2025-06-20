@@ -48,6 +48,8 @@ class TechnicalSEOAnalyzer:
             'viewport_meta': {'importance': 'high'},
             'charset_meta': {'importance': 'medium'},
             'lang_attribute': {'importance': 'medium'},
+            'url_structure': {'importance': 'medium'},
+            'duplicate_content': {'importance': 'high'},
             'hreflang': {'importance': 'medium'},
             'sitemap_reference': {'importance': 'medium'},
             'robots_txt_reference': {'importance': 'low'}
@@ -677,3 +679,222 @@ class TechnicalSEOAnalyzer:
             })
         
         return opportunities
+
+    def extract_canonical_url(self, crawl_result) -> Optional[str]:
+        """Extract canonical URL from page"""
+        try:
+            html_content = getattr(crawl_result, 'html', '')
+            if not html_content:
+                return None
+            
+            # Look for canonical link tag
+            canonical_match = re.search(
+                r'<link[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']+)["\']',
+                html_content, re.IGNORECASE
+            )
+            
+            if canonical_match:
+                canonical_url = canonical_match.group(1)
+                # Convert relative URLs to absolute
+                if canonical_url.startswith('/'):
+                    page_url = getattr(crawl_result, 'url', '')
+                    if page_url:
+                        parsed = urlparse(page_url)
+                        canonical_url = f"{parsed.scheme}://{parsed.netloc}{canonical_url}"
+                
+                return canonical_url
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Error extracting canonical URL: {str(e)}")
+            return None
+
+    def analyze_url_structure(self, url: str) -> Dict[str, Any]:
+        """Analyze URL structure and quality"""
+        analysis = {
+            'url_length': len(url),
+            'url_depth': 0,
+            'has_trailing_slash': False,
+            'has_query_params': False,
+            'has_fragment': False,
+            'url_quality_score': 100,
+            'url_issues': []
+        }
+        
+        try:
+            parsed = urlparse(url)
+            path = parsed.path.strip('/')
+            
+            # Calculate URL depth (number of path segments)
+            if path:
+                analysis['url_depth'] = len(path.split('/'))
+            
+            # Check for trailing slash
+            analysis['has_trailing_slash'] = parsed.path.endswith('/')
+            
+            # Check for query parameters
+            analysis['has_query_params'] = bool(parsed.query)
+            
+            # Check for fragment
+            analysis['has_fragment'] = bool(parsed.fragment)
+            
+            # URL Quality Assessment
+            score_deductions = []
+            
+            # Length check
+            if analysis['url_length'] > 100:
+                score_deductions.append(('long_url', 10))
+                analysis['url_issues'].append('URL too long (>100 characters)')
+            elif analysis['url_length'] > 75:
+                score_deductions.append(('moderately_long_url', 5))
+            
+            # Depth check
+            if analysis['url_depth'] > 4:
+                score_deductions.append(('deep_url', 15))
+                analysis['url_issues'].append('URL too deep (>4 levels)')
+            elif analysis['url_depth'] > 3:
+                score_deductions.append(('moderately_deep_url', 5))
+            
+            # Pattern checks
+            if '--' in path:
+                score_deductions.append(('double_dashes', 10))
+                analysis['url_issues'].append('Contains double dashes')
+            
+            if re.search(r'-\d+$', path):
+                score_deductions.append(('trailing_numbers', 5))
+                analysis['url_issues'].append('Ends with number (possible pagination)')
+            
+            if re.search(r'[^a-zA-Z0-9\-/_.]', url):
+                score_deductions.append(('special_characters', 10))
+                analysis['url_issues'].append('Contains special characters')
+            
+            # Inconsistent naming patterns
+            if re.search(r'(brass-balls|brassballs|brass_balls)', path, re.IGNORECASE):
+                # Check for multiple naming conventions
+                conventions = []
+                if 'brass-balls' in path.lower(): conventions.append('hyphen')
+                if 'brassballs' in path.lower(): conventions.append('single')
+                if 'brass_balls' in path.lower(): conventions.append('underscore')
+                
+                if len(conventions) > 1:
+                    score_deductions.append(('inconsistent_naming', 8))
+                    analysis['url_issues'].append('Inconsistent naming convention')
+            
+            # Calculate final score
+            total_deduction = sum(deduction for _, deduction in score_deductions)
+            analysis['url_quality_score'] = max(0, 100 - total_deduction)
+            
+            return analysis
+            
+        except Exception as e:
+            logger.warning(f"Error analyzing URL structure for {url}: {str(e)}")
+            analysis['url_quality_score'] = 0
+            analysis['url_issues'].append('URL parsing error')
+            return analysis
+
+    def detect_duplicate_content_issues(self, pages_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Detect duplicate content and canonical issues across multiple pages"""
+        duplicate_analysis = {
+            'canonical_groups': {},
+            'duplicate_issues': [],
+            'canonical_chains': [],
+            'canonical_loops': [],
+            'pages_without_canonical': [],
+            'total_duplicates': 0
+        }
+        
+        try:
+            # Group pages by canonical URL
+            canonical_map = {}
+            pages_without_canonical = []
+            
+            for page_data in pages_data:
+                url = page_data.get('url', '')
+                canonical = page_data.get('canonical_url')
+                
+                if canonical:
+                    if canonical not in canonical_map:
+                        canonical_map[canonical] = []
+                    canonical_map[canonical].append(page_data)
+                else:
+                    pages_without_canonical.append(page_data)
+            
+            # Analyze canonical groups
+            for canonical_url, pages in canonical_map.items():
+                if len(pages) > 1:
+                    duplicate_analysis['canonical_groups'][canonical_url] = {
+                        'canonical_url': canonical_url,
+                        'duplicate_count': len(pages),
+                        'pages': [p['url'] for p in pages]
+                    }
+                    duplicate_analysis['total_duplicates'] += len(pages) - 1
+            
+            # Detect canonical chains and loops
+            duplicate_analysis['canonical_chains'] = self._detect_canonical_chains(canonical_map)
+            duplicate_analysis['canonical_loops'] = self._detect_canonical_loops(canonical_map)
+            
+            duplicate_analysis['pages_without_canonical'] = [p['url'] for p in pages_without_canonical]
+            
+            # Generate duplicate content issues
+            for canonical_url, group in duplicate_analysis['canonical_groups'].items():
+                if group['duplicate_count'] > 1:
+                    duplicate_analysis['duplicate_issues'].append({
+                        'type': 'duplicate_canonical_group',
+                        'severity': 'medium',
+                        'category': 'duplicate_content',
+                        'message': f"Multiple pages with same canonical: {canonical_url}",
+                        'affected_pages': group['pages'],
+                        'recommendation': 'Ensure canonical URLs are correctly set to avoid duplicate content'
+                    })
+            
+            if pages_without_canonical:
+                duplicate_analysis['duplicate_issues'].append({
+                    'type': 'missing_canonical',
+                    'severity': 'high',
+                    'category': 'duplicate_content',
+                    'message': f"{len(pages_without_canonical)} pages without canonical URLs",
+                    'affected_pages': [p['url'] for p in pages_without_canonical],
+                    'recommendation': 'Add canonical link tags to all pages'
+                })
+            
+            return duplicate_analysis
+            
+        except Exception as e:
+            logger.error(f"Error detecting duplicate content issues: {str(e)}")
+            return duplicate_analysis
+
+    def _detect_canonical_chains(self, canonical_map: Dict[str, List]) -> List[Dict[str, Any]]:
+        """Detect canonical chains (A->B->C)"""
+        chains = []
+        
+        for canonical_url, pages in canonical_map.items():
+            # Check if canonical URL itself appears as a page URL in another group
+            for other_canonical, other_pages in canonical_map.items():
+                if canonical_url != other_canonical:
+                    for page in other_pages:
+                        if page['url'] == canonical_url:
+                            chains.append({
+                                'chain': [page['url'], canonical_url, other_canonical],
+                                'type': 'canonical_chain'
+                            })
+        
+        return chains
+
+    def _detect_canonical_loops(self, canonical_map: Dict[str, List]) -> List[Dict[str, Any]]:
+        """Detect canonical loops (A->B->A)"""
+        loops = []
+        
+        for canonical_url, pages in canonical_map.items():
+            for page in pages:
+                # Check if canonical points back to a page that points to this canonical
+                if page['url'] in canonical_map:
+                    target_pages = canonical_map[page['url']]
+                    for target_page in target_pages:
+                        if target_page.get('canonical_url') == canonical_url:
+                            loops.append({
+                                'loop': [page['url'], canonical_url],
+                                'type': 'canonical_loop'
+                            })
+        
+        return loops

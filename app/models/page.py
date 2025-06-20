@@ -57,6 +57,15 @@ class Page(Base):
     mobile_score = Column(Float, default=0.0)
     technical_seo_data = Column(JSON, default=dict)  # Detailed technical data
     
+    # Canonical and Deduplication
+    canonical_url = Column(Text, nullable=True, index=True)  # Canonical URL from link tag
+    is_canonical = Column(Integer, default=1)  # Boolean: is this the canonical version?
+    duplicate_group_id = Column(String(255), nullable=True, index=True)  # Group ID for duplicates
+    
+    # URL Quality
+    url_quality_score = Column(Float, default=100.0)  # URL structure quality score
+    url_structure_data = Column(JSON, default=dict)  # Detailed URL analysis
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
