@@ -1,0 +1,521 @@
+<!-- Technical SEO Card - Advanced Technical Analysis Display -->
+<div class="sr-metric-card sr-tech-seo-card">
+    <div class="sr-metric-header">
+        <div class="sr-metric-title">
+            <i class="bi bi-gear-fill sr-metric-icon"></i>
+            <h3>Technical SEO</h3>
+        </div>
+        <div class="sr-metric-badge sr-tech-{{ technical_rating }}">
+            {{ technical_score | round(1) }}/100
+        </div>
+    </div>
+    
+    <!-- Technical SEO Grid -->
+    <div class="sr-tech-grid">
+        <!-- Schema Markup -->
+        <div class="sr-tech-section">
+            <div class="sr-tech-header">
+                <div class="sr-tech-title">
+                    <i class="bi bi-code-square"></i>
+                    <span>Schema Markup</span>
+                </div>
+                <div class="sr-tech-status {{ 'sr-status-good' if has_schema_markup else 'sr-status-missing' }}">
+                    {% if has_schema_markup %}
+                        <i class="bi bi-check-circle"></i> Presente
+                    {% else %}
+                        <i class="bi bi-x-circle"></i> Assente
+                    {% endif %}
+                </div>
+            </div>
+            {% if schema_types %}
+            <div class="sr-schema-types">
+                <span class="sr-tech-label">Tipi di Schema trovati:</span>
+                <div class="sr-schema-badges">
+                    {% for schema_type in schema_types[:5] %}
+                    <span class="sr-schema-badge">{{ schema_type }}</span>
+                    {% endfor %}
+                    {% if schema_types|length > 5 %}
+                    <span class="sr-schema-badge sr-more">+{{ schema_types|length - 5 }} altri</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Social Meta Tags -->
+        <div class="sr-tech-section">
+            <div class="sr-tech-header">
+                <div class="sr-tech-title">
+                    <i class="bi bi-share"></i>
+                    <span>Social Meta Tags</span>
+                </div>
+                <div class="sr-tech-score">
+                    {{ social_tags_score | round(1) }}%
+                </div>
+            </div>
+            <div class="sr-social-platforms">
+                {% if social_meta_data %}
+                    {% for platform, data in social_meta_data.platforms.items() %}
+                    <div class="sr-social-platform">
+                        <div class="sr-platform-header">
+                            <span class="sr-platform-name">{{ platform.title() }}</span>
+                            <div class="sr-platform-score {{ 'sr-score-good' if data.coverage_score >= 70 else 'sr-score-needs-improvement' if data.coverage_score >= 40 else 'sr-score-poor' }}">
+                                {{ data.coverage_score | round(0) }}%
+                            </div>
+                        </div>
+                        <div class="sr-platform-details">
+                            <span class="sr-tags-present">{{ data.present_tags|length }} tag presenti</span>
+                            {% if data.missing_required %}
+                            <span class="sr-tags-missing">{{ data.missing_required|length }} obbligatori mancanti</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Mobile Optimization -->
+        <div class="sr-tech-section">
+            <div class="sr-tech-header">
+                <div class="sr-tech-title">
+                    <i class="bi bi-phone"></i>
+                    <span>Mobile Optimization</span>
+                </div>
+                <div class="sr-tech-score {{ 'sr-score-good' if mobile_score >= 70 else 'sr-score-needs-improvement' if mobile_score >= 40 else 'sr-score-poor' }}">
+                    {{ mobile_score | round(1) }}%
+                </div>
+            </div>
+            {% if mobile_data %}
+            <div class="sr-mobile-details">
+                <div class="sr-mobile-item">
+                    <span class="sr-mobile-label">Viewport Meta Tag:</span>
+                    <div class="sr-mobile-status {{ 'sr-status-good' if mobile_data.has_viewport else 'sr-status-missing' }}">
+                        {% if mobile_data.has_viewport %}
+                            <i class="bi bi-check-circle"></i> Presente
+                        {% else %}
+                            <i class="bi bi-x-circle"></i> Mancante
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sr-mobile-item">
+                    <span class="sr-mobile-label">Indicatori Responsive:</span>
+                    <span class="sr-responsive-count">{{ mobile_data.responsive_indicators }}/5</span>
+                </div>
+                {% if mobile_data.mobile_issues %}
+                <div class="sr-mobile-issues">
+                    {% for issue in mobile_data.mobile_issues %}
+                    <div class="sr-mobile-issue">
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                        <span>{{ issue }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Technical Tags -->
+        <div class="sr-tech-section sr-tech-full-width">
+            <div class="sr-tech-header">
+                <div class="sr-tech-title">
+                    <i class="bi bi-tags"></i>
+                    <span>Technical Tags</span>
+                </div>
+                <div class="sr-tech-score">
+                    {{ technical_tags_score | round(1) }}%
+                </div>
+            </div>
+            <div class="sr-tech-tags-grid">
+                {% if technical_tags_data %}
+                <div class="sr-tag-item">
+                    <span class="sr-tag-label">Canonical URL:</span>
+                    <div class="sr-tag-status {{ 'sr-status-good' if technical_tags_data.canonical_url else 'sr-status-missing' }}">
+                        {% if technical_tags_data.canonical_url %}
+                            <i class="bi bi-check-circle"></i> Presente
+                        {% else %}
+                            <i class="bi bi-x-circle"></i> Mancante
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sr-tag-item">
+                    <span class="sr-tag-label">Robots Meta:</span>
+                    <div class="sr-tag-status {{ 'sr-status-good' if technical_tags_data.robots_meta else 'sr-status-missing' }}">
+                        {% if technical_tags_data.robots_meta %}
+                            <i class="bi bi-check-circle"></i> {{ technical_tags_data.robots_meta }}
+                        {% else %}
+                            <i class="bi bi-x-circle"></i> Mancante
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sr-tag-item">
+                    <span class="sr-tag-label">Charset:</span>
+                    <div class="sr-tag-status {{ 'sr-status-good' if technical_tags_data.charset_meta else 'sr-status-missing' }}">
+                        {% if technical_tags_data.charset_meta %}
+                            <i class="bi bi-check-circle"></i> {{ technical_tags_data.charset_meta }}
+                        {% else %}
+                            <i class="bi bi-x-circle"></i> Mancante
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sr-tag-item">
+                    <span class="sr-tag-label">Language:</span>
+                    <div class="sr-tag-status {{ 'sr-status-good' if technical_tags_data.lang_attribute else 'sr-status-missing' }}">
+                        {% if technical_tags_data.lang_attribute %}
+                            <i class="bi bi-check-circle"></i> {{ technical_tags_data.lang_attribute }}
+                        {% else %}
+                            <i class="bi bi-x-circle"></i> Mancante
+                        {% endif %}
+                    </div>
+                </div>
+                {% if technical_tags_data.hreflang_tags %}
+                <div class="sr-tag-item sr-tag-full">
+                    <span class="sr-tag-label">Hreflang Tags:</span>
+                    <div class="sr-hreflang-tags">
+                        {% for hreflang in technical_tags_data.hreflang_tags[:3] %}
+                        <span class="sr-hreflang-badge">{{ hreflang.lang }}</span>
+                        {% endfor %}
+                        {% if technical_tags_data.hreflang_tags|length > 3 %}
+                        <span class="sr-hreflang-badge sr-more">+{{ technical_tags_data.hreflang_tags|length - 3 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% if technical_tags_data.preload_tags %}
+                <div class="sr-tag-item sr-tag-full">
+                    <span class="sr-tag-label">Preload Resources:</span>
+                    <div class="sr-preload-tags">
+                        {% for preload in technical_tags_data.preload_tags[:3] %}
+                        <span class="sr-preload-badge">{{ preload.as }}</span>
+                        {% endfor %}
+                        {% if technical_tags_data.preload_tags|length > 3 %}
+                        <span class="sr-preload-badge sr-more">+{{ technical_tags_data.preload_tags|length - 3 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Technical Issues -->
+    {% if technical_issues %}
+    <div class="sr-tech-issues">
+        <h4><i class="bi bi-exclamation-triangle"></i> Problemi Tecnici Rilevati</h4>
+        <div class="sr-issues-list">
+            {% for issue in technical_issues[:3] %}
+            <div class="sr-tech-issue">
+                <div class="sr-issue-severity sr-severity-{{ issue.severity }}">
+                    {{ issue.severity.upper() }}
+                </div>
+                <div class="sr-issue-content">
+                    <strong>{{ issue.message }}</strong>
+                    <p>{{ issue.recommendation }}</p>
+                    <small class="sr-issue-category">Categoria: {{ issue.category.replace('_', ' ').title() }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Technical Opportunities -->
+    {% if technical_opportunities %}
+    <div class="sr-tech-opportunities">
+        <h4><i class="bi bi-arrow-up-circle"></i> Opportunità di Miglioramento</h4>
+        <div class="sr-opportunities-list">
+            {% for opportunity in technical_opportunities[:2] %}
+            <div class="sr-tech-opportunity">
+                <div class="sr-opportunity-header">
+                    <span class="sr-opportunity-category">{{ opportunity.category }}</span>
+                    <div class="sr-impact-badge sr-impact-{{ opportunity.impact.lower() }}">
+                        {{ opportunity.impact }}
+                    </div>
+                </div>
+                <h5>{{ opportunity.title }}</h5>
+                <p>{{ opportunity.description }}</p>
+                <div class="sr-opportunity-footer">
+                    <span class="sr-effort-badge">Effort: {{ opportunity.effort }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Technical SEO CSS Styles -->
+<style>
+.sr-tech-seo-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+.sr-tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.sr-tech-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.sr-tech-full-width {
+    grid-column: 1 / -1;
+}
+
+.sr-tech-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.sr-tech-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.sr-tech-status, .sr-tech-score {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sr-status-good { background: rgba(76, 175, 80, 0.3); }
+.sr-status-missing { background: rgba(244, 67, 54, 0.3); }
+
+.sr-score-good { background: rgba(76, 175, 80, 0.3); }
+.sr-score-needs-improvement { background: rgba(255, 152, 0, 0.3); }
+.sr-score-poor { background: rgba(244, 67, 54, 0.3); }
+
+.sr-schema-types {
+    margin-top: 8px;
+}
+
+.sr-tech-label {
+    font-size: 12px;
+    opacity: 0.8;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.sr-schema-badges, .sr-hreflang-tags, .sr-preload-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.sr-schema-badge, .sr-hreflang-badge, .sr-preload-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.sr-more {
+    background: rgba(255, 255, 255, 0.1) !important;
+    font-style: italic;
+}
+
+.sr-social-platforms {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sr-social-platform {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.sr-platform-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.sr-platform-name {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.sr-platform-score {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.sr-platform-details {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.sr-mobile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sr-mobile-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sr-mobile-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.sr-mobile-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+}
+
+.sr-responsive-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.sr-mobile-issues {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sr-mobile-issue {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.sr-tech-tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.sr-tag-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.sr-tag-full {
+    grid-column: 1 / -1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.sr-tag-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.sr-tag-status {
+    font-size: 11px;
+}
+
+.sr-tech-issues, .sr-tech-opportunities {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sr-tech-issues h4, .sr-tech-opportunities h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.sr-tech-issue, .sr-tech-opportunity {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.sr-issue-severity {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    height: fit-content;
+}
+
+.sr-issue-content {
+    flex: 1;
+}
+
+.sr-issue-category {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+.sr-opportunities-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.sr-opportunity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.sr-opportunity-category {
+    font-size: 12px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sr-effort-badge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+</style>

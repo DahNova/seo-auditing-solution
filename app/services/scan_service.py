@@ -101,13 +101,53 @@ class ScanService:
                             # Analyze page using Crawl4AI data directly
                             page_data = await self.seo_analyzer.analyze_page_content(result, website.domain)
                             
+                            # Extract Core Web Vitals scores
+                            cwv_data = page_data.get('core_web_vitals', {})
+                            cwv_scores = cwv_data.get('scores', {})
+                            performance_score_data = self.seo_analyzer.performance_analyzer.calculate_performance_score(cwv_scores)
+                            
+                            # Extract Technical SEO scores
+                            tech_data = page_data.get('technical_seo', {})
+                            schema_data = tech_data.get('schema_markup', {})
+                            social_data = tech_data.get('social_meta_tags', {})
+                            mobile_data = tech_data.get('mobile_optimization', {})
+                            tech_tags_data = tech_data.get('technical_tags', {})
+                            
+                            # Prepare enhanced page data
+                            enhanced_page_data = {
+                                # Basic page data (existing)
+                                key: value for key, value in page_data.items() 
+                                if key not in ['core_web_vitals', 'technical_seo']
+                            }
+                            
+                            # Add Core Web Vitals data
+                            enhanced_page_data.update({
+                                'performance_score': performance_score_data.get('score', 0.0),
+                                'lcp_score': cwv_scores.get('lcp', {}).get('score'),
+                                'fid_score': cwv_scores.get('fid', {}).get('score'),
+                                'cls_score': cwv_scores.get('cls', {}).get('score'),
+                                'fcp_score': cwv_scores.get('fcp', {}).get('score'),
+                                'ttfb_score': cwv_scores.get('ttfb', {}).get('score'),
+                                'core_web_vitals': cwv_data
+                            })
+                            
+                            # Add Technical SEO data
+                            enhanced_page_data.update({
+                                'technical_score': tech_tags_data.get('technical_score', 0.0),
+                                'has_schema_markup': 1 if schema_data.get('has_schema', False) else 0,
+                                'schema_types': schema_data.get('schema_types', []),
+                                'social_tags_score': social_data.get('social_score', 0.0),
+                                'mobile_score': mobile_data.get('mobile_score', 0.0),
+                                'technical_seo_data': tech_data
+                            })
+                            
                             # Save page to database
                             page = Page(
                                 scan_id=scan_id,
                                 url=result.url,
                                 status_code=result.status_code,
                                 response_time=getattr(result, 'response_time', None),
-                                **page_data
+                                **enhanced_page_data
                             )
                             db.add(page)
                             await db.flush()
@@ -150,9 +190,11 @@ class ScanService:
                                 # Add error issue
                                 error_issue = Issue(
                                     page_id=failed_page.id,
-                                    issue_type="crawl_error",
+                                    type="crawl_error",
+                                    category="technical",
                                     severity="high",
-                                    message=f"Failed to crawl page: {str(e)}",
+                                    title="Crawl Error",
+                                    description=f"Failed to crawl page: {str(e)}",
                                     recommendation="Check if the URL is accessible and the content format is supported"
                                 )
                                 db.add(error_issue)

@@ -40,6 +40,23 @@ class Page(Base):
     seo_score = Column(Float, default=0.0)
     issues_count = Column(Integer, default=0)
     
+    # Core Web Vitals & Performance
+    performance_score = Column(Float, default=0.0)
+    lcp_score = Column(Float, nullable=True)  # Largest Contentful Paint
+    fid_score = Column(Float, nullable=True)  # First Input Delay
+    cls_score = Column(Float, nullable=True)  # Cumulative Layout Shift
+    fcp_score = Column(Float, nullable=True)  # First Contentful Paint
+    ttfb_score = Column(Float, nullable=True)  # Time to First Byte
+    core_web_vitals = Column(JSON, default=dict)  # Detailed CWV data
+    
+    # Technical SEO
+    technical_score = Column(Float, default=0.0)
+    has_schema_markup = Column(Integer, default=0)  # Boolean as int
+    schema_types = Column(JSON, default=list)  # List of schema types found
+    social_tags_score = Column(Float, default=0.0)
+    mobile_score = Column(Float, default=0.0)
+    technical_seo_data = Column(JSON, default=dict)  # Detailed technical data
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

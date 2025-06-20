@@ -332,6 +332,229 @@
             </div>
         </div>
 
+        <!-- Core Web Vitals Section -->
+        {% if performance_overview and performance_overview.avg_performance_score > 0 %}
+        <div class="sr-section sr-fade-in">
+            <div class="sr-section-header">
+                <h2 class="sr-section-title">
+                    <i class="bi bi-speedometer2"></i>
+                    Core Web Vitals & Performance
+                </h2>
+                <p class="sr-section-subtitle">
+                    Analisi delle performance e dei Core Web Vitals per {{ performance_overview.pages_with_performance_data }} pagine
+                </p>
+            </div>
+            
+            <div class="sr-section-body">
+                <!-- Performance Overview Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="sr-performance-metric">
+                            <div class="sr-metric-icon">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <div class="sr-metric-value">{{ performance_overview.avg_performance_score }}/100</div>
+                            <div class="sr-metric-label">Performance Media</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="sr-performance-metric">
+                            <div class="sr-metric-icon">
+                                <i class="bi bi-gear"></i>
+                            </div>
+                            <div class="sr-metric-value">{{ performance_overview.avg_technical_score }}/100</div>
+                            <div class="sr-metric-label">SEO Tecnico Medio</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="sr-performance-metric">
+                            <div class="sr-metric-icon">
+                                <i class="bi bi-phone"></i>
+                            </div>
+                            <div class="sr-metric-value">{{ performance_overview.mobile_coverage }}%</div>
+                            <div class="sr-metric-label">Mobile Optimization</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="sr-performance-metric">
+                            <div class="sr-metric-icon">
+                                <i class="bi bi-code-square"></i>
+                            </div>
+                            <div class="sr-metric-value">{{ performance_overview.schema_coverage }}%</div>
+                            <div class="sr-metric-label">Schema Markup</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sample Core Web Vitals data from first page -->
+                {% set sample_page = pages[0] if pages else None %}
+                {% if sample_page and sample_page.core_web_vitals %}
+                    {% set cwv_data = sample_page.core_web_vitals %}
+                    {% set scores = cwv_data.get('scores', {}) %}
+                    
+                    <!-- Display sample Core Web Vitals -->
+                    <div class="row">
+                        {% if scores.get('lcp') %}
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="sr-cwv-mini {{ 'good' if scores.lcp.rating == 'good' else 'needs-improvement' if scores.lcp.rating == 'needs_improvement' else 'poor' }}">
+                                <div class="sr-cwv-acronym">LCP</div>
+                                <div class="sr-cwv-value">{{ scores.lcp.value|round(2) }}s</div>
+                                <div class="sr-cwv-rating">{{ scores.lcp.rating.replace('_', ' ').title() }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if scores.get('fid') %}
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="sr-cwv-mini {{ 'good' if scores.fid.rating == 'good' else 'needs-improvement' if scores.fid.rating == 'needs_improvement' else 'poor' }}">
+                                <div class="sr-cwv-acronym">FID</div>
+                                <div class="sr-cwv-value">{{ scores.fid.value|round(0) }}ms</div>
+                                <div class="sr-cwv-rating">{{ scores.fid.rating.replace('_', ' ').title() }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if scores.get('cls') %}
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="sr-cwv-mini {{ 'good' if scores.cls.rating == 'good' else 'needs-improvement' if scores.cls.rating == 'needs_improvement' else 'poor' }}">
+                                <div class="sr-cwv-acronym">CLS</div>
+                                <div class="sr-cwv-value">{{ scores.cls.value|round(3) }}</div>
+                                <div class="sr-cwv-rating">{{ scores.cls.rating.replace('_', ' ').title() }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if scores.get('fcp') %}
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="sr-cwv-mini {{ 'good' if scores.fcp.rating == 'good' else 'needs-improvement' if scores.fcp.rating == 'needs_improvement' else 'poor' }}">
+                                <div class="sr-cwv-acronym">FCP</div>
+                                <div class="sr-cwv-value">{{ scores.fcp.value|round(2) }}s</div>
+                                <div class="sr-cwv-rating">{{ scores.fcp.rating.replace('_', ' ').title() }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if scores.get('ttfb') %}
+                        <div class="col-md-2 col-6 mb-3">
+                            <div class="sr-cwv-mini {{ 'good' if scores.ttfb.rating == 'good' else 'needs-improvement' if scores.ttfb.rating == 'needs_improvement' else 'poor' }}">
+                                <div class="sr-cwv-acronym">TTFB</div>
+                                <div class="sr-cwv-value">{{ scores.ttfb.value|round(0) }}ms</div>
+                                <div class="sr-cwv-rating">{{ scores.ttfb.rating.replace('_', ' ').title() }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Technical SEO Overview Section -->
+        {% if performance_overview and performance_overview.avg_technical_score > 0 %}
+        <div class="sr-section sr-fade-in">
+            <div class="sr-section-header">
+                <h2 class="sr-section-title">
+                    <i class="bi bi-gear-fill"></i>
+                    Technical SEO Overview
+                </h2>
+                <p class="sr-section-subtitle">
+                    Analisi tecnica SEO per {{ performance_overview.pages_with_technical_data }} pagine
+                </p>
+            </div>
+            
+            <div class="sr-section-body">
+                <!-- Technical Overview Grid -->
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="sr-tech-overview-card">
+                            <h4><i class="bi bi-code-square"></i> Schema Markup</h4>
+                            <div class="sr-tech-stats">
+                                <div class="sr-stat-item">
+                                    <span class="sr-stat-value">{{ performance_overview.schema_coverage }}%</span>
+                                    <span class="sr-stat-label">Pagine con Schema</span>
+                                </div>
+                                {% set total_schema_pages = (performance_overview.schema_coverage / 100 * performance_overview.total_pages_analyzed)|round %}
+                                <div class="sr-stat-item">
+                                    <span class="sr-stat-value">{{ total_schema_pages|int }}/{{ performance_overview.total_pages_analyzed }}</span>
+                                    <span class="sr-stat-label">Pagine Implementate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="sr-tech-overview-card">
+                            <h4><i class="bi bi-phone"></i> Mobile Optimization</h4>
+                            <div class="sr-tech-stats">
+                                <div class="sr-stat-item">
+                                    <span class="sr-stat-value">{{ performance_overview.mobile_coverage }}%</span>
+                                    <span class="sr-stat-label">Pagine Ottimizzate</span>
+                                </div>
+                                {% set total_mobile_pages = (performance_overview.mobile_coverage / 100 * performance_overview.total_pages_analyzed)|round %}
+                                <div class="sr-stat-item">
+                                    <span class="sr-stat-value">{{ total_mobile_pages|int }}/{{ performance_overview.total_pages_analyzed }}</span>
+                                    <span class="sr-stat-label">Mobile Ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sample Technical SEO data -->
+                {% set sample_page = pages[0] if pages else None %}
+                {% if sample_page and sample_page.technical_seo_data %}
+                    {% set tech_data = sample_page.technical_seo_data %}
+                    {% set schema_data = tech_data.get('schema_markup', {}) %}
+                    {% set social_data = tech_data.get('social_meta_tags', {}) %}
+                    
+                    <div class="sr-tech-sample">
+                        <h5><i class="bi bi-eye"></i> Esempio Analisi Tecnica (Prima Pagina)</h5>
+                        <div class="row">
+                            {% if schema_data.get('schema_types') %}
+                            <div class="col-md-4 mb-3">
+                                <div class="sr-tech-detail">
+                                    <strong>Schema Types Found:</strong>
+                                    <div class="sr-schema-tags">
+                                        {% for schema_type in schema_data.schema_types[:3] %}
+                                        <span class="sr-schema-tag">{{ schema_type }}</span>
+                                        {% endfor %}
+                                        {% if schema_data.schema_types|length > 3 %}
+                                        <span class="sr-schema-tag">+{{ schema_data.schema_types|length - 3 }} more</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if social_data.get('overall_coverage') %}
+                            <div class="col-md-4 mb-3">
+                                <div class="sr-tech-detail">
+                                    <strong>Social Meta Coverage:</strong>
+                                    <div class="sr-coverage-bar">
+                                        <div class="sr-coverage-fill" style="width: {{ social_data.overall_coverage }}%"></div>
+                                        <span class="sr-coverage-text">{{ social_data.overall_coverage|round(1) }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if sample_page.mobile_score %}
+                            <div class="col-md-4 mb-3">
+                                <div class="sr-tech-detail">
+                                    <strong>Mobile Score:</strong>
+                                    <div class="sr-mobile-score {{ 'good' if sample_page.mobile_score >= 70 else 'needs-improvement' if sample_page.mobile_score >= 40 else 'poor' }}">
+                                        {{ sample_page.mobile_score|round(1) }}/100
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Pages Performance Section -->
         <div class="sr-section sr-fade-in">
             <div class="sr-section-header">
@@ -501,6 +724,13 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Smart Issue Prioritization Matrix -->
+        {% if priority_data and priority_data.summary.total_issues > 0 %}
+        <div class="sr-section sr-fade-in">
+            {% include 'components/priority_matrix.html' %}
+        </div>
+        {% endif %}
 
         <!-- Quick Actions & Summary -->
         <div class="sr-section sr-fade-in">

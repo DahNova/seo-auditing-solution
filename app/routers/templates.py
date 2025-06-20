@@ -6,13 +6,18 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 import os
 import httpx
+import logging
 from datetime import datetime, timezone
 
 from app.database import get_db
 from app.services.scan_service import ScanService
 from app.services.schedule_service import ScheduleService
+from app.services.seo_analyzer.seo_analyzer import SEOAnalyzer
+from app.services.seo_analyzer.issue_prioritizer import SmartIssuePrioritizer
 from app.models import Client, Website, Scan, Issue, Page, Schedule
 from app.core.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/templated", tags=["templates"])
 
@@ -610,6 +615,8 @@ async def scan_results(
     per_page: int = 50,
     db: AsyncSession = Depends(get_db)
 ):
+    """Serve Scan Results page with real data"""
+    
     # Validate per_page parameter
     if per_page not in [25, 50, 100, 200]:
         per_page = 50
@@ -617,7 +624,6 @@ async def scan_results(
     # Validate page parameter
     if page < 1:
         page = 1
-    """Serve Scan Results page with real data"""
     
     try:
         # Get scan with related data
@@ -644,7 +650,7 @@ async def scan_results(
         offset = (page - 1) * per_page
         total_pages_pagination = (total_pages_count + per_page - 1) // per_page
         
-        # Get paginated pages
+        # Get paginated pages with Core Web Vitals and Technical SEO data
         pages_result = await db.execute(
             select(Page).where(Page.scan_id == scan_id)
             .order_by(Page.seo_score.desc().nulls_last(), Page.url)
@@ -652,6 +658,35 @@ async def scan_results(
             .limit(per_page)
         )
         pages = pages_result.scalars().all()
+        
+        # Calculate overall Core Web Vitals scores for the scan
+        all_pages_result = await db.execute(
+            select(Page).where(Page.scan_id == scan_id)
+        )
+        all_pages = all_pages_result.scalars().all()
+        
+        # Aggregate Core Web Vitals data
+        cwv_scores = []
+        performance_scores = []
+        technical_scores = []
+        schema_pages = 0
+        mobile_optimized_pages = 0
+        
+        for page_item in all_pages:
+            if page_item.performance_score and page_item.performance_score > 0:
+                performance_scores.append(page_item.performance_score)
+            if page_item.technical_score and page_item.technical_score > 0:
+                technical_scores.append(page_item.technical_score)
+            if page_item.has_schema_markup:
+                schema_pages += 1
+            if page_item.mobile_score and page_item.mobile_score >= 70:
+                mobile_optimized_pages += 1
+        
+        # Calculate averages
+        avg_performance_score = sum(performance_scores) / len(performance_scores) if performance_scores else 0
+        avg_technical_score = sum(technical_scores) / len(technical_scores) if technical_scores else 0
+        schema_coverage = (schema_pages / len(all_pages) * 100) if all_pages else 0
+        mobile_coverage = (mobile_optimized_pages / len(all_pages) * 100) if all_pages else 0
         
         # Get scan issues (join through pages)
         issues_result = await db.execute(
@@ -683,6 +718,49 @@ async def scan_results(
                 issues_by_type[issue.type] = []
             issues_by_type[issue.type].append(issue)
         
+        # Apply Smart Issue Prioritization
+        priority_data = {}
+        if issues:
+            try:
+                seo_analyzer = SEOAnalyzer()
+                
+                # Prepare issues for prioritization
+                issues_for_prioritization = []
+                for issue in issues:
+                    issue_data = {
+                        'category': getattr(issue, 'category', 'technical_seo'),
+                        'severity': issue.severity,
+                        'message': issue.description or '',
+                        'description': issue.description or '',
+                        'recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
+                        'page_url': next((p.url for p in all_pages if p.id == issue.page_id), ''),
+                        'element': getattr(issue, 'element', '')
+                    }
+                    issues_for_prioritization.append(issue_data)
+                
+                # Website context for better prioritization
+                website_context = {
+                    'total_pages': len(all_pages),
+                    'website_type': 'business',  # Could be determined from domain analysis
+                    'performance_level': 'medium' if avg_performance_score < 70 else 'high'
+                }
+                
+                # Get prioritized issues with matrix data
+                priority_result = await seo_analyzer.prioritize_scan_issues(
+                    issues_for_prioritization, 
+                    website_context
+                )
+                priority_data = priority_result
+                
+            except Exception as e:
+                logger.error(f"Error generating priority matrix: {str(e)}")
+                # Fallback to empty priority data
+                priority_data = {
+                    'prioritized_issues': [],
+                    'priority_matrix': {'quadrants': {}, 'all_issues': [], 'summary': {}},
+                    'summary': {'total_issues': 0, 'critical_count': 0, 'high_count': 0, 'quick_wins_count': 0, 'major_projects_count': 0}
+                }
+        
         context = {
             "request": request,
             "page_title": f"Risultati Scansione #{scan_id} - SEOAudit",
@@ -705,6 +783,13 @@ async def scan_results(
                     "title": page.title,
                     "status_code": page.status_code,
                     "seo_score": page.seo_score,
+                    "performance_score": page.performance_score,
+                    "technical_score": page.technical_score,
+                    "mobile_score": page.mobile_score,
+                    "has_schema_markup": bool(page.has_schema_markup),
+                    "schema_types": page.schema_types or [],
+                    "core_web_vitals": page.core_web_vitals or {},
+                    "technical_seo_data": page.technical_seo_data or {},
                     "issues_count": len([i for i in issues if i.page_id == page.id])
                 }
                 for page in pages
@@ -721,6 +806,16 @@ async def scan_results(
             ],
             "issues_by_severity": issues_by_severity,
             "issues_by_type": issues_by_type,
+            # Core Web Vitals and Technical SEO aggregate data
+            "performance_overview": {
+                "avg_performance_score": round(avg_performance_score, 1),
+                "avg_technical_score": round(avg_technical_score, 1),
+                "schema_coverage": round(schema_coverage, 1),
+                "mobile_coverage": round(mobile_coverage, 1),
+                "total_pages_analyzed": len(all_pages),
+                "pages_with_performance_data": len(performance_scores),
+                "pages_with_technical_data": len(technical_scores)
+            },
             "pagination": {
                 "current_page": page,
                 "per_page": per_page,
@@ -739,6 +834,8 @@ async def scan_results(
         return templates.TemplateResponse("scan_results_wrapper.html", context)
         
     except Exception as e:
+        logger.error(f"Error in scan_results for scan_id {scan_id}: {str(e)}")
+        logger.exception("Full traceback:")
         context = {
             "request": request,
             "page_title": "Risultati Scansione - SEOAudit",

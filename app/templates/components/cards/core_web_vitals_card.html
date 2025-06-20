@@ -1,0 +1,355 @@
+<!-- Core Web Vitals Card - Professional Performance Metrics Display -->
+<div class="sr-metric-card sr-cwv-card">
+    <div class="sr-metric-header">
+        <div class="sr-metric-title">
+            <i class="bi bi-speedometer2 sr-metric-icon"></i>
+            <h3>Core Web Vitals</h3>
+        </div>
+        <div class="sr-metric-badge sr-cwv-{{ overall_performance_rating }}">
+            {{ overall_performance_score | round(1) }}/100
+        </div>
+    </div>
+    
+    <div class="sr-cwv-grid">
+        <!-- Largest Contentful Paint (LCP) -->
+        {% if lcp_data %}
+        <div class="sr-cwv-metric">
+            <div class="sr-cwv-metric-header">
+                <div class="sr-cwv-label">
+                    <span class="sr-cwv-acronym">LCP</span>
+                    <span class="sr-cwv-name">Largest Contentful Paint</span>
+                </div>
+                <div class="sr-cwv-score sr-cwv-{{ lcp_data.rating }}">
+                    {{ lcp_data.value | round(2) }}s
+                </div>
+            </div>
+            <div class="sr-cwv-bar">
+                <div class="sr-cwv-progress" style="width: {{ lcp_data.score }}%"></div>
+            </div>
+            <div class="sr-cwv-thresholds">
+                <span class="sr-threshold-good">≤{{ lcp_data.threshold_good }}s</span>
+                <span class="sr-threshold-poor">≥{{ lcp_data.threshold_poor }}s</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- First Input Delay (FID) -->
+        {% if fid_data %}
+        <div class="sr-cwv-metric">
+            <div class="sr-cwv-metric-header">
+                <div class="sr-cwv-label">
+                    <span class="sr-cwv-acronym">FID</span>
+                    <span class="sr-cwv-name">First Input Delay</span>
+                </div>
+                <div class="sr-cwv-score sr-cwv-{{ fid_data.rating }}">
+                    {{ fid_data.value | round(0) }}ms
+                </div>
+            </div>
+            <div class="sr-cwv-bar">
+                <div class="sr-cwv-progress" style="width: {{ fid_data.score }}%"></div>
+            </div>
+            <div class="sr-cwv-thresholds">
+                <span class="sr-threshold-good">≤{{ fid_data.threshold_good }}ms</span>
+                <span class="sr-threshold-poor">≥{{ fid_data.threshold_poor }}ms</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Cumulative Layout Shift (CLS) -->
+        {% if cls_data %}
+        <div class="sr-cwv-metric">
+            <div class="sr-cwv-metric-header">
+                <div class="sr-cwv-label">
+                    <span class="sr-cwv-acronym">CLS</span>
+                    <span class="sr-cwv-name">Cumulative Layout Shift</span>
+                </div>
+                <div class="sr-cwv-score sr-cwv-{{ cls_data.rating }}">
+                    {{ cls_data.value | round(3) }}
+                </div>
+            </div>
+            <div class="sr-cwv-bar">
+                <div class="sr-cwv-progress" style="width: {{ cls_data.score }}%"></div>
+            </div>
+            <div class="sr-cwv-thresholds">
+                <span class="sr-threshold-good">≤{{ cls_data.threshold_good }}</span>
+                <span class="sr-threshold-poor">≥{{ cls_data.threshold_poor }}</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- First Contentful Paint (FCP) -->
+        {% if fcp_data %}
+        <div class="sr-cwv-metric">
+            <div class="sr-cwv-metric-header">
+                <div class="sr-cwv-label">
+                    <span class="sr-cwv-acronym">FCP</span>
+                    <span class="sr-cwv-name">First Contentful Paint</span>
+                </div>
+                <div class="sr-cwv-score sr-cwv-{{ fcp_data.rating }}">
+                    {{ fcp_data.value | round(2) }}s
+                </div>
+            </div>
+            <div class="sr-cwv-bar">
+                <div class="sr-cwv-progress" style="width: {{ fcp_data.score }}%"></div>
+            </div>
+            <div class="sr-cwv-thresholds">
+                <span class="sr-threshold-good">≤{{ fcp_data.threshold_good }}s</span>
+                <span class="sr-threshold-poor">≥{{ fcp_data.threshold_poor }}s</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Time to First Byte (TTFB) -->
+        {% if ttfb_data %}
+        <div class="sr-cwv-metric">
+            <div class="sr-cwv-metric-header">
+                <div class="sr-cwv-label">
+                    <span class="sr-cwv-acronym">TTFB</span>
+                    <span class="sr-cwv-name">Time to First Byte</span>
+                </div>
+                <div class="sr-cwv-score sr-cwv-{{ ttfb_data.rating }}">
+                    {{ ttfb_data.value | round(0) }}ms
+                </div>
+            </div>
+            <div class="sr-cwv-bar">
+                <div class="sr-cwv-progress" style="width: {{ ttfb_data.score }}%"></div>
+            </div>
+            <div class="sr-cwv-thresholds">
+                <span class="sr-threshold-good">≤{{ ttfb_data.threshold_good }}ms</span>
+                <span class="sr-threshold-poor">≥{{ ttfb_data.threshold_poor }}ms</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Performance Insights -->
+    <div class="sr-cwv-insights">
+        <h4><i class="bi bi-lightbulb"></i> Raccomandazioni per le Performance</h4>
+        <div class="sr-cwv-recommendations">
+            {% if performance_issues %}
+                {% for issue in performance_issues[:3] %}
+                <div class="sr-cwv-recommendation">
+                    <div class="sr-severity-badge sr-severity-{{ issue.severity }}">
+                        {{ issue.severity.upper() }}
+                    </div>
+                    <div class="sr-recommendation-content">
+                        <strong>{{ issue.type.replace('_', ' ').title() }}</strong>
+                        <p>{{ issue.recommendation }}</p>
+                        {% if issue.metric_affected %}
+                        <small class="sr-affected-metrics">Influenza: {{ issue.metric_affected }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="sr-cwv-recommendation sr-no-issues">
+                <i class="bi bi-check-circle text-success"></i>
+                <span>Ottime performance! Nessun problema critico rilevato.</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Performance Opportunities -->
+    {% if performance_opportunities %}
+    <div class="sr-cwv-opportunities">
+        <h4><i class="bi bi-graph-up-arrow"></i> Opportunità di Miglioramento</h4>
+        <div class="sr-opportunities-grid">
+            {% for opportunity in performance_opportunities[:2] %}
+            <div class="sr-opportunity-card">
+                <div class="sr-opportunity-header">
+                    <span class="sr-opportunity-category">{{ opportunity.category }}</span>
+                    <div class="sr-impact-badge sr-impact-{{ opportunity.impact.lower() }}">
+                        {{ opportunity.impact }}
+                    </div>
+                </div>
+                <h5>{{ opportunity.title }}</h5>
+                <p>{{ opportunity.description }}</p>
+                <div class="sr-opportunity-metrics">
+                    <span class="sr-effort">Effort: {{ opportunity.effort }}</span>
+                    {% if opportunity.metrics_improved %}
+                    <span class="sr-improves">Migliora: {{ opportunity.metrics_improved | join(', ') }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Core Web Vitals CSS Styles -->
+<style>
+.sr-cwv-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+.sr-cwv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.sr-cwv-metric {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.sr-cwv-metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.sr-cwv-label {
+    display: flex;
+    flex-direction: column;
+}
+
+.sr-cwv-acronym {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.sr-cwv-name {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+.sr-cwv-score {
+    font-size: 20px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.sr-cwv-good { background: rgba(76, 175, 80, 0.2) !important; }
+.sr-cwv-needs_improvement { background: rgba(255, 152, 0, 0.2) !important; }
+.sr-cwv-poor { background: rgba(244, 67, 54, 0.2) !important; }
+
+.sr-cwv-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.sr-cwv-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.sr-cwv-thresholds {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.sr-cwv-insights, .sr-cwv-opportunities {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sr-cwv-insights h4, .sr-cwv-opportunities h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 16px;
+}
+
+.sr-cwv-recommendation {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.sr-severity-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    height: fit-content;
+}
+
+.sr-severity-high { background: #F44336; }
+.sr-severity-medium { background: #FF9800; }
+.sr-severity-low { background: #4CAF50; }
+
+.sr-opportunities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.sr-opportunity-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.sr-opportunity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.sr-opportunity-category {
+    font-size: 12px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sr-impact-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.sr-impact-high { background: #4CAF50; }
+.sr-impact-medium { background: #FF9800; }
+.sr-impact-low { background: #9E9E9E; }
+
+.sr-opportunity-metrics {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.sr-no-issues {
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+}
+
+.sr-affected-metrics {
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+</style>
