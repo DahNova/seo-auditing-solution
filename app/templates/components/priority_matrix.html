@@ -177,11 +177,11 @@
                         {{ issue.priority_score }}
                     </div>
                     <div class="sr-issue-content">
-                        <strong>{{ issue.title[:50] }}{% if issue.title|length > 50 %}...{% endif %}</strong>
-                        <p>{{ issue.business_impact[:80] }}{% if issue.business_impact|length > 80 %}...{% endif %}</p>
+                        <strong>{{ issue.message[:50] }}{% if issue.message|length > 50 %}...{% endif %}</strong>
+                        <p>{{ issue.description[:80] }}{% if issue.description|length > 80 %}...{% endif %}</p>
                         <div class="sr-issue-meta">
                             <span class="sr-category">{{ issue.category.replace('_', ' ').title() }}</span>
-                            <span class="sr-complexity">{{ issue.technical_complexity }}</span>
+                            <span class="sr-complexity">{{ issue.effort.value.title() }}</span>
                         </div>
                     </div>
                 </div>
@@ -208,11 +208,11 @@
                         {{ issue.priority_score }}
                     </div>
                     <div class="sr-issue-content">
-                        <strong>{{ issue.title[:50] }}{% if issue.title|length > 50 %}...{% endif %}</strong>
-                        <p>{{ issue.business_impact[:80] }}{% if issue.business_impact|length > 80 %}...{% endif %}</p>
+                        <strong>{{ issue.message[:50] }}{% if issue.message|length > 50 %}...{% endif %}</strong>
+                        <p>{{ issue.description[:80] }}{% if issue.description|length > 80 %}...{% endif %}</p>
                         <div class="sr-issue-meta">
                             <span class="sr-category">{{ issue.category.replace('_', ' ').title() }}</span>
-                            <span class="sr-complexity">{{ issue.technical_complexity }}</span>
+                            <span class="sr-complexity">{{ issue.effort.value.title() }}</span>
                         </div>
                     </div>
                 </div>

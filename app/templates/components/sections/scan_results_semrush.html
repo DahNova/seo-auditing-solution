@@ -186,16 +186,16 @@
                     </button>
                 </div>
                 
-                <!-- Issues by Severity View -->
+                <!-- Issues by Severity View with NESTED ACCORDION -->
                 <div id="issues-by-severity" class="sr-tab-content">
                     {% set severity_order = ['critical', 'high', 'medium', 'low'] %}
                     {% set severity_names = {'critical': 'Critici', 'high': 'Alta Priorità', 'medium': 'Media Priorità', 'low': 'Bassa Priorità'} %}
                     {% set severity_icons = {'critical': 'exclamation-circle', 'high': 'exclamation-triangle', 'medium': 'info-circle', 'low': 'check-circle'} %}
                     
                     {% for severity in severity_order %}
-                        {% set severity_issues = issues|selectattr('severity', 'equalto', severity)|list %}
-                        {% if severity_issues %}
+                        {% if issues_hierarchy.get(severity) %}
                         <div class="accordion-item" style="margin-bottom: 1rem;">
+                            <!-- LEVEL 1: Severity Accordion -->
                             <div class="accordion-header" onclick="toggleAccordion('severity-{{ severity }}')" 
                                  style="background: var(--sr-gray-50); border: 1px solid var(--sr-border); border-radius: 8px; padding: 1rem; cursor: pointer; user-select: none;">
                                 <div style="display: flex; justify-content: between; align-items: center;">
@@ -204,44 +204,87 @@
                                             <i class="bi bi-{{ severity_icons[severity] }}"></i>
                                             {{ severity_names[severity] }}
                                         </span>
+                                        {% set total_issues_in_severity = issues_hierarchy[severity].values() | map(attribute='count') | sum %}
                                         <span style="font-weight: 600; color: var(--sr-text);">
-                                            {{ severity_issues|length }} problema{{ 'i' if severity_issues|length != 1 else '' }}
+                                            {{ total_issues_in_severity }} problema{{ 'i' if total_issues_in_severity != 1 else '' }}
+                                        </span>
+                                        <!-- Show issue types preview -->
+                                        <span style="font-size: 0.875rem; color: var(--sr-text-muted);">
+                                            ({{ issues_hierarchy[severity].keys() | length }} tipologie)
                                         </span>
                                     </div>
                                     <i class="bi bi-chevron-down accordion-icon" id="icon-severity-{{ severity }}" style="transition: transform 0.2s;"></i>
                                 </div>
                             </div>
-                            <div class="accordion-content" id="content-severity-{{ severity }}" style="display: none; border: 1px solid var(--sr-border); border-top: none; border-radius: 0 0 8px 8px;">
-                                <div class="table-responsive">
-                                    <table class="sr-table" style="margin: 0;">
-                                        <thead>
-                                            <tr>
-                                                <th style="width: 20%;">Tipo</th>
-                                                <th style="width: 50%;">Descrizione</th>
-                                                <th style="width: 30%;">Pagina</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for issue in severity_issues %}
-                                            <tr>
-                                                <td>
-                                                    <div style="font-weight: 500; color: var(--sr-text); font-size: 0.875rem;">
-                                                        {{ issue.type.replace('_', ' ').title() }}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div style="line-height: 1.4; font-size: 0.875rem;">{{ issue.message }}</div>
-                                                </td>
-                                                <td>
-                                                    <a href="{{ issue.page_url }}" target="_blank" class="sr-url" title="{{ issue.page_url }}">
-                                                        {{ issue.page_url }}
-                                                    </a>
-                                                </td>
-                                            </tr>
+                            
+                            <!-- LEVEL 2: Issue Types Nested Accordion -->
+                            <div class="accordion-content" id="content-severity-{{ severity }}" style="display: none; border: 1px solid var(--sr-border); border-top: none; border-radius: 0 0 8px 8px; background: var(--sr-white);">
+                                {% for issue_type, issue_data in issues_hierarchy[severity].items() %}
+                                <div class="nested-accordion-item" style="margin: 0.5rem; border: 1px solid var(--sr-border-light); border-radius: 6px;">
+                                    <!-- Issue Type Header -->
+                                    <div class="nested-accordion-header" onclick="toggleNestedAccordion('{{ severity }}-{{ issue_type }}')" 
+                                         style="background: var(--sr-gray-25); padding: 0.75rem; cursor: pointer; user-select: none; border-radius: 6px 6px 0 0;">
+                                        <div style="display: flex; justify-content: between; align-items: center;">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <i class="{{ issue_data.icon }}" style="color: var(--sr-primary); font-size: 1rem;"></i>
+                                                <span style="font-weight: 500; color: var(--sr-text); font-size: 0.9rem;">
+                                                    {{ issue_data.title }}
+                                                </span>
+                                                <span class="sr-badge {{ severity }}" style="font-size: 0.75rem; padding: 0.125rem 0.375rem;">
+                                                    {{ issue_data.count }} pagina{{ 'e' if issue_data.count != 1 else '' }}
+                                                </span>
+                                            </div>
+                                            <i class="bi bi-chevron-down accordion-icon" id="icon-nested-{{ severity }}-{{ issue_type }}" style="transition: transform 0.2s; font-size: 0.875rem;"></i>
+                                        </div>
+                                        
+                                        <!-- Issue Description Preview -->
+                                        {% if issue_data.first_description %}
+                                        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--sr-text-muted); line-height: 1.3;">
+                                            {{ issue_data.first_description[:100] }}{% if issue_data.first_description|length > 100 %}...{% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Pages List -->
+                                    <div class="nested-accordion-content" id="content-nested-{{ severity }}-{{ issue_type }}" 
+                                         style="display: none; padding: 0.75rem; background: var(--sr-white); border-top: 1px solid var(--sr-border-light); border-radius: 0 0 6px 6px;">
+                                        
+                                        <!-- Description and Recommendation -->
+                                        {% if issue_data.first_description or issue_data.first_recommendation %}
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--sr-gray-25); border-radius: 4px; border-left: 3px solid var(--sr-{{ severity }});">
+                                            {% if issue_data.first_description %}
+                                            <div style="font-size: 0.85rem; color: var(--sr-text); margin-bottom: 0.25rem;">
+                                                <strong>Problema:</strong> {{ issue_data.first_description }}
+                                            </div>
+                                            {% endif %}
+                                            {% if issue_data.first_recommendation %}
+                                            <div style="font-size: 0.85rem; color: var(--sr-text-muted);">
+                                                <strong>Soluzione:</strong> {{ issue_data.first_recommendation }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Affected Pages List -->
+                                        <div style="font-size: 0.875rem; font-weight: 500; color: var(--sr-text); margin-bottom: 0.5rem;">
+                                            Pagine Interessate:
+                                        </div>
+                                        <div style="max-height: 200px; overflow-y: auto;">
+                                            {% for page_url in issue_data.pages %}
+                                            <div style="padding: 0.25rem 0; border-bottom: 1px solid var(--sr-border-light); last-child:border-bottom: none;">
+                                                <a href="{{ page_url }}" target="_blank" class="sr-url" 
+                                                   style="font-size: 0.85rem; display: block; padding: 0.25rem 0.5rem; border-radius: 3px; text-decoration: none;"
+                                                   onmouseover="this.style.background='var(--sr-gray-50)'" 
+                                                   onmouseout="this.style.background='transparent'">
+                                                    <i class="bi bi-link-45deg" style="color: var(--sr-text-muted); margin-right: 0.25rem;"></i>
+                                                    {{ page_url }}
+                                                </a>
+                                            </div>
                                             {% endfor %}
-                                        </tbody>
-                                    </table>
+                                        </div>
+                                    </div>
                                 </div>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endif %}
@@ -918,6 +961,48 @@ function toggleAccordion(accordionId) {
         }, 10);
     } else {
         // Close accordion
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.transition = 'all 0.3s ease-in-out';
+        
+        setTimeout(() => {
+            content.style.opacity = '0';
+            content.style.maxHeight = '0';
+        }, 10);
+        
+        setTimeout(() => {
+            content.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }, 300);
+    }
+}
+
+// Nested accordion functionality for double accordion (Level 2)
+function toggleNestedAccordion(nestedId) {
+    const content = document.getElementById('content-nested-' + nestedId);
+    const icon = document.getElementById('icon-nested-' + nestedId);
+    
+    if (!content || !icon) {
+        console.warn('Nested accordion elements not found for ID:', nestedId);
+        return;
+    }
+    
+    if (content.style.display === 'none' || content.style.display === '') {
+        // Open nested accordion
+        content.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+        
+        // Add smooth opening animation
+        content.style.opacity = '0';
+        content.style.maxHeight = '0';
+        content.style.overflow = 'hidden';
+        content.style.transition = 'all 0.3s ease-in-out';
+        
+        setTimeout(() => {
+            content.style.opacity = '1';
+            content.style.maxHeight = 'none';
+        }, 10);
+    } else {
+        // Close nested accordion
         content.style.maxHeight = content.scrollHeight + 'px';
         content.style.transition = 'all 0.3s ease-in-out';
         

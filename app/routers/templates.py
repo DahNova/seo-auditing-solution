@@ -688,11 +688,14 @@ async def scan_results(
         schema_coverage = (schema_pages / len(all_pages) * 100) if all_pages else 0
         mobile_coverage = (mobile_optimized_pages / len(all_pages) * 100) if all_pages else 0
         
-        # Get scan issues (join through pages)
+        # Get scan issues (join through pages) AND create complete page mapping
         issues_result = await db.execute(
             select(Issue).join(Page).where(Page.scan_id == scan_id)
         )
         issues_raw = issues_result.scalars().all()
+        
+        # Create complete page_id → URL mapping for ALL pages in scan (fix "N/A" problem)
+        page_url_mapping = {page.id: page.url for page in all_pages}
         
         # Sort issues by severity in Python (more reliable than SQL CASE)
         severity_order = {'critical': 1, 'high': 2, 'medium': 3, 'low': 4}
@@ -707,16 +710,61 @@ async def scan_results(
         issues_by_severity = {}
         issues_by_type = {}
         
+        # NEW: Create nested hierarchy for double accordion (severity → issue_type → pages)
+        issues_hierarchy = {}
+        
+        # Issue type display mappings
+        issue_type_info = {
+            'missing_title': {'name': 'Title Tag Mancante', 'icon': 'bi-tag'},
+            'missing_meta_description': {'name': 'Meta Description Mancante', 'icon': 'bi-card-text'},
+            'missing_h1': {'name': 'H1 Mancante', 'icon': 'bi-type-h1'},
+            'duplicate_h1': {'name': 'H1 Duplicato', 'icon': 'bi-files'},
+            'multiple_h1': {'name': 'H1 Multipli', 'icon': 'bi-type-h1'},
+            'images_without_alt': {'name': 'Immagini Senza Alt', 'icon': 'bi-image'},
+            'oversized_images': {'name': 'Immagini Troppo Grandi', 'icon': 'bi-image'},
+            'broken_links': {'name': 'Link Rotti', 'icon': 'bi-link-45deg'},
+            'missing_canonical': {'name': 'Canonical Mancante', 'icon': 'bi-link'},
+            'poor_performance': {'name': 'Performance Scadenti', 'icon': 'bi-speedometer'},
+            'missing_schema': {'name': 'Schema Markup Mancante', 'icon': 'bi-code-square'},
+            'mobile_issues': {'name': 'Problemi Mobile', 'icon': 'bi-phone'},
+            'url_structure_issue': {'name': 'Struttura URL Problematica', 'icon': 'bi-link-45deg'},
+            'duplicate_canonical_group': {'name': 'Pagine Duplicate', 'icon': 'bi-files'},
+            'analysis_error': {'name': 'Errore Analisi', 'icon': 'bi-exclamation-triangle'},
+            'crawl_error': {'name': 'Errore Crawling', 'icon': 'bi-exclamation-triangle'}
+        }
+        
         for issue in issues:
-            # Group by severity
-            if issue.severity not in issues_by_severity:
-                issues_by_severity[issue.severity] = []
-            issues_by_severity[issue.severity].append(issue)
+            severity = issue.severity
+            issue_type = issue.type
+            page_url = page_url_mapping.get(issue.page_id, 'N/A')  # Use mapping to fix N/A
             
-            # Group by type
-            if issue.type not in issues_by_type:
-                issues_by_type[issue.type] = []
-            issues_by_type[issue.type].append(issue)
+            # Traditional groupings (keep for backward compatibility)
+            if severity not in issues_by_severity:
+                issues_by_severity[severity] = []
+            issues_by_severity[severity].append(issue)
+            
+            if issue_type not in issues_by_type:
+                issues_by_type[issue_type] = []
+            issues_by_type[issue_type].append(issue)
+            
+            # NEW: Nested hierarchy (severity → issue_type → pages list)
+            if severity not in issues_hierarchy:
+                issues_hierarchy[severity] = {}
+            
+            if issue_type not in issues_hierarchy[severity]:
+                issues_hierarchy[severity][issue_type] = {
+                    'title': issue_type_info.get(issue_type, {}).get('name', issue_type.replace('_', ' ').title()),
+                    'icon': issue_type_info.get(issue_type, {}).get('icon', 'bi-exclamation-circle'),
+                    'pages': [],
+                    'count': 0,
+                    'first_description': issue.description or '',
+                    'first_recommendation': getattr(issue, 'recommendation', 'Review and fix this issue')
+                }
+            
+            # Add page URL to this issue type
+            if page_url not in issues_hierarchy[severity][issue_type]['pages']:
+                issues_hierarchy[severity][issue_type]['pages'].append(page_url)
+                issues_hierarchy[severity][issue_type]['count'] += 1
         
         # Apply Smart Issue Prioritization
         priority_data = {}
@@ -733,7 +781,7 @@ async def scan_results(
                         'message': issue.description or '',
                         'description': issue.description or '',
                         'recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
-                        'page_url': next((p.url for p in all_pages if p.id == issue.page_id), ''),
+                        'page_url': page_url_mapping.get(issue.page_id, ''),
                         'element': getattr(issue, 'element', '')
                     }
                     issues_for_prioritization.append(issue_data)
@@ -800,12 +848,16 @@ async def scan_results(
                     "type": issue.type,
                     "severity": issue.severity,
                     "message": issue.description,
-                    "page_url": next((p.url for p in pages if p.id == issue.page_id), "N/A")
+                    "page_url": page_url_mapping.get(issue.page_id, "N/A")  # FIXED: Use complete mapping
                 }
                 for issue in issues
             ],
             "issues_by_severity": issues_by_severity,
             "issues_by_type": issues_by_type,
+            # NEW: Nested hierarchy for double accordion
+            "issues_hierarchy": issues_hierarchy,
+            "page_url_mapping": page_url_mapping,
+            "priority_data": priority_data,
             # Core Web Vitals and Technical SEO aggregate data
             "performance_overview": {
                 "avg_performance_score": round(avg_performance_score, 1),
