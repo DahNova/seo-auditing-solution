@@ -174,20 +174,8 @@
                     </div>
                 </div>
 
-                <!-- Issues Organization Tabs -->
-                <div class="sr-tabs">
-                    <button class="sr-tab active" onclick="showIssuesView('severity')" id="severity-tab">
-                        <i class="bi bi-bar-chart-steps"></i>
-                        Per Severità
-                    </button>
-                    <button class="sr-tab" onclick="showIssuesView('type')" id="type-tab">
-                        <i class="bi bi-diagram-3"></i>
-                        Per Tipologia
-                    </button>
-                </div>
-                
-                <!-- Issues by Severity View with NESTED ACCORDION -->
-                <div id="issues-by-severity" class="sr-tab-content">
+                <!-- Issues by Severity with NESTED ACCORDION -->
+                <div class="sr-issues-content" style="padding: 1.5rem;">
                     {% set severity_order = ['critical', 'high', 'medium', 'low'] %}
                     {% set severity_names = {'critical': 'Critici', 'high': 'Alta Priorità', 'medium': 'Media Priorità', 'low': 'Bassa Priorità'} %}
                     {% set severity_icons = {'critical': 'exclamation-circle', 'high': 'exclamation-triangle', 'medium': 'info-circle', 'low': 'check-circle'} %}
@@ -265,92 +253,307 @@
                                         </div>
                                         {% endif %}
                                         
-                                        <!-- Resource Details Table -->
+                                        <!-- Enhanced Resource Details Table -->
                                         {% if issue_data.resource_details %}
-                                        <div style="font-size: 0.875rem; font-weight: 500; color: var(--sr-text); margin-bottom: 0.75rem;">
-                                            Risorse Interessate:
+                                        <div style="font-size: 0.875rem; font-weight: 500; color: var(--sr-text); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                                            <span>Risorse Interessate: ({{ issue_data.resource_details|length }})</span>
+                                            <div class="sr-table-controls" style="display: flex; gap: 0.5rem; align-items: center;">
+                                                <label style="font-size: 0.75rem; color: var(--sr-text-muted);">Ordina per:</label>
+                                                <select class="sr-sort-select" onchange="sortResourceTable(this, '{{ severity }}-{{ issue_type }}')" style="font-size: 0.75rem; padding: 0.25rem; border: 1px solid var(--sr-border); border-radius: 3px;">
+                                                    <option value="page">Pagina</option>
+                                                    <option value="resource">Risorsa</option>
+                                                    <option value="type">Tipo</option>
+                                                    <option value="impact">Impatto</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--sr-border-light); border-radius: 4px;">
-                                            <table class="sr-table" style="margin: 0; font-size: 0.8rem;">
-                                                <thead style="background: var(--sr-gray-25); position: sticky; top: 0;">
+                                        <div class="sr-resource-table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--sr-border-light); border-radius: 4px;">
+                                            <table class="sr-resource-table" style="margin: 0; font-size: 0.8rem; width: 100%;" id="resource-table-{{ severity }}-{{ issue_type }}">
+                                                <thead style="background: var(--sr-gray-25); position: sticky; top: 0; z-index: 10;">
                                                     <tr>
-                                                        <th style="width: 35%; padding: 0.5rem;">Pagina</th>
-                                                        <th style="width: 35%; padding: 0.5rem;">Risorsa</th>
-                                                        <th style="width: 20%; padding: 0.5rem;">Dettagli</th>
-                                                        <th style="width: 10%; padding: 0.5rem;">Azione</th>
+                                                        <th class="sr-resource-th" style="width: 25%; padding: 0.5rem;">
+                                                            <div class="sr-th-content">
+                                                                <i class="bi bi-link-45deg" style="margin-right: 0.25rem;"></i>
+                                                                Pagina
+                                                            </div>
+                                                        </th>
+                                                        <th class="sr-resource-th" style="width: 30%; padding: 0.5rem;">
+                                                            <div class="sr-th-content">
+                                                                <i class="bi bi-file-earmark" style="margin-right: 0.25rem;"></i>
+                                                                Risorsa
+                                                            </div>
+                                                        </th>
+                                                        <th class="sr-resource-th" style="width: 10%; padding: 0.5rem;">
+                                                            <div class="sr-th-content">
+                                                                <i class="bi bi-tag" style="margin-right: 0.25rem;"></i>
+                                                                Tipo
+                                                            </div>
+                                                        </th>
+                                                        <th class="sr-resource-th" style="width: 20%; padding: 0.5rem;">
+                                                            <div class="sr-th-content">
+                                                                <i class="bi bi-info-circle" style="margin-right: 0.25rem;"></i>
+                                                                Dettagli Specifici
+                                                            </div>
+                                                        </th>
+                                                        <th class="sr-resource-th" style="width: 10%; padding: 0.5rem;">
+                                                            <div class="sr-th-content">
+                                                                <i class="bi bi-speedometer2" style="margin-right: 0.25rem;"></i>
+                                                                Impatto
+                                                            </div>
+                                                        </th>
+                                                        <th class="sr-resource-th" style="width: 5%; padding: 0.5rem; text-align: center;">
+                                                            <div class="sr-th-content">
+                                                                <i class="bi bi-tools"></i>
+                                                            </div>
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {% for resource in issue_data.resource_details %}
-                                                    <tr style="border-bottom: 1px solid var(--sr-border-light);">
-                                                        <td style="padding: 0.5rem; vertical-align: top;">
-                                                            <a href="{{ resource.page_url }}" target="_blank" class="sr-url" 
-                                                               style="font-size: 0.75rem; display: block;"
+                                                    <tr class="sr-resource-row" style="border-bottom: 1px solid var(--sr-border-light);" data-resource-type="{{ resource.resource_type }}">
+                                                        <!-- Page Column -->
+                                                        <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;" data-sort-key="{{ resource.page_url }}">
+                                                            <a href="{{ resource.page_url }}" target="_blank" class="sr-url sr-page-link" 
+                                                               style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem; text-decoration: none;"
                                                                title="{{ resource.page_url }}">
-                                                                <i class="bi bi-link-45deg" style="color: var(--sr-text-muted); margin-right: 0.25rem;"></i>
-                                                                {{ resource.page_url|truncate(40, True, '...') }}
+                                                                <i class="bi bi-box-arrow-up-right" style="color: var(--sr-text-muted); font-size: 0.7rem; flex-shrink: 0;"></i>
+                                                                <span class="sr-url-text">{{ resource.page_url|truncate(35, True, '...') }}</span>
                                                             </a>
-                                                        </td>
-                                                        <td style="padding: 0.5rem; vertical-align: top;">
-                                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                                                {% if resource.resource_type == 'image' %}
-                                                                <i class="bi bi-image" style="color: var(--sr-info); font-size: 0.875rem;"></i>
-                                                                {% elif resource.resource_type == 'css' %}
-                                                                <i class="bi bi-file-earmark-code" style="color: var(--sr-primary); font-size: 0.875rem;"></i>
-                                                                {% elif resource.resource_type == 'javascript' %}
-                                                                <i class="bi bi-file-earmark-text" style="color: var(--sr-warning); font-size: 0.875rem;"></i>
-                                                                {% else %}
-                                                                <i class="bi bi-file-earmark" style="color: var(--sr-text-muted); font-size: 0.875rem;"></i>
-                                                                {% endif %}
-                                                                <span style="font-size: 0.75rem; word-break: break-all;">
-                                                                    {% if resource.resource_url|length > 45 %}
-                                                                    <span title="{{ resource.resource_url }}">{{ resource.resource_url|truncate(45, True, '...') }}</span>
-                                                                    {% else %}
-                                                                    {{ resource.resource_url }}
-                                                                    {% endif %}
-                                                                </span>
-                                                            </div>
                                                             {% if resource.page_context %}
-                                                            <div style="font-size: 0.7rem; color: var(--sr-text-muted); margin-top: 0.25rem;">
-                                                                {{ resource.page_context }}
+                                                            <div class="sr-page-context" style="font-size: 0.65rem; color: var(--sr-text-muted); margin-top: 0.25rem; padding: 0.125rem 0.25rem; background: var(--sr-gray-25); border-radius: 2px;">
+                                                                {{ resource.page_context|truncate(25, True, '...') }}
                                                             </div>
                                                             {% endif %}
                                                         </td>
-                                                        <td style="padding: 0.5rem; vertical-align: top;">
-                                                            {% if resource.issue_specific_data %}
-                                                            <div style="font-size: 0.7rem;">
-                                                                {% if resource.issue_specific_data.get('current_alt') is defined %}
-                                                                <div><strong>Alt:</strong> 
-                                                                    {% if resource.issue_specific_data.current_alt %}
-                                                                    "{{ resource.issue_specific_data.current_alt|truncate(20, True, '...') }}"
-                                                                    {% else %}
-                                                                    <em>Missing</em>
+                                                        
+                                                        <!-- Resource Column -->
+                                                        <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;" data-sort-key="{{ resource.resource_url }}">
+                                                            <div class="sr-resource-info" style="display: flex; align-items: flex-start; gap: 0.25rem;">
+                                                                {% set resource_icon_class = {
+                                                                    'image': 'bi-image',
+                                                                    'css': 'bi-file-earmark-code',
+                                                                    'javascript': 'bi-file-earmark-text',
+                                                                    'link': 'bi-link',
+                                                                    'meta_tag': 'bi-tag',
+                                                                    'heading': 'bi-type-h1',
+                                                                    'content_block': 'bi-file-text',
+                                                                    'form_element': 'bi-ui-checks',
+                                                                    'schema_markup': 'bi-code-square'
+                                                                }.get(resource.resource_type, 'bi-file-earmark') %}
+                                                                {% set resource_color_class = {
+                                                                    'image': 'var(--sr-info)',
+                                                                    'css': 'var(--sr-primary)',
+                                                                    'javascript': 'var(--sr-warning)',
+                                                                    'link': 'var(--sr-success)',
+                                                                    'meta_tag': 'var(--sr-info)',
+                                                                    'heading': 'var(--sr-dark)',
+                                                                    'content_block': 'var(--sr-text)',
+                                                                    'form_element': 'var(--sr-secondary)',
+                                                                    'schema_markup': 'var(--sr-primary)'
+                                                                }.get(resource.resource_type, 'var(--sr-text-muted)') %}
+                                                                <i class="bi {{ resource_icon_class }}" style="color: {{ resource_color_class }}; font-size: 0.875rem; margin-top: 0.125rem; flex-shrink: 0;"></i>
+                                                                <div class="sr-resource-details" style="flex: 1; min-width: 0;">
+                                                                    <div class="sr-resource-url" style="font-size: 0.75rem; word-break: break-all; line-height: 1.2;">
+                                                                        {% if resource.resource_url|length > 50 %}
+                                                                        <span title="{{ resource.resource_url }}">{{ resource.resource_url|truncate(50, True, '...') }}</span>
+                                                                        {% else %}
+                                                                        {{ resource.resource_url }}
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    {% if resource.issue_specific_data.get('current_filename') %}
+                                                                    <div class="sr-filename" style="font-size: 0.65rem; color: var(--sr-text-muted); margin-top: 0.125rem;">
+                                                                        <i class="bi bi-file-earmark" style="margin-right: 0.125rem;"></i>
+                                                                        {{ resource.issue_specific_data.current_filename }}
+                                                                    </div>
                                                                     {% endif %}
                                                                 </div>
+                                                            </div>
+                                                        </td>
+                                                        
+                                                        <!-- Type Column -->
+                                                        <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top; text-align: center;" data-sort-key="{{ resource.resource_type }}">
+                                                            {% set type_badges = {
+                                                                'image': {'label': 'IMG', 'class': 'info'},
+                                                                'css': {'label': 'CSS', 'class': 'primary'},
+                                                                'javascript': {'label': 'JS', 'class': 'warning'},
+                                                                'link': {'label': 'LINK', 'class': 'success'},
+                                                                'meta_tag': {'label': 'META', 'class': 'info'},
+                                                                'heading': {'label': 'H1-6', 'class': 'dark'},
+                                                                'content_block': {'label': 'TEXT', 'class': 'secondary'},
+                                                                'form_element': {'label': 'FORM', 'class': 'secondary'},
+                                                                'schema_markup': {'label': 'JSON', 'class': 'primary'}
+                                                            } %}
+                                                            {% set badge_info = type_badges.get(resource.resource_type, {'label': 'OTHER', 'class': 'secondary'}) %}
+                                                            <span class="sr-badge {{ badge_info.class }}" style="font-size: 0.65rem; padding: 0.125rem 0.375rem; border-radius: 3px;">
+                                                                {{ badge_info.label }}
+                                                            </span>
+                                                        </td>
+                                                        
+                                                        <!-- Specific Details Column -->
+                                                        <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+                                                            {% if resource.issue_specific_data %}
+                                                            <div class="sr-specific-details" style="font-size: 0.7rem; line-height: 1.3;">
+                                                                <!-- Image-specific details -->
+                                                                {% if resource.resource_type == 'image' %}
+                                                                    {% if resource.issue_specific_data.get('current_alt') is defined %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Alt:</strong>
+                                                                        {% if resource.issue_specific_data.current_alt %}
+                                                                        <span style="color: var(--sr-success);">"{{ resource.issue_specific_data.current_alt|truncate(25, True, '...') }}"</span>
+                                                                        {% else %}
+                                                                        <span style="color: var(--sr-danger); font-style: italic;">Missing</span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    {% if resource.issue_specific_data.get('current_width') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Size:</strong>
+                                                                        <span>{{ resource.issue_specific_data.current_width }}×{{ resource.issue_specific_data.current_height }}px</span>
+                                                                        {% if resource.issue_specific_data.get('file_size_bytes') %}
+                                                                        <br><span style="color: var(--sr-text-muted);">{{ (resource.issue_specific_data.file_size_bytes / 1024)|round(1) }}KB</span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    {% endif %}
                                                                 {% endif %}
-                                                                {% if resource.issue_specific_data.get('current_width') %}
-                                                                <div><strong>Size:</strong> {{ resource.issue_specific_data.current_width }}x{{ resource.issue_specific_data.current_height }}px</div>
+                                                                
+                                                                <!-- CSS/JS-specific details -->
+                                                                {% if resource.resource_type in ['css', 'javascript'] %}
+                                                                    {% if resource.issue_specific_data.get('blocking_type') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Type:</strong>
+                                                                        <span style="color: var(--sr-warning);">{{ resource.issue_specific_data.blocking_type.replace('_', ' ').title() }}</span>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    {% if resource.issue_specific_data.get('load_priority') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Priority:</strong>
+                                                                        <span class="sr-badge {{ 'critical' if resource.issue_specific_data.load_priority == 'high' else 'medium' }}" style="font-size: 0.6rem; padding: 0.0625rem 0.25rem;">
+                                                                            {{ resource.issue_specific_data.load_priority.title() }}
+                                                                        </span>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    {% if resource.resource_type == 'javascript' %}
+                                                                        {% if resource.issue_specific_data.get('has_async') is defined or resource.issue_specific_data.get('has_defer') is defined %}
+                                                                        <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                            <strong style="color: var(--sr-text);">Attributes:</strong>
+                                                                            {% if resource.issue_specific_data.get('has_async') %}
+                                                                            <span class="sr-badge success" style="font-size: 0.6rem; padding: 0.0625rem 0.25rem; margin-right: 0.125rem;">async</span>
+                                                                            {% endif %}
+                                                                            {% if resource.issue_specific_data.get('has_defer') %}
+                                                                            <span class="sr-badge success" style="font-size: 0.6rem; padding: 0.0625rem 0.25rem;">defer</span>
+                                                                            {% endif %}
+                                                                            {% if not resource.issue_specific_data.get('has_async') and not resource.issue_specific_data.get('has_defer') %}
+                                                                            <span style="color: var(--sr-text-muted); font-style: italic;">None</span>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                        {% endif %}
+                                                                    {% endif %}
                                                                 {% endif %}
-                                                                {% if resource.issue_specific_data.get('estimated_delay_ms') %}
-                                                                <div><strong>Delay:</strong> {{ resource.issue_specific_data.estimated_delay_ms|round(0) }}ms</div>
+                                                                
+                                                                <!-- Schema-specific details -->
+                                                                {% if resource.resource_type == 'schema_markup' %}
+                                                                    {% if resource.issue_specific_data.get('schema_type') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Schema:</strong>
+                                                                        <span>{{ resource.issue_specific_data.schema_type }}</span>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    {% if resource.issue_specific_data.get('missing_properties') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Missing:</strong>
+                                                                        <span style="color: var(--sr-warning);">{{ resource.issue_specific_data.missing_properties|length }} prop{{ 's' if resource.issue_specific_data.missing_properties|length != 1 else '' }}</span>
+                                                                    </div>
+                                                                    {% endif %}
                                                                 {% endif %}
-                                                                {% if resource.issue_specific_data.get('current_filename') %}
-                                                                <div><strong>File:</strong> {{ resource.issue_specific_data.current_filename|truncate(15, True, '...') }}</div>
+                                                                
+                                                                <!-- Content-specific details -->
+                                                                {% if resource.resource_type == 'content_block' %}
+                                                                    {% if resource.issue_specific_data.get('current_word_count') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Words:</strong>
+                                                                        <span>{{ resource.issue_specific_data.current_word_count }}</span>
+                                                                        {% if resource.issue_specific_data.get('minimum_recommended') %}
+                                                                        <span style="color: var(--sr-text-muted);">/ {{ resource.issue_specific_data.minimum_recommended }}</span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    {% endif %}
+                                                                {% endif %}
+                                                                
+                                                                <!-- Form-specific details -->
+                                                                {% if resource.resource_type == 'form_element' %}
+                                                                    {% if resource.issue_specific_data.get('input_type') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Input:</strong>
+                                                                        <span>{{ resource.issue_specific_data.input_type }}</span>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    {% if resource.issue_specific_data.get('accessibility_impact') %}
+                                                                    <div class="sr-detail-item" style="margin-bottom: 0.25rem;">
+                                                                        <strong style="color: var(--sr-text);">Impact:</strong>
+                                                                        <span style="color: var(--sr-danger);">{{ resource.issue_specific_data.accessibility_impact.replace('_', ' ').title() }}</span>
+                                                                    </div>
+                                                                    {% endif %}
                                                                 {% endif %}
                                                             </div>
                                                             {% endif %}
                                                         </td>
-                                                        <td style="padding: 0.5rem; vertical-align: top; text-align: center;">
-                                                            {% if resource.resource_type == 'image' and resource.issue_specific_data.get('current_alt') is defined %}
-                                                            <i class="bi bi-pencil-square" style="color: var(--sr-primary); cursor: pointer; font-size: 0.875rem;" 
-                                                               title="Add alt text"></i>
-                                                            {% elif resource.resource_type in ['css', 'javascript'] %}
-                                                            <i class="bi bi-code-square" style="color: var(--sr-warning); cursor: pointer; font-size: 0.875rem;" 
-                                                               title="Optimize loading"></i>
-                                                            {% else %}
-                                                            <i class="bi bi-tools" style="color: var(--sr-info); cursor: pointer; font-size: 0.875rem;" 
-                                                               title="Fix issue"></i>
+                                                        
+                                                        <!-- Impact Column -->
+                                                        <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top; text-align: center;">
+                                                            {% if resource.issue_specific_data %}
+                                                            <div class="sr-impact-indicators" style="display: flex; flex-direction: column; gap: 0.25rem; align-items: center;">
+                                                                {% if resource.issue_specific_data.get('estimated_delay_ms') %}
+                                                                <div class="sr-impact-metric" style="display: flex; align-items: center; gap: 0.125rem;">
+                                                                    <i class="bi bi-clock" style="color: var(--sr-warning); font-size: 0.7rem;"></i>
+                                                                    <span style="font-size: 0.65rem; color: var(--sr-text);">{{ resource.issue_specific_data.estimated_delay_ms|round(0) }}ms</span>
+                                                                </div>
+                                                                {% endif %}
+                                                                {% if resource.issue_specific_data.get('seo_score') is defined %}
+                                                                <div class="sr-impact-metric">
+                                                                    <div class="sr-mini-progress" style="width: 25px; height: 4px; background: var(--sr-gray-200); border-radius: 2px; overflow: hidden;">
+                                                                        <div style="width: {{ resource.issue_specific_data.seo_score }}%; height: 100%; background: {{ 'var(--sr-success)' if resource.issue_specific_data.seo_score >= 70 else 'var(--sr-warning)' if resource.issue_specific_data.seo_score >= 40 else 'var(--sr-danger)' }};"></div>
+                                                                    </div>
+                                                                    <div style="font-size: 0.6rem; color: var(--sr-text-muted); margin-top: 0.125rem;">{{ resource.issue_specific_data.seo_score }}/100</div>
+                                                                </div>
+                                                                {% endif %}
+                                                                {% if resource.resource_type == 'image' and resource.issue_specific_data.get('size_reduction_potential') %}
+                                                                <div class="sr-impact-metric" style="display: flex; align-items: center; gap: 0.125rem;">
+                                                                    <i class="bi bi-arrow-down-circle" style="color: var(--sr-success); font-size: 0.7rem;"></i>
+                                                                    <span style="font-size: 0.65rem; color: var(--sr-text);">-{{ (resource.issue_specific_data.size_reduction_potential / 1000000)|round(1) }}MB</span>
+                                                                </div>
+                                                                {% endif %}
+                                                                {% if not resource.issue_specific_data.get('estimated_delay_ms') and not resource.issue_specific_data.get('seo_score') and not resource.issue_specific_data.get('size_reduction_potential') %}
+                                                                <i class="bi bi-dash-circle" style="color: var(--sr-text-muted); font-size: 0.875rem;" title="Impact data not available"></i>
+                                                                {% endif %}
+                                                            </div>
                                                             {% endif %}
+                                                        </td>
+                                                        
+                                                        <!-- Action Column -->
+                                                        <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top; text-align: center;">
+                                                            <div class="sr-action-button" style="position: relative;">
+                                                                {% if resource.resource_type == 'image' %}
+                                                                    {% if resource.issue_specific_data.get('current_alt') is defined %}
+                                                                    <i class="bi bi-pencil-square sr-action-icon" style="color: var(--sr-primary); cursor: pointer; font-size: 0.875rem;" 
+                                                                       title="Add/Edit alt text" onclick="showResourceActions('{{ loop.index }}', 'image-alt')"></i>
+                                                                    {% else %}
+                                                                    <i class="bi bi-image sr-action-icon" style="color: var(--sr-info); cursor: pointer; font-size: 0.875rem;" 
+                                                                       title="Optimize image" onclick="showResourceActions('{{ loop.index }}', 'image-optimize')"></i>
+                                                                    {% endif %}
+                                                                {% elif resource.resource_type in ['css', 'javascript'] %}
+                                                                <i class="bi bi-code-square sr-action-icon" style="color: var(--sr-warning); cursor: pointer; font-size: 0.875rem;" 
+                                                                   title="Optimize loading" onclick="showResourceActions('{{ loop.index }}', 'script-optimize')"></i>
+                                                                {% elif resource.resource_type == 'schema_markup' %}
+                                                                <i class="bi bi-plus-square sr-action-icon" style="color: var(--sr-success); cursor: pointer; font-size: 0.875rem;" 
+                                                                   title="Add schema markup" onclick="showResourceActions('{{ loop.index }}', 'schema-add')"></i>
+                                                                {% elif resource.resource_type == 'form_element' %}
+                                                                <i class="bi bi-ui-checks sr-action-icon" style="color: var(--sr-secondary); cursor: pointer; font-size: 0.875rem;" 
+                                                                   title="Fix accessibility" onclick="showResourceActions('{{ loop.index }}', 'form-fix')"></i>
+                                                                {% else %}
+                                                                <i class="bi bi-tools sr-action-icon" style="color: var(--sr-info); cursor: pointer; font-size: 0.875rem;" 
+                                                                   title="Fix issue" onclick="showResourceActions('{{ loop.index }}', 'generic-fix')"></i>
+                                                                {% endif %}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                     {% endfor %}
@@ -382,77 +585,6 @@
                             </div>
                         </div>
                         {% endif %}
-                    {% endfor %}
-                </div>
-                
-                <!-- Issues by Type View -->
-                <div id="issues-by-type" class="sr-tab-content" style="display: none;">
-                    {% set issues_by_type = issues|groupby('type') %}
-                    {% for issue_type, type_issues in issues_by_type %}
-                    <div class="accordion-item" style="margin-bottom: 1rem;">
-                        <div class="accordion-header" onclick="toggleAccordion('type-{{ loop.index }}')" 
-                             style="background: var(--sr-gray-50); border: 1px solid var(--sr-border); border-radius: 8px; padding: 1rem; cursor: pointer; user-select: none;">
-                            <div style="display: flex; justify-content: between; align-items: center;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <i class="bi bi-gear" style="color: var(--sr-primary);"></i>
-                                        <span style="font-weight: 600; color: var(--sr-text);">
-                                            {{ issue_type.replace('_', ' ').title() }}
-                                        </span>
-                                    </div>
-                                    <span style="font-size: 0.875rem; color: var(--sr-text-muted);">
-                                        {{ type_issues|list|length }} occorrenza{{ 'e' if type_issues|list|length != 1 else '' }}
-                                    </span>
-                                    <!-- Severity breakdown for this type -->
-                                    <div style="display: flex; gap: 0.25rem;">
-                                        {% set type_issues_list = type_issues|list %}
-                                        {% for severity in ['critical', 'high', 'medium', 'low'] %}
-                                            {% set count = type_issues_list|selectattr('severity', 'equalto', severity)|list|length %}
-                                            {% if count > 0 %}
-                                            <span class="sr-badge {{ severity }}" style="font-size: 0.75rem; padding: 0.125rem 0.375rem;">
-                                                {{ count }}
-                                            </span>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <i class="bi bi-chevron-down accordion-icon" id="icon-type-{{ loop.index }}" style="transition: transform 0.2s;"></i>
-                            </div>
-                        </div>
-                        <div class="accordion-content" id="content-type-{{ loop.index }}" style="display: none; border: 1px solid var(--sr-border); border-top: none; border-radius: 0 0 8px 8px;">
-                            <div class="table-responsive">
-                                <table class="sr-table" style="margin: 0;">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 15%;">Severità</th>
-                                            <th style="width: 55%;">Descrizione</th>
-                                            <th style="width: 30%;">Pagina</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for issue in type_issues|list %}
-                                        <tr>
-                                            <td>
-                                                <span class="sr-badge {{ issue.severity }}">
-                                                    <i class="bi bi-{{ 'exclamation-circle' if issue.severity == 'critical' else 'exclamation-triangle' if issue.severity == 'high' else 'info-circle' if issue.severity == 'medium' else 'check-circle' }}"></i>
-                                                    {{ issue.severity.title() }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div style="line-height: 1.4; font-size: 0.875rem;">{{ issue.message }}</div>
-                                            </td>
-                                            <td>
-                                                <a href="{{ issue.page_url }}" target="_blank" class="sr-url" title="{{ issue.page_url }}">
-                                                    {{ issue.page_url }}
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -1013,25 +1145,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Tab switching functionality
-function showIssuesView(viewType) {
-    // Hide all tab contents
-    document.getElementById('issues-by-severity').style.display = 'none';
-    document.getElementById('issues-by-type').style.display = 'none';
-    
-    // Remove active class from all tabs
-    document.getElementById('severity-tab').classList.remove('active');
-    document.getElementById('type-tab').classList.remove('active');
-    
-    // Show selected view and activate tab
-    if (viewType === 'severity') {
-        document.getElementById('issues-by-severity').style.display = 'block';
-        document.getElementById('severity-tab').classList.add('active');
-    } else if (viewType === 'type') {
-        document.getElementById('issues-by-type').style.display = 'block';
-        document.getElementById('type-tab').classList.add('active');
-    }
-}
+// Removed tab switching functionality - now using single severity view only
 
 // Accordion functionality
 function toggleAccordion(accordionId) {
@@ -1129,5 +1243,338 @@ function changePagination(perPage) {
     currentUrl.searchParams.set('per_page', perPage);
     currentUrl.searchParams.set('page', '1'); // Reset to first page
     window.location.href = currentUrl.toString();
+}
+
+// Enhanced Resource Table Functionality
+function sortResourceTable(selectElement, tableId) {
+    const sortBy = selectElement.value;
+    const table = document.getElementById('resource-table-' + tableId);
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Store original order for reference
+    if (!tbody.hasAttribute('data-original-order')) {
+        tbody.setAttribute('data-original-order', 'true');
+    }
+    
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(sortBy) {
+            case 'page':
+                aValue = a.cells[0].getAttribute('data-sort-key') || '';
+                bValue = b.cells[0].getAttribute('data-sort-key') || '';
+                break;
+            case 'resource':
+                aValue = a.cells[1].getAttribute('data-sort-key') || '';
+                bValue = b.cells[1].getAttribute('data-sort-key') || '';
+                break;
+            case 'type':
+                aValue = a.cells[2].getAttribute('data-sort-key') || '';
+                bValue = b.cells[2].getAttribute('data-sort-key') || '';
+                break;
+            case 'impact':
+                // Sort by estimated delay or SEO score impact
+                const aImpact = extractImpactValue(a.cells[4]);
+                const bImpact = extractImpactValue(b.cells[4]);
+                return bImpact - aImpact; // Descending order for impact
+            default:
+                return 0;
+        }
+        
+        return aValue.localeCompare(bValue);
+    });
+    
+    // Clear and re-append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Add visual feedback
+    addSortingFeedback(table, sortBy);
+}
+
+function extractImpactValue(cell) {
+    // Extract numeric impact value from the cell for sorting
+    const delayElement = cell.querySelector('[title*="ms"]');
+    const scoreElement = cell.querySelector('.sr-mini-progress');
+    
+    if (delayElement) {
+        const delayText = delayElement.textContent.match(/(\d+)ms/);
+        return delayText ? parseInt(delayText[1]) : 0;
+    }
+    
+    if (scoreElement) {
+        const scoreBar = scoreElement.querySelector('div[style*="width"]');
+        if (scoreBar) {
+            const widthMatch = scoreBar.style.width.match(/(\d+)%/);
+            return widthMatch ? parseInt(widthMatch[1]) : 0;
+        }
+    }
+    
+    return 0;
+}
+
+function addSortingFeedback(table, sortBy) {
+    // Remove existing sort indicators
+    table.querySelectorAll('.sr-sort-indicator').forEach(el => el.remove());
+    
+    // Add sort indicator to appropriate column header
+    const columnMap = {
+        'page': 0,
+        'resource': 1,
+        'type': 2,
+        'impact': 4
+    };
+    
+    const columnIndex = columnMap[sortBy];
+    if (columnIndex !== undefined) {
+        const header = table.querySelector(`th:nth-child(${columnIndex + 1}) .sr-th-content`);
+        if (header) {
+            const indicator = document.createElement('i');
+            indicator.className = 'bi bi-arrow-down sr-sort-indicator';
+            indicator.style.marginLeft = '0.25rem';
+            indicator.style.color = 'var(--sr-primary)';
+            indicator.style.fontSize = '0.7rem';
+            header.appendChild(indicator);
+        }
+    }
+}
+
+// Resource Action Handlers
+function showResourceActions(resourceIndex, actionType) {
+    // Create a tooltip/modal for resource-specific actions
+    const tooltip = createActionTooltip(actionType);
+    
+    // Position tooltip near the clicked action button
+    const actionButton = event.target.closest('.sr-action-button');
+    if (actionButton) {
+        positionTooltip(tooltip, actionButton);
+        document.body.appendChild(tooltip);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            if (tooltip.parentNode) {
+                tooltip.remove();
+            }
+        }, 3000);
+    }
+}
+
+function createActionTooltip(actionType) {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'sr-action-tooltip';
+    tooltip.style.cssText = `
+        position: absolute;
+        background: var(--sr-gray-800);
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        z-index: 1000;
+        box-shadow: var(--sr-shadow-lg);
+        max-width: 200px;
+        line-height: 1.3;
+        pointer-events: none;
+    `;
+    
+    const actionMessages = {
+        'image-alt': 'Suggestion: Add descriptive alt text for better accessibility and SEO',
+        'image-optimize': 'Suggestion: Optimize image size and compression for faster loading',
+        'script-optimize': 'Suggestion: Add async/defer attributes or move to end of body',
+        'schema-add': 'Suggestion: Implement structured data markup for rich snippets',
+        'form-fix': 'Suggestion: Add proper labels for accessibility compliance',
+        'generic-fix': 'Review this resource for optimization opportunities'
+    };
+    
+    tooltip.textContent = actionMessages[actionType] || actionMessages['generic-fix'];
+    
+    // Add arrow pointer
+    const arrow = document.createElement('div');
+    arrow.style.cssText = `
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 6px solid var(--sr-gray-800);
+    `;
+    tooltip.appendChild(arrow);
+    
+    return tooltip;
+}
+
+function positionTooltip(tooltip, targetElement) {
+    const rect = targetElement.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    tooltip.style.left = (rect.left + scrollLeft + rect.width / 2) + 'px';
+    tooltip.style.top = (rect.top + scrollTop - 10) + 'px';
+    tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
+}
+
+// Enhanced accordion functionality for resource details
+function toggleResourceDetails(resourceId) {
+    const detailsRow = document.getElementById('resource-details-' + resourceId);
+    const toggleIcon = document.getElementById('resource-toggle-' + resourceId);
+    
+    if (detailsRow) {
+        if (detailsRow.style.display === 'none' || !detailsRow.style.display) {
+            // Show details
+            detailsRow.style.display = 'table-row';
+            detailsRow.style.opacity = '0';
+            detailsRow.style.transition = 'opacity 0.3s ease';
+            
+            setTimeout(() => {
+                detailsRow.style.opacity = '1';
+            }, 10);
+            
+            if (toggleIcon) {
+                toggleIcon.style.transform = 'rotate(180deg)';
+            }
+        } else {
+            // Hide details
+            detailsRow.style.opacity = '0';
+            
+            setTimeout(() => {
+                detailsRow.style.display = 'none';
+                if (toggleIcon) {
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                }
+            }, 300);
+        }
+    }
+}
+
+// Resource filtering functionality
+function filterResourcesByType(tableId, resourceType) {
+    const table = document.getElementById('resource-table-' + tableId);
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const rowType = row.getAttribute('data-resource-type');
+        if (resourceType === 'all' || rowType === resourceType) {
+            row.style.display = 'table-row';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update filter button states
+    updateFilterButtonStates(tableId, resourceType);
+}
+
+function updateFilterButtonStates(tableId, activeType) {
+    const filterContainer = document.querySelector(`[data-table-id="${tableId}"] .sr-resource-filters`);
+    if (filterContainer) {
+        const buttons = filterContainer.querySelectorAll('.sr-filter-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-type') === activeType) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+}
+
+// Initialize resource table enhancements on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects for resource table rows
+    const resourceTables = document.querySelectorAll('.sr-resource-table');
+    resourceTables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((row, index) => {
+            // Add row indexing for better identification
+            row.setAttribute('data-row-index', index);
+            
+            // Enhanced hover effects
+            row.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateX(2px)';
+                this.style.transition = 'transform 0.2s ease';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateX(0)';
+            });
+        });
+    });
+    
+    // Add keyboard navigation for accessibility
+    addResourceTableKeyboardNavigation();
+    
+    // Initialize table sorting states
+    initializeTableSortingStates();
+});
+
+function addResourceTableKeyboardNavigation() {
+    const resourceTables = document.querySelectorAll('.sr-resource-table');
+    resourceTables.forEach(table => {
+        table.setAttribute('tabindex', '0');
+        table.addEventListener('keydown', function(e) {
+            const focusedRow = this.querySelector('tbody tr:focus');
+            if (!focusedRow) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    const prevRow = focusedRow.previousElementSibling;
+                    if (prevRow) prevRow.focus();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    const nextRow = focusedRow.nextElementSibling;
+                    if (nextRow) nextRow.focus();
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    const actionButton = focusedRow.querySelector('.sr-action-button');
+                    if (actionButton) actionButton.click();
+                    break;
+            }
+        });
+    });
+}
+
+function initializeTableSortingStates() {
+    // Set default sorting to 'page' for all resource tables
+    const sortSelects = document.querySelectorAll('.sr-sort-select');
+    sortSelects.forEach(select => {
+        select.value = 'page';
+    });
+}
+
+// Utility function for responsive table handling
+function handleResourceTableResize() {
+    const tables = document.querySelectorAll('.sr-resource-table-container');
+    tables.forEach(container => {
+        const table = container.querySelector('.sr-resource-table');
+        if (window.innerWidth <= 768) {
+            // Mobile optimizations
+            table.classList.add('sr-table-mobile');
+        } else {
+            table.classList.remove('sr-table-mobile');
+        }
+    });
+}
+
+// Listen for window resize events
+window.addEventListener('resize', handleResourceTableResize);
+
+// Performance monitoring for large tables
+function monitorTablePerformance() {
+    const tables = document.querySelectorAll('.sr-resource-table tbody');
+    tables.forEach(tbody => {
+        const rowCount = tbody.children.length;
+        if (rowCount > 50) {
+            // Enable virtual scrolling or pagination for large datasets
+            console.log(`Large resource table detected: ${rowCount} rows`);
+            // Implement virtual scrolling if needed
+        }
+    });
 }
 </script>

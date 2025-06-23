@@ -24,7 +24,11 @@
       "Bash(docker logs:*)",
       "Bash(alembic revision:*)",
       "Bash(rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(make:*)",
+      "Bash(for scan_id in 36 35 34 33)",
+      "Bash(do:*)",
+      "Bash(done)"
     ],
     "deny": []
   }
