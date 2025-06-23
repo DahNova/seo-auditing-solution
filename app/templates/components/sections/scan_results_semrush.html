@@ -508,12 +508,12 @@
                                                                     <span style="font-size: 0.65rem; color: var(--sr-text);">{{ resource.issue_specific_data.estimated_delay_ms|round(0) }}ms</span>
                                                                 </div>
                                                                 {% endif %}
-                                                                {% if resource.issue_specific_data.get('seo_score') is defined %}
+                                                                {% if resource.issue_specific_data.get('seo_score') is not none %}
                                                                 <div class="sr-impact-metric">
                                                                     <div class="sr-mini-progress" style="width: 25px; height: 4px; background: var(--sr-gray-200); border-radius: 2px; overflow: hidden;">
-                                                                        <div style="width: {{ resource.issue_specific_data.seo_score }}%; height: 100%; background: {{ 'var(--sr-success)' if resource.issue_specific_data.seo_score >= 70 else 'var(--sr-warning)' if resource.issue_specific_data.seo_score >= 40 else 'var(--sr-danger)' }};"></div>
+                                                                        <div style="width: {{ resource.issue_specific_data.get('seo_score', 0) }}%; height: 100%; background: {{ 'var(--sr-success)' if resource.issue_specific_data.get('seo_score', 0) >= 70 else 'var(--sr-warning)' if resource.issue_specific_data.get('seo_score', 0) >= 40 else 'var(--sr-danger)' }};"></div>
                                                                     </div>
-                                                                    <div style="font-size: 0.6rem; color: var(--sr-text-muted); margin-top: 0.125rem;">{{ resource.issue_specific_data.seo_score }}/100</div>
+                                                                    <div style="font-size: 0.6rem; color: var(--sr-text-muted); margin-top: 0.125rem;">{{ resource.issue_specific_data.get('seo_score', 0) }}/100</div>
                                                                 </div>
                                                                 {% endif %}
                                                                 {% if resource.resource_type == 'image' and resource.issue_specific_data.get('size_reduction_potential') %}
