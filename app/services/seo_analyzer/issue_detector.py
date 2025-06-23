@@ -1,8 +1,13 @@
 from typing import List, Dict, Any
 from app.core.config import seo_config
+from .core.resource_details import ResourceDetailsBuilder, IssueFactory
+from .performance_analyzer import PerformanceAnalyzer
 
 class IssueDetector:
     """Detects and categorizes SEO issues using configurable rules"""
+    
+    def __init__(self):
+        self.performance_analyzer = PerformanceAnalyzer()
     
     def detect_all_issues(self, crawl_result, page_id: int) -> List[Dict[str, Any]]:
         """Detect all SEO issues for a page"""
@@ -53,6 +58,11 @@ class IssueDetector:
         # Check status code issues for all content types
         if hasattr(crawl_result, 'status_code'):
             issues.extend(self._check_status_code_issues(crawl_result.status_code))
+        
+        # Add granular performance issues (blocking resources)
+        if content_type == 'html':
+            performance_issues = self._check_performance_issues(crawl_result)
+            issues.extend(performance_issues)
         
         return issues
     
@@ -312,58 +322,132 @@ class IssueDetector:
         return issues
     
     def _check_image_issues(self, images: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Check image optimization issues"""
+        """Check image optimization issues - GRANULAR VERSION"""
         issues = []
-        images_without_alt = 0
-        images_bad_filename = 0
-        oversized_images = 0
         
         for img in images:
-            if not img.get('alt') or not img.get('alt').strip():
-                images_without_alt += 1
-            
-            # Check filename using the same logic as crawl4ai_analyzer
             src = img.get('src', '')
-            if src and self._is_bad_filename(src):
-                images_bad_filename += 1
+            if not src:
+                continue
+                
+            alt_text = img.get('alt', '')
             
+            # Individual issue for each image missing alt text
+            if not alt_text or not alt_text.strip():
+                # Determine page context from image position or surrounding content
+                page_context = self._get_image_context(img, src)
+                
+                resource_details = ResourceDetailsBuilder.image_missing_alt(
+                    img_src=src,
+                    page_context=page_context,
+                    current_alt=alt_text,
+                    selector=f'img[src="{src}"]'
+                )
+                
+                issue = IssueFactory.create_granular_issue(
+                    issue_type='image_missing_alt',
+                    severity='high',
+                    category='accessibility',
+                    title='Image Missing Alt Text',
+                    description=f'Image {self._truncate_url(src)} is missing descriptive alt text',
+                    recommendation=f'Add descriptive alt text for {self._truncate_url(src)}',
+                    resource_details=resource_details,
+                    score_impact=seo_config.scoring_weights['images_missing_alt'] / 5  # Distribute weight
+                )
+                issues.append(issue)
+            
+            # Individual issue for each image with bad filename
+            if src and self._is_bad_filename(src):
+                page_context = self._get_image_context(img, src)
+                suggested_filename = self._suggest_seo_filename(src)
+                
+                resource_details = ResourceDetailsBuilder.image_bad_filename(
+                    img_src=src,
+                    suggested_filename=suggested_filename,
+                    page_context=page_context
+                )
+                
+                issue = IssueFactory.create_granular_issue(
+                    issue_type='image_bad_filename',
+                    severity='medium',
+                    category='technical',
+                    title='Non-SEO Friendly Image Filename',
+                    description=f'Image {self._truncate_url(src)} has non-descriptive filename',
+                    recommendation=f'Rename to {suggested_filename}',
+                    resource_details=resource_details,
+                    score_impact=seo_config.scoring_weights['images_bad_filename'] / 3  # Distribute weight
+                )
+                issues.append(issue)
+            
+            # Individual issue for each oversized image
             if self._is_oversized_image(img):
-                oversized_images += 1
-        
-        if images_without_alt > 0:
-            issues.append({
-                'type': 'images_missing_alt',
-                'category': 'on_page',
-                'severity': 'high',
-                'title': 'Images Missing Alt Text',
-                'description': f'{images_without_alt} images are missing alt text',
-                'recommendation': 'Add descriptive alt text to all images',
-                'score_impact': seo_config.scoring_weights['images_missing_alt']
-            })
-        
-        if images_bad_filename > 0:
-            issues.append({
-                'type': 'images_bad_filename',
-                'category': 'technical',
-                'severity': 'medium',
-                'title': 'Non-Descriptive Image Filenames',
-                'description': f'{images_bad_filename} images have non-descriptive filenames',
-                'recommendation': 'Use descriptive, keyword-rich filenames for images',
-                'score_impact': seo_config.scoring_weights['images_bad_filename']
-            })
-        
-        if oversized_images > 0:
-            issues.append({
-                'type': 'oversized_images',
-                'category': 'technical',
-                'severity': 'medium',
-                'title': 'Oversized Images',
-                'description': f'{oversized_images} images might be oversized',
-                'recommendation': 'Optimize image sizes and use appropriate formats',
-                'score_impact': seo_config.scoring_weights['oversized_images']
-            })
+                width = self._safe_int(img.get('width', 0))
+                height = self._safe_int(img.get('height', 0))
+                file_size = img.get('size')
+                page_context = self._get_image_context(img, src)
+                
+                resource_details = ResourceDetailsBuilder.image_oversized(
+                    img_src=src,
+                    width=width,
+                    height=height,
+                    file_size=file_size,
+                    page_context=page_context
+                )
+                
+                issue = IssueFactory.create_granular_issue(
+                    issue_type='image_oversized',
+                    severity='medium',
+                    category='performance',
+                    title='Oversized Image',
+                    description=f'Image {self._truncate_url(src)} is oversized ({width}x{height})',
+                    recommendation=f'Optimize to max 1920x1080px and compress file size',
+                    resource_details=resource_details,
+                    score_impact=seo_config.scoring_weights['oversized_images'] / 3  # Distribute weight
+                )
+                issues.append(issue)
         
         return issues
+    
+    def _get_image_context(self, img: Dict[str, Any], src: str) -> str:
+        """Determine image context from filename or attributes"""
+        filename = src.split('/')[-1].lower()
+        
+        # Context clues from filename
+        if any(term in filename for term in ['hero', 'banner', 'header']):
+            return "Hero/Banner section"
+        elif any(term in filename for term in ['logo', 'brand']):
+            return "Logo/Branding"
+        elif any(term in filename for term in ['product', 'item']):
+            return "Product showcase"
+        elif any(term in filename for term in ['gallery', 'thumb']):
+            return "Image gallery"
+        elif any(term in filename for term in ['icon', 'button']):
+            return "UI element"
+        else:
+            return "Content image"
+    
+    def _truncate_url(self, url: str, max_length: int = 50) -> str:
+        """Truncate URL for display purposes"""
+        if len(url) <= max_length:
+            return url
+        return url[:max_length-3] + "..."
+    
+    def _suggest_seo_filename(self, src: str) -> str:
+        """Suggest SEO-friendly filename"""
+        filename = src.split('/')[-1]
+        name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, 'jpg')
+        
+        # Basic suggestion - could be enhanced with AI/context
+        if any(term in name.lower() for term in ['img', 'image', 'dsc', 'photo']):
+            return f"descriptive-keyword.{ext}"
+        return f"seo-friendly-{name}.{ext}"
+    
+    def _safe_int(self, value, default: int = 0) -> int:
+        """Safely convert value to int"""
+        try:
+            return int(value) if value else default
+        except (ValueError, TypeError):
+            return default
     
     def _check_status_code_issues(self, status_code: int) -> List[Dict[str, Any]]:
         """Check HTTP status code issues"""
@@ -526,3 +610,23 @@ class IssueDetector:
             import logging
             logging.getLogger(__name__).warning(f"Error calculating word count in issue detector: {str(e)}")
             return 0
+    
+    def _check_performance_issues(self, crawl_result) -> List[Dict[str, Any]]:
+        """Check for granular performance issues using PerformanceAnalyzer"""
+        issues = []
+        
+        try:
+            # Get HTML content for blocking resource analysis
+            html_content = getattr(crawl_result, 'html', '') or getattr(crawl_result, 'cleaned_html', '')
+            
+            if html_content:
+                # Get granular blocking resources issues
+                blocking_issues = self.performance_analyzer._identify_blocking_resources(html_content)
+                issues.extend(blocking_issues)
+            
+        except Exception as e:
+            # Log error but don't fail the whole analysis
+            import logging
+            logging.getLogger(__name__).warning(f"Error checking performance issues: {str(e)}")
+        
+        return issues

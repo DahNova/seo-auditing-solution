@@ -14,6 +14,7 @@ from app.services.scan_service import ScanService
 from app.services.schedule_service import ScheduleService
 from app.services.seo_analyzer.seo_analyzer import SEOAnalyzer
 from app.services.seo_analyzer.issue_prioritizer import SmartIssuePrioritizer
+from app.services.seo_analyzer.core.resource_details import IssueFactory
 from app.models import Client, Website, Scan, Issue, Page, Schedule
 from app.core.celery_app import celery_app
 
@@ -730,7 +731,13 @@ async def scan_results(
             'url_structure_issue': {'name': 'Struttura URL Problematica', 'icon': 'bi-link-45deg'},
             'duplicate_canonical_group': {'name': 'Pagine Duplicate', 'icon': 'bi-files'},
             'analysis_error': {'name': 'Errore Analisi', 'icon': 'bi-exclamation-triangle'},
-            'crawl_error': {'name': 'Errore Crawling', 'icon': 'bi-exclamation-triangle'}
+            'crawl_error': {'name': 'Errore Crawling', 'icon': 'bi-exclamation-triangle'},
+            # NEW: Granular issue types
+            'image_missing_alt': {'name': 'Immagine Senza Alt Text', 'icon': 'bi-image'},
+            'image_oversized': {'name': 'Immagine Troppo Grande', 'icon': 'bi-image'},
+            'image_bad_filename': {'name': 'Nome File Immagine Non-SEO', 'icon': 'bi-image'},
+            'blocking_css_resource': {'name': 'CSS Bloccante', 'icon': 'bi-filetype-css'},
+            'blocking_js_resource': {'name': 'JavaScript Bloccante', 'icon': 'bi-filetype-js'}
         }
         
         for issue in issues:
@@ -758,13 +765,57 @@ async def scan_results(
                     'pages': [],
                     'count': 0,
                     'first_description': issue.description or '',
-                    'first_recommendation': getattr(issue, 'recommendation', 'Review and fix this issue')
+                    'first_recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
+                    'resource_details': []
                 }
             
             # Add page URL to this issue type
             if page_url not in issues_hierarchy[severity][issue_type]['pages']:
                 issues_hierarchy[severity][issue_type]['pages'].append(page_url)
                 issues_hierarchy[severity][issue_type]['count'] += 1
+            
+            # Add resource details if available
+            resource_details = IssueFactory.extract_resource_details({
+                'element': getattr(issue, 'element', '')
+            })
+            if resource_details:
+                # Add resource details with page URL for template display
+                resource_data = {
+                    'page_url': page_url,
+                    'resource_url': resource_details.resource_url,
+                    'resource_type': resource_details.resource_type.value,
+                    'issue_specific_data': resource_details.issue_specific_data,
+                    'page_context': resource_details.page_context
+                }
+                issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
+        
+        # NEW: Process resource details for granular issues display
+        issues_with_resources = []
+        for issue in issues:
+            page_url = page_url_mapping.get(issue.page_id, 'N/A')
+            
+            # Try to extract resource details
+            resource_details = IssueFactory.extract_resource_details({
+                'element': getattr(issue, 'element', '')
+            })
+            
+            issue_data = {
+                'id': issue.id,
+                'type': issue.type,
+                'severity': issue.severity,
+                'category': getattr(issue, 'category', 'unknown'),
+                'title': getattr(issue, 'title', issue.type.replace('_', ' ').title()),
+                'description': issue.description or '',
+                'recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
+                'page_url': page_url,
+                'resource_details': resource_details
+            }
+            issues_with_resources.append(issue_data)
+        
+        # Group issues by resource type for specialized display
+        resource_grouped_issues = IssueFactory.group_issues_by_resource_type(
+            [{'element': getattr(issue, 'element', '')} for issue in issues]
+        )
         
         # Apply Smart Issue Prioritization
         priority_data = {}
@@ -858,6 +909,10 @@ async def scan_results(
             "issues_hierarchy": issues_hierarchy,
             "page_url_mapping": page_url_mapping,
             "priority_data": priority_data,
+            # NEW: Resource details for granular display
+            "issues_with_resources": issues_with_resources,
+            "resource_grouped_issues": resource_grouped_issues,
+            "issue_type_info": issue_type_info,
             # Core Web Vitals and Technical SEO aggregate data
             "performance_overview": {
                 "avg_performance_score": round(avg_performance_score, 1),

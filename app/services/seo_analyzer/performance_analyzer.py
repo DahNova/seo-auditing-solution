@@ -6,6 +6,7 @@ from typing import Dict, List, Any, Optional
 import logging
 import re
 from urllib.parse import urlparse
+from .core.resource_details import ResourceDetailsBuilder, IssueFactory
 
 logger = logging.getLogger(__name__)
 
@@ -168,15 +169,9 @@ class PerformanceAnalyzer:
                     'metric_affected': 'LCP, FCP'
                 })
             
-            # Blocking resources
-            if metrics.get('blocking_resources', 0) > 3:
-                issues.append({
-                    'type': 'blocking_resources',
-                    'severity': 'high',
-                    'impact': 'Delays initial page rendering',
-                    'recommendation': f"Defer or async load {metrics['blocking_resources']} blocking resources",
-                    'metric_affected': 'FCP, LCP'
-                })
+            # Individual blocking resources identification
+            blocking_issues = self._identify_blocking_resources(html_content)
+            issues.extend(blocking_issues)
             
             # Large HTML size
             if metrics.get('content_size', 0) > 100000:  # 100KB
@@ -290,6 +285,103 @@ class PerformanceAnalyzer:
             logger.error(f"Error generating optimization opportunities: {str(e)}")
             
         return opportunities
+    
+    def _identify_blocking_resources(self, html_content: str) -> List[Dict[str, Any]]:
+        """Identify specific blocking CSS and JavaScript resources"""
+        blocking_issues = []
+        
+        if not html_content:
+            return blocking_issues
+        
+        try:
+            # Identify blocking CSS files
+            css_pattern = r'<link[^>]*rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+)["\'][^>]*(?!media=["\']print["\'])'
+            css_matches = re.findall(css_pattern, html_content, re.IGNORECASE)
+            
+            for css_url in css_matches:
+                # Check if CSS is in critical path (not async loaded)
+                if not self._is_async_loaded(css_url, html_content):
+                    resource_details = ResourceDetailsBuilder.blocking_css(
+                        css_url=css_url,
+                        load_priority="high",
+                        estimated_delay=150.0  # Estimated blocking delay in ms
+                    )
+                    
+                    issue = IssueFactory.create_granular_issue(
+                        issue_type='blocking_css_resource',
+                        severity='high',
+                        category='performance',
+                        title='Render-Blocking CSS',
+                        description=f'CSS file {self._truncate_url(css_url)} blocks page rendering',
+                        recommendation=f'Add media query, preload, or inline critical CSS for {self._get_filename(css_url)}',
+                        resource_details=resource_details,
+                        score_impact=-3.0  # Impact per blocking resource
+                    )
+                    blocking_issues.append(issue)
+            
+            # Identify blocking JavaScript files
+            js_pattern = r'<script[^>]*src=["\']([^"\']+)["\'][^>]*(?!async|defer)'
+            js_matches = re.findall(js_pattern, html_content, re.IGNORECASE)
+            
+            for js_url in js_matches:
+                # Check if script is in head (more critical blocking)
+                in_head = self._is_script_in_head(js_url, html_content)
+                severity = 'high' if in_head else 'medium'
+                estimated_delay = 200.0 if in_head else 100.0
+                
+                resource_details = ResourceDetailsBuilder.blocking_javascript(
+                    js_url=js_url,
+                    has_async=False,
+                    has_defer=False,
+                    estimated_delay=estimated_delay
+                )
+                
+                issue = IssueFactory.create_granular_issue(
+                    issue_type='blocking_js_resource',
+                    severity=severity,
+                    category='performance',
+                    title='Blocking JavaScript',
+                    description=f'JavaScript file {self._truncate_url(js_url)} blocks page parsing',
+                    recommendation=f'Add async/defer attributes or move {self._get_filename(js_url)} to end of body',
+                    resource_details=resource_details,
+                    score_impact=-2.5 if in_head else -1.5
+                )
+                blocking_issues.append(issue)
+            
+        except Exception as e:
+            logger.error(f"Error identifying blocking resources: {str(e)}")
+        
+        return blocking_issues
+    
+    def _is_async_loaded(self, resource_url: str, html_content: str) -> bool:
+        """Check if CSS resource is loaded asynchronously"""
+        # Look for preload patterns or async loading mechanisms
+        async_patterns = [
+            rf'<link[^>]*rel=["\']preload["\'][^>]*href=["\'][^"\']*{re.escape(resource_url)}[^"\']*["\']',
+            rf'loadCSS\(["\'][^"\']*{re.escape(resource_url)}[^"\']*["\']'
+        ]
+        
+        return any(re.search(pattern, html_content, re.IGNORECASE) for pattern in async_patterns)
+    
+    def _is_script_in_head(self, js_url: str, html_content: str) -> bool:
+        """Check if script is loaded in head section"""
+        # Extract head section
+        head_match = re.search(r'<head[^>]*>(.*?)</head>', html_content, re.DOTALL | re.IGNORECASE)
+        if not head_match:
+            return False
+        
+        head_content = head_match.group(1)
+        return js_url in head_content
+    
+    def _truncate_url(self, url: str, max_length: int = 40) -> str:
+        """Truncate URL for display purposes"""
+        if len(url) <= max_length:
+            return url
+        return url[:max_length-3] + "..."
+    
+    def _get_filename(self, url: str) -> str:
+        """Extract filename from URL"""
+        return url.split('/')[-1].split('?')[0]  # Remove query params
     
     def _has_compression_hints(self, html_content: str) -> bool:
         """Check if content shows signs of compression"""

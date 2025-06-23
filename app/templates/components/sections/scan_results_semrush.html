@@ -265,7 +265,100 @@
                                         </div>
                                         {% endif %}
                                         
-                                        <!-- Affected Pages List -->
+                                        <!-- Resource Details Table -->
+                                        {% if issue_data.resource_details %}
+                                        <div style="font-size: 0.875rem; font-weight: 500; color: var(--sr-text); margin-bottom: 0.75rem;">
+                                            Risorse Interessate:
+                                        </div>
+                                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--sr-border-light); border-radius: 4px;">
+                                            <table class="sr-table" style="margin: 0; font-size: 0.8rem;">
+                                                <thead style="background: var(--sr-gray-25); position: sticky; top: 0;">
+                                                    <tr>
+                                                        <th style="width: 35%; padding: 0.5rem;">Pagina</th>
+                                                        <th style="width: 35%; padding: 0.5rem;">Risorsa</th>
+                                                        <th style="width: 20%; padding: 0.5rem;">Dettagli</th>
+                                                        <th style="width: 10%; padding: 0.5rem;">Azione</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for resource in issue_data.resource_details %}
+                                                    <tr style="border-bottom: 1px solid var(--sr-border-light);">
+                                                        <td style="padding: 0.5rem; vertical-align: top;">
+                                                            <a href="{{ resource.page_url }}" target="_blank" class="sr-url" 
+                                                               style="font-size: 0.75rem; display: block;"
+                                                               title="{{ resource.page_url }}">
+                                                                <i class="bi bi-link-45deg" style="color: var(--sr-text-muted); margin-right: 0.25rem;"></i>
+                                                                {{ resource.page_url|truncate(40, True, '...') }}
+                                                            </a>
+                                                        </td>
+                                                        <td style="padding: 0.5rem; vertical-align: top;">
+                                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                                                {% if resource.resource_type == 'image' %}
+                                                                <i class="bi bi-image" style="color: var(--sr-info); font-size: 0.875rem;"></i>
+                                                                {% elif resource.resource_type == 'css' %}
+                                                                <i class="bi bi-file-earmark-code" style="color: var(--sr-primary); font-size: 0.875rem;"></i>
+                                                                {% elif resource.resource_type == 'javascript' %}
+                                                                <i class="bi bi-file-earmark-text" style="color: var(--sr-warning); font-size: 0.875rem;"></i>
+                                                                {% else %}
+                                                                <i class="bi bi-file-earmark" style="color: var(--sr-text-muted); font-size: 0.875rem;"></i>
+                                                                {% endif %}
+                                                                <span style="font-size: 0.75rem; word-break: break-all;">
+                                                                    {% if resource.resource_url|length > 45 %}
+                                                                    <span title="{{ resource.resource_url }}">{{ resource.resource_url|truncate(45, True, '...') }}</span>
+                                                                    {% else %}
+                                                                    {{ resource.resource_url }}
+                                                                    {% endif %}
+                                                                </span>
+                                                            </div>
+                                                            {% if resource.page_context %}
+                                                            <div style="font-size: 0.7rem; color: var(--sr-text-muted); margin-top: 0.25rem;">
+                                                                {{ resource.page_context }}
+                                                            </div>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td style="padding: 0.5rem; vertical-align: top;">
+                                                            {% if resource.issue_specific_data %}
+                                                            <div style="font-size: 0.7rem;">
+                                                                {% if resource.issue_specific_data.get('current_alt') is defined %}
+                                                                <div><strong>Alt:</strong> 
+                                                                    {% if resource.issue_specific_data.current_alt %}
+                                                                    "{{ resource.issue_specific_data.current_alt|truncate(20, True, '...') }}"
+                                                                    {% else %}
+                                                                    <em>Missing</em>
+                                                                    {% endif %}
+                                                                </div>
+                                                                {% endif %}
+                                                                {% if resource.issue_specific_data.get('current_width') %}
+                                                                <div><strong>Size:</strong> {{ resource.issue_specific_data.current_width }}x{{ resource.issue_specific_data.current_height }}px</div>
+                                                                {% endif %}
+                                                                {% if resource.issue_specific_data.get('estimated_delay_ms') %}
+                                                                <div><strong>Delay:</strong> {{ resource.issue_specific_data.estimated_delay_ms|round(0) }}ms</div>
+                                                                {% endif %}
+                                                                {% if resource.issue_specific_data.get('current_filename') %}
+                                                                <div><strong>File:</strong> {{ resource.issue_specific_data.current_filename|truncate(15, True, '...') }}</div>
+                                                                {% endif %}
+                                                            </div>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td style="padding: 0.5rem; vertical-align: top; text-align: center;">
+                                                            {% if resource.resource_type == 'image' and resource.issue_specific_data.get('current_alt') is defined %}
+                                                            <i class="bi bi-pencil-square" style="color: var(--sr-primary); cursor: pointer; font-size: 0.875rem;" 
+                                                               title="Add alt text"></i>
+                                                            {% elif resource.resource_type in ['css', 'javascript'] %}
+                                                            <i class="bi bi-code-square" style="color: var(--sr-warning); cursor: pointer; font-size: 0.875rem;" 
+                                                               title="Optimize loading"></i>
+                                                            {% else %}
+                                                            <i class="bi bi-tools" style="color: var(--sr-info); cursor: pointer; font-size: 0.875rem;" 
+                                                               title="Fix issue"></i>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% else %}
+                                        <!-- Fallback to original pages list if no resource details -->
                                         <div style="font-size: 0.875rem; font-weight: 500; color: var(--sr-text); margin-bottom: 0.5rem;">
                                             Pagine Interessate:
                                         </div>
@@ -282,6 +375,7 @@
                                             </div>
                                             {% endfor %}
                                         </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 {% endfor %}

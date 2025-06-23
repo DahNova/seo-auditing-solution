@@ -80,7 +80,50 @@ class SEOConfig(BaseSettings):
         'images_bad_filename': -1.0,
         'oversized_images': -2.0,
         'thin_content': -5.0,
-        'broken_links': -6.0
+        'broken_links': -6.0,
+        # Content quality weights
+        'poor_readability': -4.0,
+        'keyword_stuffing': -6.0,
+        'duplicate_content': -8.0,
+        'outdated_content': -3.0,
+        'missing_internal_links': -2.0,
+        # Accessibility weights
+        'poor_color_contrast': -3.0,
+        'missing_accessibility_features': -4.0,
+        'keyboard_navigation_issues': -3.0,
+        # E-A-T weights
+        'missing_author_info': -3.0,
+        'poor_trust_signals': -4.0,
+        'missing_contact_info': -2.0,
+        # Local SEO weights
+        'inconsistent_nap': -5.0,
+        'missing_local_schema': -3.0
+    }
+    
+    # Content quality thresholds
+    readability_min_score: float = 8.0  # Flesch-Kincaid grade level
+    readability_max_score: float = 12.0
+    keyword_density_max: float = 3.0  # Maximum keyword density percentage
+    
+    # Accessibility standards
+    min_color_contrast_ratio: float = 4.5  # WCAG AA standard
+    
+    # E-A-T signal indicators
+    trust_signal_keywords: List[str] = [
+        'about us', 'chi siamo', 'contatti', 'contact', 'privacy policy', 
+        'termini di servizio', 'terms of service', 'certificazioni',
+        'certifications', 'testimonials', 'recensioni'
+    ]
+    
+    authority_signal_keywords: List[str] = [
+        'esperto', 'expert', 'dottore', 'doctor', 'professore', 'professor',
+        'certificato', 'certified', 'premio', 'award', 'pubblicazione', 'publication'
+    ]
+    
+    # Local SEO patterns
+    nap_patterns: Dict[str, str] = {
+        'phone_it': r'(?:\+39|0039)?[\s\-]?(?:0\d{2,3}[\s\-]?\d{6,7}|\d{3}[\s\-]?\d{3}[\s\-]?\d{4})',
+        'address_it': r'\b(?:via|viale|corso|piazza|largo|strada)\s+[A-Za-z\s,]+\d+\b'
     }
 
 # Global settings instances

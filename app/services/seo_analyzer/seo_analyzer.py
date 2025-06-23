@@ -7,6 +7,8 @@ from .issue_detector import IssueDetector
 from .performance_analyzer import PerformanceAnalyzer
 from .technical_seo_analyzer import TechnicalSEOAnalyzer
 from .issue_prioritizer import SmartIssuePrioritizer
+from .content.content_quality import ContentQualityAnalyzer
+from .content.accessibility import AccessibilityAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,8 @@ class SEOAnalyzer:
         self.performance_analyzer = PerformanceAnalyzer()
         self.technical_seo_analyzer = TechnicalSEOAnalyzer()
         self.issue_prioritizer = SmartIssuePrioritizer()
+        self.content_quality_analyzer = ContentQualityAnalyzer()
+        self.accessibility_analyzer = AccessibilityAnalyzer()
     
     async def analyze_page_content(self, crawl_result, domain: str) -> Dict[str, Any]:
         """Analyze crawl result from Crawl4AI for SEO factors"""
@@ -32,6 +36,20 @@ class SEOAnalyzer:
             # Add Technical SEO analysis
             technical_data = self.technical_seo_analyzer.analyze_technical_seo(crawl_result, domain)
             analysis_result['technical_seo'] = technical_data
+            
+            # Add Content Quality analysis
+            content_quality_result = self.content_quality_analyzer.analyze(crawl_result)
+            analysis_result['content_quality'] = {
+                'scores': content_quality_result.scores,
+                'metadata': content_quality_result.metadata
+            }
+            
+            # Add Accessibility analysis
+            accessibility_result = self.accessibility_analyzer.analyze(crawl_result)
+            analysis_result['accessibility'] = {
+                'scores': accessibility_result.scores,
+                'metadata': accessibility_result.metadata
+            }
             
             return analysis_result
             
@@ -48,21 +66,8 @@ class SEOAnalyzer:
                 page_id=page_id
             )
             
-            # Add performance issues from Core Web Vitals analysis
-            performance_data = self.performance_analyzer.analyze_core_web_vitals(crawl_result)
-            performance_issues = performance_data.get('performance_issues', [])
-            
-            # Convert performance issues to standard issue format
-            for perf_issue in performance_issues:
-                issues.append({
-                    'type': perf_issue['type'],
-                    'severity': perf_issue['severity'],
-                    'category': 'performance',
-                    'title': perf_issue['type'].replace('_', ' ').title(),
-                    'description': perf_issue['impact'],
-                    'recommendation': perf_issue['recommendation'],
-                    'element': perf_issue.get('metric_affected', ''),
-                })
+            # NOTE: Performance issues are now handled by IssueDetector.detect_all_issues()
+            # which includes granular blocking resources analysis. No need to duplicate here.
             
             # Add technical SEO issues
             technical_data = self.technical_seo_analyzer.analyze_technical_seo(crawl_result, '')
@@ -78,6 +83,32 @@ class SEOAnalyzer:
                     'description': tech_issue['message'],
                     'recommendation': tech_issue['recommendation'],
                     'element': tech_issue.get('impact', ''),
+                })
+            
+            # Add Content Quality issues
+            content_quality_result = self.content_quality_analyzer.analyze(crawl_result)
+            for cq_issue in content_quality_result.issues:
+                issues.append({
+                    'type': cq_issue['type'],
+                    'severity': cq_issue['severity'],
+                    'category': cq_issue['category'],
+                    'title': cq_issue['title'],
+                    'description': cq_issue['description'],
+                    'recommendation': cq_issue['recommendation'],
+                    'element': cq_issue.get('element', ''),
+                })
+            
+            # Add Accessibility issues
+            accessibility_result = self.accessibility_analyzer.analyze(crawl_result)
+            for acc_issue in accessibility_result.issues:
+                issues.append({
+                    'type': acc_issue['type'],
+                    'severity': acc_issue['severity'],
+                    'category': acc_issue['category'],
+                    'title': acc_issue['title'],
+                    'description': acc_issue['description'],
+                    'recommendation': acc_issue['recommendation'],
+                    'element': acc_issue.get('element', ''),
                 })
             
             return issues
