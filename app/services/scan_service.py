@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models import Scan, Page, Issue, Website
 from app.services.seo_analyzer import SEOAnalyzer
+from app.services.seo_analyzer.issue_deduplicator import IssueDeduplicator
 from app.services.url_utils import clean_url
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 class ScanService:
     def __init__(self):
         self.seo_analyzer = SEOAnalyzer()
+        self.issue_deduplicator = IssueDeduplicator()
     
     async def run_scan(self, scan_id: int, website: Website):
         """Run a complete SEO scan for a website"""
@@ -30,6 +32,9 @@ class ScanService:
                 scan = scan_result.scalar_one()
                 scan.status = "running"
                 await db.commit()
+                
+                # Reset deduplicator for new scan
+                self.issue_deduplicator.reset()
                 
                 # Setup crawl4ai configuration
                 browser_config = BrowserConfig(
@@ -153,11 +158,18 @@ class ScanService:
                             db.add(page)
                             await db.flush()
                             
-                            # Save issues using Crawl4AI data
-                            issues = await self.seo_analyzer.analyze_page_issues(result, page.id)
-                            for issue_data in issues:
+                            # Save issues using Crawl4AI data with deduplication
+                            raw_issues = await self.seo_analyzer.analyze_page_issues(result, page.id)
+                            
+                            # Deduplicate issues for this page
+                            deduplicated_issues = self.issue_deduplicator.deduplicate_issues(raw_issues, page.id)
+                            
+                            for issue_data in deduplicated_issues:
                                 issue = Issue(page_id=page.id, **issue_data)
                                 db.add(issue)
+                            
+                            # Update count to use deduplicated issues
+                            issues = deduplicated_issues
                             
                             # Calculate SEO score for this page
                             page_score = self.seo_analyzer.scoring_engine.calculate_page_score(issues)
@@ -228,8 +240,45 @@ class ScanService:
                     scan.pages_failed = pages_failed
                     scan.total_issues = total_issues
                     
+                    # Apply site-wide issue frequency analysis and aggregation
+                    await db.flush()  # Ensure all issues are saved first
+                    
+                    # Get all issues for this scan for frequency analysis
+                    all_issues_result = await db.execute(
+                        select(Issue).join(Page).where(Page.scan_id == scan_id)
+                    )
+                    all_issues_raw = all_issues_result.scalars().all()
+                    
+                    if all_issues_raw:
+                        # Convert to dict format for aggregation
+                        all_issues_data = []
+                        for issue in all_issues_raw:
+                            issue_dict = {
+                                'id': issue.id,
+                                'type': issue.type,
+                                'severity': issue.severity,
+                                'description': issue.description,
+                                'element': getattr(issue, 'element', ''),
+                                'score_impact': getattr(issue, 'score_impact', -1.0)
+                            }
+                            all_issues_data.append(issue_dict)
+                        
+                        # Apply frequency-based aggregation
+                        aggregated_issues = self.issue_deduplicator.aggregate_site_wide_duplicates(all_issues_data)
+                        
+                        # Update database with aggregated data
+                        for i, aggregated_issue in enumerate(aggregated_issues):
+                            if i < len(all_issues_raw):
+                                original_issue = all_issues_raw[i]
+                                original_issue.description = aggregated_issue.get('description', original_issue.description)
+                                original_issue.severity = aggregated_issue.get('severity', original_issue.severity)
+                                if hasattr(original_issue, 'score_impact'):
+                                    original_issue.score_impact = aggregated_issue.get('score_impact', getattr(original_issue, 'score_impact', -1.0))
+                        
+                        logger.info(f"Applied site-wide frequency analysis to {len(aggregated_issues)} issues")
+                    
                     # Calculate overall website SEO score
-                    await db.flush()  # Ensure all pages are saved
+                    await db.flush()  # Ensure all updated issues are saved
                     page_scores = [p.seo_score for p in scan.pages if p.seo_score > 0]
                     if page_scores:
                         website_score_data = self.seo_analyzer.scoring_engine.calculate_website_score(page_scores)

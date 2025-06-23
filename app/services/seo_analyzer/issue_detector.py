@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 from app.core.config import seo_config
 from .core.resource_details import ResourceDetailsBuilder, IssueFactory
 from .performance_analyzer import PerformanceAnalyzer
+from .severity_calculator import SeverityCalculator
 
 class IssueDetector:
     """Detects and categorizes SEO issues using configurable rules"""
@@ -71,34 +72,39 @@ class IssueDetector:
         issues = []
         
         if not title:
+            severity = SeverityCalculator.calculate_severity('missing_title')
             issues.append({
                 'type': 'missing_title',
                 'category': 'on_page',
-                'severity': 'critical',
+                'severity': severity,
                 'title': 'Missing Title Tag',
                 'description': 'Page is missing a title tag',
                 'recommendation': 'Add a descriptive title tag of 50-60 characters',
-                'score_impact': seo_config.scoring_weights['missing_title']
+                'score_impact': SeverityCalculator.get_severity_score(severity)
             })
         elif len(title) < seo_config.title_min_length:
+            context = {'length': len(title)}
+            severity = SeverityCalculator.calculate_severity('title_too_short', context)
             issues.append({
                 'type': 'title_too_short',
                 'category': 'on_page',
-                'severity': 'medium',
+                'severity': severity,
                 'title': 'Title Too Short',
                 'description': f'Title is too short ({len(title)} chars)',
                 'recommendation': f'Extend title to {seo_config.title_min_length}-{seo_config.title_max_length} characters - longer titles perform better in 2024+',
-                'score_impact': seo_config.scoring_weights['title_too_short']
+                'score_impact': SeverityCalculator.get_severity_score(severity)
             })
         elif len(title) > seo_config.title_max_length:
+            context = {'length': len(title)}
+            severity = SeverityCalculator.calculate_severity('title_too_long', context)
             issues.append({
                 'type': 'title_too_long',
                 'category': 'on_page',
-                'severity': 'medium',
+                'severity': severity,
                 'title': 'Title Too Long',
                 'description': f'Title is too long ({len(title)} chars)',
                 'recommendation': f'Shorten title to {seo_config.title_min_length}-{seo_config.title_max_length} characters',
-                'score_impact': seo_config.scoring_weights['title_too_long']
+                'score_impact': SeverityCalculator.get_severity_score(severity)
             })
         
         return issues
@@ -145,14 +151,16 @@ class IssueDetector:
         issues = []
         
         if word_count < seo_config.min_word_count:
+            context = {'word_count': word_count}
+            severity = SeverityCalculator.calculate_severity('thin_content', context)
             issues.append({
                 'type': 'thin_content',
                 'category': 'content',
-                'severity': 'medium',
+                'severity': severity,
                 'title': 'Thin Content',
                 'description': f'Page has thin content ({word_count} words)',
                 'recommendation': f'Add more valuable content (minimum {seo_config.min_word_count} words)',
-                'score_impact': seo_config.scoring_weights['thin_content']
+                'score_impact': SeverityCalculator.get_severity_score(severity)
             })
         
         return issues

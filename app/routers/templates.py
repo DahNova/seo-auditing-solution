@@ -689,11 +689,42 @@ async def scan_results(
         schema_coverage = (schema_pages / len(all_pages) * 100) if all_pages else 0
         mobile_coverage = (mobile_optimized_pages / len(all_pages) * 100) if all_pages else 0
         
-        # Get scan issues (join through pages) AND create complete page mapping
-        issues_result = await db.execute(
-            select(Issue).join(Page).where(Page.scan_id == scan_id)
+        # Get scan issues with performance-aware limiting 
+        # For large scans (>5000 issues), limit to prevent browser freeze
+        total_issues_count = await db.scalar(
+            select(func.count(Issue.id)).join(Page).where(Page.scan_id == scan_id)
         )
-        issues_raw = issues_result.scalars().all()
+        
+        # Performance-aware issue loading
+        MAX_ISSUES_FOR_UI = 2000  # Max issues to load in UI
+        issues_per_severity = MAX_ISSUES_FOR_UI // 4  # Distribute across severities
+        
+        if total_issues_count > MAX_ISSUES_FOR_UI:
+            logger.warning(f"Scan {scan_id} has {total_issues_count} issues. Loading limited set for performance.")
+            
+            # Load limited issues per severity for performance
+            issues_raw = []
+            for severity in ['critical', 'high', 'medium', 'low']:
+                severity_issues = await db.execute(
+                    select(Issue).join(Page)
+                    .where(Page.scan_id == scan_id)
+                    .where(Issue.severity == severity)
+                    .order_by(Issue.id)
+                    .limit(issues_per_severity)
+                )
+                issues_raw.extend(severity_issues.scalars().all())
+                
+            # Add metadata about truncation
+            issues_truncated = True
+            issues_truncated_count = total_issues_count - len(issues_raw)
+        else:
+            # Load all issues for smaller scans
+            issues_result = await db.execute(
+                select(Issue).join(Page).where(Page.scan_id == scan_id)
+            )
+            issues_raw = issues_result.scalars().all()
+            issues_truncated = False
+            issues_truncated_count = 0
         
         # Create complete page_id → URL mapping for ALL pages in scan (fix "N/A" problem)
         page_url_mapping = {page.id: page.url for page in all_pages}
@@ -934,6 +965,14 @@ async def scan_results(
                 "next_page": page + 1 if page < total_pages_pagination else None,
                 "start_item": offset + 1 if total_pages_count > 0 else 0,
                 "end_item": min(offset + per_page, total_pages_count)
+            },
+            # Performance metadata
+            "issues_performance": {
+                "total_issues_count": total_issues_count,
+                "loaded_issues_count": len(issues),
+                "is_truncated": issues_truncated,
+                "truncated_count": issues_truncated_count,
+                "max_issues_ui": MAX_ISSUES_FOR_UI
             },
             "current_section": "scan_results"
         }

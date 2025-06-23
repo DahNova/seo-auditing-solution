@@ -7,6 +7,7 @@ import logging
 import re
 from urllib.parse import urlparse
 from .core.resource_details import ResourceDetailsBuilder, IssueFactory
+from .severity_calculator import SeverityCalculator
 from app.services.url_utils import clean_url
 
 logger = logging.getLogger(__name__)
@@ -303,21 +304,31 @@ class PerformanceAnalyzer:
                 css_url = clean_url(css_url)  # Clean URL to remove invisible characters
                 # Check if CSS is in critical path (not async loaded)
                 if not self._is_async_loaded(css_url, html_content):
+                    estimated_delay = 150.0  # Estimated blocking delay in ms
+                    
+                    # Calculate severity using standardized calculator
+                    severity_context = {
+                        'estimated_delay_ms': estimated_delay,
+                        'resource_type': 'css'
+                    }
+                    severity = SeverityCalculator.calculate_severity('blocking_css_resource', severity_context)
+                    score_impact = SeverityCalculator.get_severity_score(severity)
+                    
                     resource_details = ResourceDetailsBuilder.blocking_css(
                         css_url=css_url,
                         load_priority="high",
-                        estimated_delay=150.0  # Estimated blocking delay in ms
+                        estimated_delay=estimated_delay
                     )
                     
                     issue = IssueFactory.create_granular_issue(
                         issue_type='blocking_css_resource',
-                        severity='high',
+                        severity=severity,
                         category='performance',
                         title='Render-Blocking CSS',
                         description=f'CSS file {self._truncate_url(css_url)} blocks page rendering',
                         recommendation=f'Add media query, preload, or inline critical CSS for {self._get_filename(css_url)}',
                         resource_details=resource_details,
-                        score_impact=-3.0  # Impact per blocking resource
+                        score_impact=score_impact
                     )
                     blocking_issues.append(issue)
             
@@ -329,8 +340,16 @@ class PerformanceAnalyzer:
                 js_url = clean_url(js_url)  # Clean URL to remove invisible characters
                 # Check if script is in head (more critical blocking)
                 in_head = self._is_script_in_head(js_url, html_content)
-                severity = 'high' if in_head else 'medium'
                 estimated_delay = 200.0 if in_head else 100.0
+                
+                # Calculate severity using standardized calculator
+                severity_context = {
+                    'in_head': in_head,
+                    'estimated_delay_ms': estimated_delay,
+                    'resource_type': 'javascript'
+                }
+                severity = SeverityCalculator.calculate_severity('blocking_js_resource', severity_context)
+                score_impact = SeverityCalculator.get_severity_score(severity)
                 
                 resource_details = ResourceDetailsBuilder.blocking_javascript(
                     js_url=js_url,
@@ -347,7 +366,7 @@ class PerformanceAnalyzer:
                     description=f'JavaScript file {self._truncate_url(js_url)} blocks page parsing',
                     recommendation=f'Add async/defer attributes or move {self._get_filename(js_url)} to end of body',
                     resource_details=resource_details,
-                    score_impact=-2.5 if in_head else -1.5
+                    score_impact=score_impact
                 )
                 blocking_issues.append(issue)
             
