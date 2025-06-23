@@ -41,9 +41,9 @@ class BaseAnalyzer(ABC):
             soup = BeautifulSoup(html_content, 'html.parser')
             return soup.get_text(separator=' ', strip=True)
         
-        # Fallback to markdown
+        # Fallback to markdown - handle both string and object types
         markdown_content = getattr(crawl_result, 'markdown', '')
-        if hasattr(markdown_content, 'raw_markdown'):
+        if markdown_content and hasattr(markdown_content, 'raw_markdown'):
             return markdown_content.raw_markdown
         return str(markdown_content) if markdown_content else ''
     

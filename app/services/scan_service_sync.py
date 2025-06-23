@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import Website, Scan, Page, Issue
 from app.database import SyncSessionLocal
 from app.services.seo_analyzer.seo_analyzer import SEOAnalyzer
+from app.services.url_utils import clean_url
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
 
@@ -153,6 +154,9 @@ class SyncScanService:
                     pages_failed += 1
                     continue
                 
+                # Clean URL to remove invisible characters
+                url = clean_url(url)
+                
                 # Skip non-HTML content types - Don't save as pages but images should be analyzed within HTML pages
                 non_html_extensions = [
                     # Images
@@ -283,7 +287,7 @@ class SyncScanService:
                 try:
                     failed_page = Page(
                         scan_id=scan.id,
-                        url=getattr(result, 'url', 'unknown'),
+                        url=clean_url(getattr(result, 'url', 'unknown')),  # Clean URL to remove invisible characters
                         title='Failed to Process',
                         status_code=0,
                         word_count=0,

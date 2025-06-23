@@ -7,6 +7,7 @@ import logging
 import re
 import json
 from urllib.parse import urlparse, urljoin
+from app.services.url_utils import clean_url, normalize_url
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +247,7 @@ class TechnicalSEOAnalyzer:
             # Canonical URL
             canonical_match = re.search(r'<link[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
             if canonical_match:
-                tech_data['canonical_url'] = canonical_match.group(1)
+                tech_data['canonical_url'] = clean_url(canonical_match.group(1))
             
             # Robots meta tag
             robots_match = re.search(r'<meta[^>]*name=["\']robots["\'][^>]*content=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
@@ -273,21 +274,21 @@ class TechnicalSEOAnalyzer:
                 r'<link[^>]*rel=["\']alternate["\'][^>]*hreflang=["\']([^"\']*)["\'][^>]*href=["\']([^"\']*)["\']',
                 html_content, re.IGNORECASE
             )
-            tech_data['hreflang_tags'] = [{'lang': match[0], 'url': match[1]} for match in hreflang_matches]
+            tech_data['hreflang_tags'] = [{'lang': match[0], 'url': clean_url(match[1])} for match in hreflang_matches]
             
             # DNS prefetch
             dns_prefetch_matches = re.findall(
                 r'<link[^>]*rel=["\']dns-prefetch["\'][^>]*href=["\']([^"\']*)["\']',
                 html_content, re.IGNORECASE
             )
-            tech_data['dns_prefetch'] = dns_prefetch_matches
+            tech_data['dns_prefetch'] = [clean_url(url) for url in dns_prefetch_matches]
             
             # Preload tags
             preload_matches = re.findall(
                 r'<link[^>]*rel=["\']preload["\'][^>]*href=["\']([^"\']*)["\'][^>]*as=["\']([^"\']*)["\']',
                 html_content, re.IGNORECASE
             )
-            tech_data['preload_tags'] = [{'href': match[0], 'as': match[1]} for match in preload_matches]
+            tech_data['preload_tags'] = [{'href': clean_url(match[0]), 'as': match[1]} for match in preload_matches]
             
             # Calculate technical score
             tech_data['technical_score'] = self._calculate_technical_score(tech_data)
@@ -420,7 +421,7 @@ class TechnicalSEOAnalyzer:
             )
             
             if hreflang_matches:
-                i18n_data['hreflang_tags'] = [{'lang': match[0], 'url': match[1]} for match in hreflang_matches]
+                i18n_data['hreflang_tags'] = [{'lang': match[0], 'url': clean_url(match[1])} for match in hreflang_matches]
                 i18n_data['has_i18n'] = True
             
             # Calculate i18n score
@@ -694,7 +695,7 @@ class TechnicalSEOAnalyzer:
             )
             
             if canonical_match:
-                canonical_url = canonical_match.group(1)
+                canonical_url = clean_url(canonical_match.group(1))
                 # Convert relative URLs to absolute
                 if canonical_url.startswith('/'):
                     page_url = getattr(crawl_result, 'url', '')
@@ -702,7 +703,7 @@ class TechnicalSEOAnalyzer:
                         parsed = urlparse(page_url)
                         canonical_url = f"{parsed.scheme}://{parsed.netloc}{canonical_url}"
                 
-                return canonical_url
+                return clean_url(canonical_url)
             
             return None
             

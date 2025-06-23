@@ -28,7 +28,9 @@
       "Bash(make:*)",
       "Bash(for scan_id in 36 35 34 33)",
       "Bash(do:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(chmod:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

@@ -483,7 +483,7 @@ class AccessibilityAnalyzer(BaseAnalyzer):
         
         # Find elements with ARIA attributes
         aria_elements = soup.find_all(attrs={'role': True})
-        aria_elements.extend(soup.find_all(attrs=lambda x: x and any(k.startswith('aria-') for k in x.keys())))
+        aria_elements.extend(soup.find_all(attrs=lambda x: x and isinstance(x, dict) and any(k.startswith('aria-') for k in x.keys())))
         
         if aria_elements:
             # Good! ARIA is being used

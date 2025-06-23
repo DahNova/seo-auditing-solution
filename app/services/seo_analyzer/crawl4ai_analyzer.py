@@ -172,11 +172,12 @@ class Crawl4AIAnalyzer:
         try:
             # Try to get word count from markdown content
             if hasattr(crawl_result, 'markdown') and crawl_result.markdown:
-                # Get raw markdown text
-                if hasattr(crawl_result.markdown, 'raw_markdown'):
+                # Get raw markdown text - handle both string and object types
+                if hasattr(crawl_result, 'markdown') and crawl_result.markdown and hasattr(crawl_result.markdown, 'raw_markdown'):
                     text = crawl_result.markdown.raw_markdown
                 else:
-                    text = str(crawl_result.markdown)
+                    # Handle string markdown content directly
+                    text = str(crawl_result.markdown) if crawl_result.markdown else ''
                 
                 if text:
                     # Simple word count (split by whitespace, filter empty strings)

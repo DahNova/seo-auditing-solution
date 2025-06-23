@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models import Scan, Page, Issue, Website
 from app.services.seo_analyzer import SEOAnalyzer
+from app.services.url_utils import clean_url
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ class ScanService:
                             # Save page to database
                             page = Page(
                                 scan_id=scan_id,
-                                url=result.url,
+                                url=clean_url(result.url),  # Clean URL to remove invisible characters
                                 status_code=result.status_code,
                                 response_time=getattr(result, 'response_time', None),
                                 **enhanced_page_data
@@ -176,7 +177,7 @@ class ScanService:
                             try:
                                 failed_page = Page(
                                     scan_id=scan_id,
-                                    url=error_url,
+                                    url=clean_url(error_url),  # Clean URL to remove invisible characters
                                     status_code=error_status if error_status != 'unknown_status' else 500,
                                     response_time=getattr(result, 'response_time', None),
                                     title=f"Failed to process: {str(e)[:100]}",

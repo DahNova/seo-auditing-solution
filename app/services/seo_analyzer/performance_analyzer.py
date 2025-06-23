@@ -7,6 +7,7 @@ import logging
 import re
 from urllib.parse import urlparse
 from .core.resource_details import ResourceDetailsBuilder, IssueFactory
+from app.services.url_utils import clean_url
 
 logger = logging.getLogger(__name__)
 
@@ -299,6 +300,7 @@ class PerformanceAnalyzer:
             css_matches = re.findall(css_pattern, html_content, re.IGNORECASE)
             
             for css_url in css_matches:
+                css_url = clean_url(css_url)  # Clean URL to remove invisible characters
                 # Check if CSS is in critical path (not async loaded)
                 if not self._is_async_loaded(css_url, html_content):
                     resource_details = ResourceDetailsBuilder.blocking_css(
@@ -324,6 +326,7 @@ class PerformanceAnalyzer:
             js_matches = re.findall(js_pattern, html_content, re.IGNORECASE)
             
             for js_url in js_matches:
+                js_url = clean_url(js_url)  # Clean URL to remove invisible characters
                 # Check if script is in head (more critical blocking)
                 in_head = self._is_script_in_head(js_url, html_content)
                 severity = 'high' if in_head else 'medium'
