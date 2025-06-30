@@ -55,6 +55,8 @@ const clients = {
                 description: formData.get('clientNotes') || null
             };
             
+            console.log('Sending client data:', data);
+            
             fetch('/api/v1/clients/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -65,7 +67,16 @@ const clients = {
                     return response.json();
                 } else {
                     return response.json().then(err => {
-                        throw new Error(err.detail || 'Errore del server');
+                        console.error('Server error response:', err);
+                        let errorMessage = 'Errore del server';
+                        if (err.detail) {
+                            if (Array.isArray(err.detail)) {
+                                errorMessage = err.detail.map(e => e.msg || e).join(', ');
+                            } else {
+                                errorMessage = err.detail;
+                            }
+                        }
+                        throw new Error(errorMessage);
                     });
                 }
             })
