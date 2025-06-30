@@ -49,11 +49,18 @@ const clients = {
         const form = document.getElementById('addClientForm');
         console.log('Found form:', form);
         if (form) {
+            // Debug: check all form elements
+            const allInputs = form.querySelectorAll('input, textarea, select');
+            console.log('All form inputs:', allInputs);
+            allInputs.forEach(input => {
+                console.log(`- ${input.name || input.id}: "${input.value}"`);
+            });
+            
             const formData = new FormData(form);
-            console.log('Form fields found:');
-            console.log('- clientName:', formData.get('clientName'));
-            console.log('- clientEmail:', formData.get('clientEmail'));
-            console.log('- clientNotes:', formData.get('clientNotes'));
+            console.log('FormData entries:');
+            for (let pair of formData.entries()) {
+                console.log(`- ${pair[0]}: "${pair[1]}"`);
+            }
             const data = {
                 name: formData.get('clientName'),
                 contact_email: formData.get('clientEmail'),
