@@ -448,7 +448,7 @@ window.showAddClientModal = function() {
         target: '#modal-container',
         swap: 'innerHTML'
     }).then(() => {
-        showModal('clientModal');
+        showModal('addClientModal');
     });
 }
 
@@ -457,7 +457,7 @@ window.showAddWebsiteModal = function() {
         target: '#modal-container',
         swap: 'innerHTML'
     }).then(() => {
-        showModal('websiteModal');
+        showModal('addWebsiteModal');
     });
 }
 
@@ -466,7 +466,7 @@ window.showAddScanModal = function() {
         target: '#modal-container',
         swap: 'innerHTML'
     }).then(() => {
-        showModal('scanModal');
+        showModal('newScanModal');
     });
 }
 

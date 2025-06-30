@@ -8,8 +8,6 @@ import os
 import logging
 
 from app.database import get_db
-from app.services.client_service import ClientService
-from app.services.website_service import WebsiteService
 from app.models import Client, Website
 
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ templates = Jinja2Templates(directory=template_dir)
 async def get_add_client_modal(request: Request):
     """Get the add client modal template"""
     return templates.TemplateResponse(
-        "components/modals/add_client_modal.html",
+        "components/modals/client_modal_semrush.html",
         {"request": request}
     )
 
@@ -41,7 +39,7 @@ async def get_add_website_modal(
     clients = result.scalars().all()
     
     return templates.TemplateResponse(
-        "components/modals/add_website_modal.html",
+        "components/modals/website_modal_semrush.html",
         {"request": request, "clients": clients}
     )
 
@@ -61,7 +59,7 @@ async def get_add_scan_modal(
     websites = result.scalars().all()
     
     return templates.TemplateResponse(
-        "components/modals/add_scan_modal.html",
+        "components/modals/scan_modal_semrush.html",
         {"request": request, "websites": websites}
     )
 
@@ -121,27 +119,30 @@ async def update_client_htmx(
     """Update client and return updated clients table"""
     form_data = await request.form()
     
-    client_service = ClientService(db)
-    client = await client_service.get_client(client_id)
+    # Get client
+    result = await db.execute(select(Client).where(Client.id == client_id))
+    client = result.scalar_one_or_none()
     
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     
     # Update client with form data
-    update_data = {
-        "name": form_data.get("name"),
-        "email": form_data.get("email"),
-        "phone": form_data.get("phone"),
-        "company": form_data.get("company")
-    }
+    if form_data.get("name"):
+        client.name = form_data.get("name")
+    if form_data.get("email"):
+        client.email = form_data.get("email")
+    if form_data.get("phone"):
+        client.phone = form_data.get("phone")
+    if form_data.get("company"):
+        client.company = form_data.get("company")
     
-    # Remove None values
-    update_data = {k: v for k, v in update_data.items() if v}
-    
-    await client_service.update_client(client_id, update_data)
+    await db.commit()
+    await db.refresh(client)
     
     # Return updated clients table
-    clients = await client_service.get_all_clients()
+    result = await db.execute(select(Client).order_by(Client.created_at.desc()))
+    clients = result.scalars().all()
+    
     return templates.TemplateResponse(
         "components/tables/clients_table.html",
         {"request": request, "clients": clients}
@@ -157,23 +158,27 @@ async def update_website_htmx(
     """Update website and return updated websites table"""
     form_data = await request.form()
     
-    website_service = WebsiteService(db)
-    website = await website_service.get_website(website_id)
+    # Get website
+    result = await db.execute(
+        select(Website)
+        .options(selectinload(Website.client))
+        .where(Website.id == website_id)
+    )
+    website = result.scalar_one_or_none()
     
     if not website:
         raise HTTPException(status_code=404, detail="Website not found")
     
     # Update website with form data
-    update_data = {
-        "url": form_data.get("url"),
-        "name": form_data.get("name"),
-        "client_id": int(form_data.get("client_id")) if form_data.get("client_id") else None
-    }
+    if form_data.get("url"):
+        website.url = form_data.get("url")
+    if form_data.get("name"):
+        website.name = form_data.get("name")
+    if form_data.get("client_id"):
+        website.client_id = int(form_data.get("client_id"))
     
-    # Remove None values
-    update_data = {k: v for k, v in update_data.items() if v is not None}
-    
-    await website_service.update_website(website_id, update_data)
+    await db.commit()
+    await db.refresh(website)
     
     # Return updated websites table with clients loaded
     result = await db.execute(
@@ -196,10 +201,18 @@ async def delete_client_htmx(
     db: AsyncSession = Depends(get_db)
 ):
     """Delete client and return empty response"""
-    client_service = ClientService(db)
-    
     try:
-        await client_service.delete_client(client_id)
+        # Get client first
+        result = await db.execute(select(Client).where(Client.id == client_id))
+        client = result.scalar_one_or_none()
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Delete client
+        await db.delete(client)
+        await db.commit()
+        
         # Return empty content to remove the row
         return HTMLResponse(content="")
     except Exception as e:
@@ -214,10 +227,18 @@ async def delete_website_htmx(
     db: AsyncSession = Depends(get_db)
 ):
     """Delete website and return empty response"""
-    website_service = WebsiteService(db)
-    
     try:
-        await website_service.delete_website(website_id)
+        # Get website first
+        result = await db.execute(select(Website).where(Website.id == website_id))
+        website = result.scalar_one_or_none()
+        
+        if not website:
+            raise HTTPException(status_code=404, detail="Website not found")
+        
+        # Delete website
+        await db.delete(website)
+        await db.commit()
+        
         # Return empty content to remove the row
         return HTMLResponse(content="")
     except Exception as e:
