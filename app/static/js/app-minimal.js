@@ -47,8 +47,13 @@ document.addEventListener('DOMContentLoaded', function() {
 const clients = {
     createClient: function() {
         const form = document.getElementById('addClientForm');
+        console.log('Found form:', form);
         if (form) {
             const formData = new FormData(form);
+            console.log('Form fields found:');
+            console.log('- clientName:', formData.get('clientName'));
+            console.log('- clientEmail:', formData.get('clientEmail'));
+            console.log('- clientNotes:', formData.get('clientNotes'));
             const data = {
                 name: formData.get('clientName'),
                 contact_email: formData.get('clientEmail'),
@@ -473,7 +478,10 @@ window.showAddClientModal = function() {
         target: '#modal-container',
         swap: 'innerHTML'
     }).then(() => {
-        showModal('addClientModal');
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+            showModal('addClientModal');
+        }, 100);
     });
 }
 
@@ -482,7 +490,10 @@ window.showAddWebsiteModal = function() {
         target: '#modal-container',
         swap: 'innerHTML'
     }).then(() => {
-        showModal('addWebsiteModal');
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+            showModal('addWebsiteModal');
+        }, 100);
     });
 }
 
