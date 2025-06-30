@@ -44,6 +44,10 @@ make test-working        # Quick tests for active development
 # Coverage and quality
 make test-coverage       # Test coverage report
 make full-test           # Tests + linting + type checking
+
+# Development workflow
+make pre-commit          # Format + lint + unit tests
+make quick-test          # Fast tests (unit + API)
 ```
 
 ### Docker Operations
@@ -56,6 +60,10 @@ docker-compose build app && docker-compose up -d app
 make logs                # Follow application logs
 make db-shell            # PostgreSQL shell access
 docker-compose ps        # Check service status
+
+# Clean restart
+make docker-clean        # Clean Docker resources
+make docker-run          # Fresh start
 ```
 
 ### Database Operations
@@ -71,6 +79,10 @@ make db-shell            # Interactive PostgreSQL shell
 # Migrations (Alembic)
 make migrate             # Apply pending migrations
 make migrate-create      # Create new migration
+
+# Database utilities
+make backup-db           # Backup database
+make test-db             # Reset test database
 ```
 
 ## Core System Components
@@ -79,12 +91,15 @@ make migrate-create      # Create new migration
 
 **Multi-Layer Analysis Architecture**:
 - `seo_analyzer.py` - Main orchestrator
-- `issue_detector.py` - Converts findings to standardized issues
-- `performance_analyzer.py` - Core Web Vitals and blocking resources
+- `issue_detector.py` - Converts findings to standardized issues with granular resource details
+- `performance_analyzer.py` - Core Web Vitals and blocking resources (CSS/JS files)
 - `technical_seo_analyzer.py` - Schema, meta tags, technical factors
 - `content/` - Content quality and accessibility analyzers
+- `severity_calculator.py` - Standardized severity assignment with context-based escalation
 
-**Granular Resource Details**: Issues contain structured JSON in the `element` field with specific resource information (URLs, file sizes, optimization recommendations).
+**Granular Resource Details**: Issues contain structured JSON in the `element` field with specific resource information (URLs, file sizes, optimization recommendations). Each resource generates individual issues rather than aggregate counts.
+
+**Performance-Aware Issue Limiting**: For large scans (>5000 issues), the system automatically limits to 2000 issues for UI performance, distributed across severity levels.
 
 ### Background Processing (`app/tasks/`)
 
@@ -113,11 +128,17 @@ Client -> Website -> Scan -> Page -> Issue
 ### Frontend Architecture (`app/templates/`)
 
 **Component-Based Structure**:
-- `components/sections/` - Main page sections
+- `components/sections/` - Main page sections (SEMrush-inspired design)
 - `components/modals/` - Form modals for CRUD operations
 - `components/cards/` - Metric display components
 
-**Template Router** (`app/routers/templates.py`): Processes database data for template consumption, including resource detail grouping for granular issue display.
+**Template Router** (`app/routers/templates.py`): Processes database data for template consumption, including resource detail grouping for granular issue display with pagination support.
+
+**Resource Details Display**: The scan results use nested accordions (Severity → Issue Type → Resource Details) with:
+- Enhanced 6-column resource tables for granular issues
+- Pagination controls (50 resources per page) for performance
+- Simple page lists fallback for non-granular issues
+- Sorting capabilities by page, resource, type, and impact
 
 ## Configuration System
 
@@ -177,8 +198,10 @@ The system uses SQLite for testing with async support (`aiosqlite`). Test databa
 ### Performance Considerations
 - All database queries use async sessions
 - Celery workers prevent API blocking on long scans
-- Template rendering includes pagination for large datasets
+- Template rendering includes pagination for large datasets (50 resources per accordion)
 - Core Web Vitals calculation uses efficient aggregation
+- URL cleaning utility (`app/services/url_utils.py`) removes invisible Unicode characters
+- Resource details tables use JavaScript-based pagination to handle 20k+ issues per type
 
 ## Production Deployment
 
@@ -224,6 +247,17 @@ The system includes built-in performance monitoring. Core Web Vitals analysis pr
 - **Add new API endpoint**: Create router in `app/routers/` following existing async patterns
 - **Modify frontend**: Update templates in `app/templates/components/`
 - **Add background task**: Extend `app/tasks/` and register with Celery app
+- **Create granular issues**: Use `ResourceDetailsBuilder` and `IssueFactory` from `core/resource_details.py`
+- **Handle large scans**: Modify issue limiting logic in `templates.py` (MAX_ISSUES_FOR_UI constant)
+- **Add table pagination**: Follow pattern in `scan_results_semrush.html` with data attributes and JavaScript functions
+
+## Critical Architecture Decisions
+
+**Issue Granularity Strategy**: The system generates individual issues per resource per page (e.g., each JS file on each page = separate issue). This creates detailed actionable reports but can generate 20k+ issues for large sites. The template system uses pagination and limiting to maintain UI performance.
+
+**Severity Escalation**: Base severities are defined in `SeverityCalculator.BASE_SEVERITIES` but can be escalated based on context (e.g., JS in `<head>` vs `<body>`, file sizes, site-wide frequency).
+
+**Async/Sync Database Sessions**: The system maintains both async sessions (for API/web) and sync sessions (for Celery compatibility) defined in `database.py`.
 
 ## Commercial Context
 
