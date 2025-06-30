@@ -52,8 +52,7 @@ const clients = {
             const data = {
                 name: formData.get('clientName'),
                 contact_email: formData.get('clientEmail'),
-                contact_phone: formData.get('clientPhone') || null,
-                notes: formData.get('clientNotes') || null
+                description: formData.get('clientNotes') || null
             };
             
             fetch('/api/v1/clients/', {
@@ -61,19 +60,23 @@ const clients = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result) {
-                    showToast('Cliente creato con successo', 'success');
-                    closeModal('addClientModal');
-                    window.location.reload();
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
                 } else {
-                    showToast('Errore nella creazione del cliente', 'error');
+                    return response.json().then(err => {
+                        throw new Error(err.detail || 'Errore del server');
+                    });
                 }
+            })
+            .then(result => {
+                showToast('Cliente creato con successo', 'success');
+                closeModal('addClientModal');
+                window.location.reload();
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('Errore nella comunicazione con il server', 'error');
+                showToast(error.message || 'Errore nella comunicazione con il server', 'error');
             });
         }
     },
@@ -87,8 +90,7 @@ const clients = {
             const data = {
                 name: formData.get('editClientName'),
                 contact_email: formData.get('editClientEmail'),
-                contact_phone: formData.get('editClientPhone') || null,
-                notes: formData.get('editClientNotes') || null
+                description: formData.get('editClientNotes') || null
             };
             
             fetch(`/api/v1/clients/${clientId}`, {
@@ -139,9 +141,17 @@ const websites = {
         const form = document.getElementById('addWebsiteForm');
         if (form) {
             const formData = new FormData(form);
+            
+            // Extract domain from URL
+            let domain = formData.get('websiteUrl');
+            if (domain) {
+                // Remove protocol and trailing slash if present
+                domain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            }
+            
             const data = {
                 name: formData.get('websiteName'),
-                domain: formData.get('websiteUrl'),
+                domain: domain,
                 client_id: parseInt(formData.get('websiteClient')),
                 description: formData.get('websiteDescription') || null,
                 is_active: formData.get('websiteActive') === 'on'
@@ -152,19 +162,23 @@ const websites = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result) {
-                    showToast('Sito web creato con successo', 'success');
-                    closeModal('addWebsiteModal');
-                    window.location.reload();
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
                 } else {
-                    showToast('Errore nella creazione del sito web', 'error');
+                    return response.json().then(err => {
+                        throw new Error(err.detail || 'Errore del server');
+                    });
                 }
+            })
+            .then(result => {
+                showToast('Sito web creato con successo', 'success');
+                closeModal('addWebsiteModal');
+                window.location.reload();
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('Errore nella comunicazione con il server', 'error');
+                showToast(error.message || 'Errore nella comunicazione con il server', 'error');
             });
         }
     },
