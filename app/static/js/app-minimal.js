@@ -47,20 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
 const clients = {
     createClient: function() {
         const form = document.getElementById('addClientForm');
-        console.log('Found form:', form);
         if (form) {
-            // Debug: check all form elements
-            const allInputs = form.querySelectorAll('input, textarea, select');
-            console.log('All form inputs:', allInputs);
-            allInputs.forEach(input => {
-                console.log(`- ${input.name || input.id}: "${input.value}"`);
-            });
-            
             const formData = new FormData(form);
-            console.log('FormData entries:');
-            for (let pair of formData.entries()) {
-                console.log(`- ${pair[0]}: "${pair[1]}"`);
-            }
             const data = {
                 name: formData.get('clientName'),
                 contact_email: formData.get('clientEmail'),
@@ -481,36 +469,15 @@ window.validateUrl = function(url) {
 
 // Global functions for button actions (HTMX compatible)
 window.showAddClientModal = function() {
-    htmx.ajax('GET', '/htmx/modals/add-client', {
-        target: '#modal-container',
-        swap: 'innerHTML'
-    }).then(() => {
-        // Small delay to ensure DOM is updated
-        setTimeout(() => {
-            showModal('addClientModal');
-        }, 100);
-    });
+    showModal('addClientModal');
 }
 
 window.showAddWebsiteModal = function() {
-    htmx.ajax('GET', '/htmx/modals/add-website', {
-        target: '#modal-container',
-        swap: 'innerHTML'
-    }).then(() => {
-        // Small delay to ensure DOM is updated
-        setTimeout(() => {
-            showModal('addWebsiteModal');
-        }, 100);
-    });
+    showModal('addWebsiteModal');
 }
 
 window.showAddScanModal = function() {
-    htmx.ajax('GET', '/htmx/modals/add-scan', {
-        target: '#modal-container',
-        swap: 'innerHTML'
-    }).then(() => {
-        showModal('newScanModal');
-    });
+    showModal('newScanModal');
 }
 
 // Scheduler functions for backward compatibility
