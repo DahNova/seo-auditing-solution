@@ -238,7 +238,8 @@
                                 {% for issue_type, issue_data in issues_hierarchy[severity].items() %}
                                 <div class="nested-accordion-item" style="margin: 0.5rem; border: 1px solid var(--sr-border-light); border-radius: 6px;">
                                     <!-- Issue Type Header -->
-                                    <div class="nested-accordion-header" onclick="toggleNestedAccordion('{{ severity }}-{{ issue_type }}')" 
+                                    <div class="nested-accordion-header" 
+                                         onclick="toggleNestedAccordionLazy('{{ severity }}-{{ issue_type }}', '{{ scan.id }}', '{{ severity }}', '{{ issue_type }}')" 
                                          style="background: var(--sr-gray-25); padding: 0.75rem; cursor: pointer; user-select: none; border-radius: 6px 6px 0 0;">
                                         <div style="display: flex; justify-content: between; align-items: center;">
                                             <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -261,25 +262,19 @@
                                         {% endif %}
                                     </div>
                                     
-                                    <!-- Pages List -->
+                                    <!-- Lazy-loaded Content -->
                                     <div class="nested-accordion-content" id="content-nested-{{ severity }}-{{ issue_type }}" 
+                                         data-loaded="false"
+                                         data-scan-id="{{ scan.id }}"
+                                         data-severity="{{ severity }}"
+                                         data-issue-type="{{ issue_type }}"
                                          style="display: none; padding: 0.75rem; background: var(--sr-white); border-top: 1px solid var(--sr-border-light); border-radius: 0 0 6px 6px;">
                                         
-                                        <!-- Description and Recommendation -->
-                                        {% if issue_data.first_description or issue_data.first_recommendation %}
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--sr-gray-25); border-radius: 4px; border-left: 3px solid var(--sr-{{ severity }});">
-                                            {% if issue_data.first_description %}
-                                            <div style="font-size: 0.85rem; color: var(--sr-text); margin-bottom: 0.25rem;">
-                                                <strong>Problema:</strong> {{ issue_data.first_description }}
-                                            </div>
-                                            {% endif %}
-                                            {% if issue_data.first_recommendation %}
-                                            <div style="font-size: 0.85rem; color: var(--sr-text-muted);">
-                                                <strong>Soluzione:</strong> {{ issue_data.first_recommendation }}
-                                            </div>
-                                            {% endif %}
+                                        <!-- Loading placeholder -->
+                                        <div class="loading-placeholder" style="text-align: center; padding: 1rem; color: var(--sr-text-muted);">
+                                            <i class="bi bi-arrow-clockwise" style="animation: spin 1s linear infinite; font-size: 1.2rem; margin-bottom: 0.5rem; display: block;"></i>
+                                            Caricamento risorse per {{ issue_data.title }}...
                                         </div>
-                                        {% endif %}
                                         
                                         <!-- Enhanced Resource Details Table with Pagination -->
                                         {% if issue_data.resource_details %}
@@ -1259,7 +1254,75 @@ function toggleAccordion(accordionId) {
     }
 }
 
-// Nested accordion functionality for double accordion (Level 2)
+// Lazy-loading nested accordion functionality for double accordion (Level 2)
+function toggleNestedAccordionLazy(nestedId, scanId, severity, issueType) {
+    const content = document.getElementById('content-nested-' + nestedId);
+    const icon = document.getElementById('icon-nested-' + nestedId);
+    
+    if (!content || !icon) {
+        console.warn('Nested accordion elements not found for ID:', nestedId);
+        return;
+    }
+    
+    if (content.style.display === 'none' || content.style.display === '') {
+        // Open nested accordion with lazy loading
+        content.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+        
+        // Check if content needs to be loaded
+        if (content.getAttribute('data-loaded') === 'false') {
+            // Load content via HTMX
+            fetch(`/htmx/scan/${scanId}/resources/${severity}/${issueType}?page=1&limit=50`)
+                .then(response => response.text())
+                .then(html => {
+                    content.innerHTML = html;
+                    content.setAttribute('data-loaded', 'true');
+                    
+                    // Add smooth opening animation after content loads
+                    content.style.opacity = '0';
+                    content.style.maxHeight = '0';
+                    content.style.overflow = 'hidden';
+                    content.style.transition = 'all 0.3s ease-in-out';
+                    
+                    setTimeout(() => {
+                        content.style.opacity = '1';
+                        content.style.maxHeight = 'none';
+                    }, 10);
+                })
+                .catch(error => {
+                    console.error('Error loading accordion content:', error);
+                    content.innerHTML = '<div style="padding: 1rem; color: var(--sr-danger); text-align: center;">Errore nel caricamento dei dati</div>';
+                });
+        } else {
+            // Content already loaded, just show it
+            content.style.opacity = '0';
+            content.style.maxHeight = '0';
+            content.style.overflow = 'hidden';
+            content.style.transition = 'all 0.3s ease-in-out';
+            
+            setTimeout(() => {
+                content.style.opacity = '1';
+                content.style.maxHeight = 'none';
+            }, 10);
+        }
+    } else {
+        // Close nested accordion
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.transition = 'all 0.3s ease-in-out';
+        
+        setTimeout(() => {
+            content.style.opacity = '0';
+            content.style.maxHeight = '0';
+        }, 10);
+        
+        setTimeout(() => {
+            content.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }, 300);
+    }
+}
+
+// Legacy nested accordion functionality for double accordion (Level 2)
 function toggleNestedAccordion(nestedId) {
     const content = document.getElementById('content-nested-' + nestedId);
     const icon = document.getElementById('icon-nested-' + nestedId);

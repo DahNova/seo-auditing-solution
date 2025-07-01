@@ -8,7 +8,7 @@ import os
 import logging
 
 from app.database import get_db
-from app.models import Client, Website
+from app.models import Client, Website, Scan, Page, Issue
 
 logger = logging.getLogger(__name__)
 
@@ -244,3 +244,131 @@ async def delete_website_htmx(
     except Exception as e:
         logger.error(f"Error deleting website {website_id}: {e}")
         raise HTTPException(status_code=400, detail="Cannot delete website")
+
+
+@router.get("/scan/{scan_id}/resources/{severity}/{issue_type}", response_class=HTMLResponse)
+async def get_scan_resources_paginated(
+    request: Request,
+    scan_id: int,
+    severity: str,
+    issue_type: str,
+    page: int = 1,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get paginated resources for a specific issue type in a scan"""
+    
+    try:
+        # Validate pagination parameters
+        if page < 1:
+            page = 1
+        if limit not in [25, 50, 100]:
+            limit = 50
+        
+        # Get scan to verify it exists
+        scan_result = await db.execute(
+            select(Scan).where(Scan.id == scan_id)
+        )
+        scan = scan_result.scalar_one_or_none()
+        
+        if not scan:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        
+        # Get issues for the specific severity and type
+        issues_result = await db.execute(
+            select(Issue)
+            .join(Page, Issue.page_id == Page.id)
+            .where(
+                Page.scan_id == scan_id,
+                Issue.severity == severity,
+                Issue.type == issue_type
+            )
+            .order_by(Issue.score_impact.desc().nulls_last(), Page.url)
+        )
+        issues = issues_result.scalars().all()
+        
+        if not issues:
+            return HTMLResponse(
+                content="<div class='text-muted'>Nessuna risorsa trovata per questa tipologia.</div>",
+                status_code=200
+            )
+        
+        # Process issues to extract resource details
+        from app.services.seo_analyzer.core.resource_details import IssueFactory
+        import json
+        
+        all_resources = []
+        
+        for issue in issues:
+            try:
+                # Try to extract granular resource details
+                resource_details = IssueFactory.extract_resource_details(issue)
+                if resource_details:
+                    all_resources.append({
+                        'resource_details': resource_details,
+                        'page_url': issue.page.url if issue.page else '',
+                        'page_context': resource_details.page_context or '',
+                        'resource_url': resource_details.resource_url,
+                        'resource_type': resource_details.resource_type.value,
+                        'optimization_suggestions': resource_details.optimization_suggestions or [],
+                        'priority_level': resource_details.priority_level or 'medium',
+                        'estimated_fix_time': resource_details.estimated_fix_time or '5-10 minutes',
+                        'issue_specific_data': resource_details.issue_specific_data
+                    })
+                else:
+                    # Fallback for legacy issues - create basic resource representation
+                    all_resources.append({
+                        'resource_details': None,
+                        'page_url': issue.page.url if issue.page else '',
+                        'page_context': f"Pagina: {issue.page.url}" if issue.page else '',
+                        'resource_url': issue.page.url if issue.page else '',
+                        'resource_type': 'legacy',
+                        'optimization_suggestions': [issue.recommendation] if issue.recommendation else [],
+                        'priority_level': severity,
+                        'estimated_fix_time': '5-10 minutes',
+                        'issue_specific_data': {'description': issue.description, 'legacy_issue': True}
+                    })
+            except Exception as e:
+                logger.error(f"Error processing issue {issue.id}: {str(e)}")
+                continue
+        
+        # Apply pagination
+        total_resources = len(all_resources)
+        total_pages = (total_resources + limit - 1) // limit if total_resources > 0 else 1
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_resources = all_resources[start_idx:end_idx]
+        
+        # Create pagination info
+        pagination = {
+            'current_page': page,
+            'total_pages': total_pages,
+            'total_resources': total_resources,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+            'prev_page': page - 1 if page > 1 else None,
+            'next_page': page + 1 if page < total_pages else None,
+            'start_item': start_idx + 1 if total_resources > 0 else 0,
+            'end_item': min(end_idx, total_resources)
+        }
+        
+        # Render the partial template for resource table
+        return templates.TemplateResponse(
+            "components/partials/resource_table_rows.html",
+            {
+                "request": request,
+                "resources": paginated_resources,
+                "pagination": pagination,
+                "severity": severity,
+                "issue_type": issue_type,
+                "scan_id": scan_id,
+                "table_id": f"{severity}-{issue_type}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in get_scan_resources_paginated: {str(e)}")
+        return HTMLResponse(
+            content=f"<div class='text-danger'>Errore nel caricamento risorse: {str(e)}</div>",
+            status_code=500
+        )

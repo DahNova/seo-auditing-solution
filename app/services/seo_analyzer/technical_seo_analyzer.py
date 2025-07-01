@@ -603,32 +603,92 @@ class TechnicalSEOAnalyzer:
                     'impact': 'Invalid structured data may be ignored by search engines'
                 })
         
-        # Social meta tag issues
+        # Social meta tag issues - converted to granular format
         social_data = analysis.get('social_meta_tags', {})
         if social_data.get('overall_coverage', 0) < 50:
-            issues.append({
-                'type': 'poor_social_meta',
-                'severity': 'medium',
-                'category': 'social_optimization',
-                'message': 'Missing important social media meta tags',
-                'recommendation': 'Add Open Graph and Twitter Card meta tags',
-                'impact': 'Poor social media sharing experience'
-            })
+            # Import required modules for granular social meta issues
+            from .core.resource_details import ResourceDetailsBuilder, IssueFactory
+            from .severity_calculator import SeverityCalculator
+            
+            page_url = getattr(analysis, 'page_url', '')
+            page_context = f"Pagina: {page_url}"
+            
+            # Extract missing tags and platform coverage
+            missing_tags = social_data.get('missing_tags', [])
+            platform_coverage = {}
+            present_tags = []
+            
+            # Build platform coverage data
+            for platform, platform_data in social_data.get('platforms', {}).items():
+                platform_coverage[platform] = platform_data.get('coverage_score', 0)
+                present_tags.extend(platform_data.get('present_tags', []))
+            
+            # Extract page title for better suggestions
+            page_title = getattr(analysis, 'page_title', '')
+            
+            resource_details = ResourceDetailsBuilder.poor_social_meta(
+                page_url=page_url,
+                missing_tags=missing_tags,
+                present_tags=present_tags,
+                platform_coverage=platform_coverage,
+                page_title=page_title,
+                page_context=page_context
+            )
+            
+            severity = SeverityCalculator.calculate_severity('poor_social_meta')
+            score_impact = SeverityCalculator.get_severity_score(severity)
+            
+            # Determine most critical platform for personalized recommendation
+            critical_platforms = resource_details.issue_specific_data.get('critical_platforms', [])
+            critical_platform_text = f" (priorità: {', '.join(critical_platforms)})" if critical_platforms else ""
+            
+            issue = IssueFactory.create_granular_issue(
+                issue_type='poor_social_meta',
+                severity=severity,
+                category='social_optimization',
+                title='Meta Tag Social Mancanti',
+                description=f'La pagina ha una copertura social insufficiente ({social_data.get("overall_coverage", 0):.0f}%) per condivisioni ottimali',
+                recommendation=f'Implementa meta tag Open Graph e Twitter Card mancanti{critical_platform_text}',
+                resource_details=resource_details,
+                score_impact=score_impact
+            )
+            issues.append(issue)
         
         # NOTE: Canonical issues are now handled by IssueDetector with granular format
         # No legacy canonical issues generated here to avoid duplicates
         
-        # Technical tags issues
+        # Technical tags issues - converted to granular format
         tech_data = analysis.get('technical_tags', {})
         if not tech_data.get('viewport_meta'):
-            issues.append({
-                'type': 'missing_viewport',
-                'severity': 'high',
-                'category': 'mobile_optimization',
-                'message': 'Missing viewport meta tag',
-                'recommendation': 'Add viewport meta tag for mobile optimization',
-                'impact': 'Poor mobile user experience and SEO'
-            })
+            # Import required modules for granular viewport issues
+            from .core.resource_details import ResourceDetailsBuilder, IssueFactory
+            from .severity_calculator import SeverityCalculator
+            
+            # Get mobile analysis data for intelligent viewport suggestions
+            mobile_data = analysis.get('mobile_optimization', {})
+            page_url = getattr(analysis, 'page_url', '')
+            page_context = f"Pagina: {page_url}"
+            
+            resource_details = ResourceDetailsBuilder.viewport_missing(
+                page_url=page_url,
+                page_context=page_context,
+                mobile_analysis=mobile_data
+            )
+            
+            severity = SeverityCalculator.calculate_severity('missing_viewport')
+            score_impact = SeverityCalculator.get_severity_score(severity)
+            
+            issue = IssueFactory.create_granular_issue(
+                issue_type='missing_viewport',
+                severity=severity,
+                category='mobile_optimization',
+                title='Viewport Meta Tag Mancante',
+                description='La pagina non ha un meta tag viewport, compromettendo la visualizzazione su dispositivi mobili',
+                recommendation=f'Aggiungi viewport meta tag ottimizzato per mobile: {resource_details.issue_specific_data["optimal_viewport"]}',
+                resource_details=resource_details,
+                score_impact=score_impact
+            )
+            issues.append(issue)
         
         # Mobile optimization issues
         mobile_data = analysis.get('mobile_optimization', {})

@@ -95,6 +95,70 @@ class ResourceDetailsBuilder:
         )
     
     @staticmethod
+    def image_optimization_needed(img_src: str, width: int = None, height: int = None, 
+                                 file_size: Optional[int] = None, alt_text: str = "", 
+                                 lazy_loading: bool = False, format_type: str = "unknown",
+                                 page_context: str = None) -> ResourceDetails:
+        """Build details for image that needs optimization"""
+        # Calculate optimization potential
+        optimization_potential = []
+        estimated_savings = 0
+        
+        if file_size and file_size > 500000:  # >500KB
+            optimization_potential.append("compressione")
+            estimated_savings += file_size * 0.6  # 60% potential savings
+        
+        if width and height and (width > 1920 or height > 1080):
+            optimization_potential.append("ridimensionamento")
+            estimated_savings += (width * height - 1920 * 1080) * 3  # bytes estimate
+        
+        if format_type.lower() in ['jpeg', 'jpg', 'png']:
+            optimization_potential.append("formato_moderno")
+            estimated_savings += file_size * 0.3 if file_size else 50000  # 30% savings with WebP
+        
+        if not lazy_loading:
+            optimization_potential.append("lazy_loading")
+        
+        if not alt_text or len(alt_text) < 5:
+            optimization_potential.append("alt_text")
+        
+        # Determine priority based on optimization potential
+        priority = "high" if len(optimization_potential) >= 3 else "medium"
+        
+        return ResourceDetails(
+            resource_url=img_src,
+            resource_type=ResourceType.IMAGE,
+            issue_specific_data={
+                "current_width": width,
+                "current_height": height,
+                "file_size_bytes": file_size,
+                "file_size_kb": round(file_size / 1024) if file_size else None,
+                "current_format": format_type,
+                "has_alt_text": bool(alt_text and len(alt_text) > 0),
+                "alt_text_length": len(alt_text) if alt_text else 0,
+                "has_lazy_loading": lazy_loading,
+                "optimization_potential": optimization_potential,
+                "estimated_savings_bytes": int(estimated_savings),
+                "estimated_savings_kb": round(estimated_savings / 1024) if estimated_savings else 0,
+                "recommended_width": min(width, 1920) if width else None,
+                "recommended_height": min(height, 1080) if height else None,
+                "recommended_format": "WebP" if format_type.lower() in ['jpeg', 'jpg', 'png'] else format_type
+            },
+            page_context=page_context,
+            element_selector=f'img[src*="{img_src.split("/")[-1]}"]',
+            optimization_suggestions=[
+                "Comprimi l'immagine mantenendo la qualità visiva (80-85% qualità JPEG)",
+                "Considera il formato WebP per riduzione del 25-35% delle dimensioni",
+                "Aggiungi loading='lazy' per images below-the-fold",
+                "Ridimensiona alle dimensioni massime necessarie (max 1920x1080 per desktop)",
+                "Aggiungi alt text descrittivo per accessibilità e SEO" if not alt_text else None,
+                "Usa responsive images con srcset per device optimization"
+            ],
+            priority_level=priority,
+            estimated_fix_time="5-15 minutes"
+        )
+    
+    @staticmethod
     def image_bad_filename(img_src: str, suggested_filename: str = None,
                           page_context: str = None) -> ResourceDetails:
         """Build details for non-SEO friendly image filename"""
@@ -219,25 +283,72 @@ class ResourceDetailsBuilder:
         )
     
     @staticmethod
-    def poor_social_meta(missing_tags: List[str], page_url: str) -> ResourceDetails:
-        """Build details for poor social media meta tags"""
+    def poor_social_meta(page_url: str, missing_tags: List[str], present_tags: List[Dict[str, Any]] = None,
+                        platform_coverage: Dict[str, float] = None, page_title: str = "", 
+                        page_context: str = "") -> ResourceDetails:
+        """Build details for poor social media meta tags with platform-specific suggestions"""
+        present_tags = present_tags or []
+        platform_coverage = platform_coverage or {}
+        
+        # Analyze which platforms need the most attention
+        critical_platforms = []
+        for platform, coverage in platform_coverage.items():
+            if coverage < 50:
+                critical_platforms.append(platform)
+        
+        # Generate platform-specific suggestions
+        platform_suggestions = []
+        
+        # Facebook/Open Graph suggestions
+        if 'facebook' in critical_platforms or any('og:' in tag for tag in missing_tags):
+            platform_suggestions.extend([
+                "Aggiungi Open Graph per Facebook: og:title, og:description, og:image",
+                "Usa immagini 1200x630px per og:image per risultati ottimali",
+                "Includi og:type per specificare il tipo di contenuto"
+            ])
+        
+        # Twitter suggestions
+        if 'twitter' in critical_platforms or any('twitter:' in tag for tag in missing_tags):
+            platform_suggestions.extend([
+                "Aggiungi Twitter Card: twitter:card, twitter:title, twitter:description",
+                "Considera twitter:image per maggiore engagement",
+                "Usa twitter:site per identificare l'account Twitter"
+            ])
+        
+        # LinkedIn suggestions (uses Open Graph)
+        if 'linkedin' in critical_platforms:
+            platform_suggestions.append("LinkedIn utilizza Open Graph - ottimizza og: tags")
+        
+        # Generate optimal social meta implementation
+        suggested_implementation = []
+        if page_title:
+            suggested_implementation.extend([
+                f'<meta property="og:title" content="{page_title}">',
+                f'<meta name="twitter:title" content="{page_title}">'
+            ])
+        
         return ResourceDetails(
             resource_url=page_url,
             resource_type=ResourceType.SOCIAL_META,
             issue_specific_data={
                 "missing_tags": missing_tags,
-                "impact": "poor_social_sharing",
-                "platforms_affected": ["Facebook", "Twitter", "LinkedIn"]
+                "present_tags": present_tags,
+                "platform_coverage": platform_coverage,
+                "critical_platforms": critical_platforms,
+                "overall_social_score": sum(platform_coverage.values()) / len(platform_coverage) if platform_coverage else 0,
+                "suggested_implementation": suggested_implementation,
+                "social_seo_impact": "reduced_social_visibility_and_ctr"
             },
-            page_context="Document head",
+            page_context=page_context,
+            element_selector="<head>",
             optimization_suggestions=[
-                "Add Open Graph (og:) tags for Facebook sharing",
-                "Add Twitter Card meta tags",
-                "Include og:image with proper dimensions (1200x630px)",
-                "Add og:title and og:description different from page title/meta"
-            ],
+                "Implementa meta tag Open Graph per condivisioni Facebook e LinkedIn",
+                "Aggiungi Twitter Card meta tags per condivisioni Twitter ottimizzate",
+                "Usa immagini specifiche per social (1200x630px) per massimizzare l'impatto",
+                "Testa le condivisioni con Facebook Sharing Debugger e Twitter Card Validator"
+            ] + platform_suggestions,
             priority_level="medium",
-            estimated_fix_time="10-15 minutes"
+            estimated_fix_time="10-20 minutes"
         )
     
     @staticmethod
@@ -378,6 +489,44 @@ class ResourceDetailsBuilder:
             ],
             priority_level="high",
             estimated_fix_time="5-15 minutes"
+        )
+    
+    @staticmethod
+    def viewport_missing(page_url: str, page_context: str = "", mobile_analysis: Dict[str, Any] = None) -> ResourceDetails:
+        """Details for missing viewport meta tag issue"""
+        mobile_data = mobile_analysis or {}
+        current_viewport = mobile_data.get('viewport_content', '')
+        
+        # Determine optimal viewport based on page analysis
+        optimal_viewport = "width=device-width, initial-scale=1.0"
+        
+        # Check for responsive indicators to suggest advanced viewport
+        responsive_indicators = mobile_data.get('responsive_indicators', 0)
+        if responsive_indicators >= 3:
+            optimal_viewport = "width=device-width, initial-scale=1.0, viewport-fit=cover"
+        
+        return ResourceDetails(
+            resource_url=page_url,
+            resource_type=ResourceType.META_TAG,
+            issue_specific_data={
+                "current_viewport": current_viewport,
+                "optimal_viewport": optimal_viewport,
+                "mobile_score": mobile_data.get('mobile_score', 0),
+                "responsive_indicators": responsive_indicators,
+                "viewport_status": "missing" if not current_viewport else "suboptimal",
+                "mobile_seo_impact": "major_mobile_ranking_penalty"
+            },
+            page_context=page_context,
+            element_selector="<head>",
+            optimization_suggestions=[
+                f"Aggiungi viewport meta tag: <meta name=\"viewport\" content=\"{optimal_viewport}\">",
+                "Posiziona il tag viewport nella sezione <head> prima di altri meta tag",
+                "Testa la visualizzazione su dispositivi mobili dopo l'implementazione",
+                "Considera viewport-fit=cover per siti con design edge-to-edge",
+                "Verifica che il contenuto sia leggibile senza zoom su mobile"
+            ],
+            priority_level="high",
+            estimated_fix_time="2-5 minutes"
         )
     
     @staticmethod

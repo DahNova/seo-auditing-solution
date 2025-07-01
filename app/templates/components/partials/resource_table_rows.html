@@ -1,0 +1,268 @@
+<!-- Resource Table Rows Partial Template for HTMX Pagination -->
+<!-- This template renders paginated resource rows for scan results -->
+
+<!-- Pagination Controls -->
+{% if pagination.total_pages > 1 %}
+<div class="sr-pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.5rem; background: var(--sr-gray-25); border-radius: 4px;">
+    <!-- First Page Button -->
+    <button class="sr-pagination-btn" 
+            hx-get="/htmx/scan/{{ scan_id }}/resources/{{ severity }}/{{ issue_type }}?page=1&limit=50"
+            hx-target="#resource-table-body-{{ table_id }}"
+            hx-swap="innerHTML"
+            {% if not pagination.has_prev %}disabled{% endif %}
+            style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid var(--sr-border); background: var(--sr-white); border-radius: 3px; cursor: pointer;"
+            title="Prima pagina">
+        <i class="bi bi-chevron-double-left"></i>
+    </button>
+    
+    <!-- Previous Page Button -->
+    <button class="sr-pagination-btn" 
+            hx-get="/htmx/scan/{{ scan_id }}/resources/{{ severity }}/{{ issue_type }}?page={{ pagination.prev_page }}&limit=50"
+            hx-target="#resource-table-body-{{ table_id }}"
+            hx-swap="innerHTML"
+            {% if not pagination.has_prev %}disabled{% endif %}
+            style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid var(--sr-border); background: var(--sr-white); border-radius: 3px; cursor: pointer;"
+            title="Pagina precedente">
+        <i class="bi bi-chevron-left"></i>
+    </button>
+    
+    <!-- Page Info -->
+    <span style="font-size: 0.8rem; color: var(--sr-text); font-weight: 500; margin: 0 0.5rem;">
+        Pagina {{ pagination.current_page }} di {{ pagination.total_pages }}
+    </span>
+    
+    <!-- Next Page Button -->
+    <button class="sr-pagination-btn" 
+            hx-get="/htmx/scan/{{ scan_id }}/resources/{{ severity }}/{{ issue_type }}?page={{ pagination.next_page }}&limit=50"
+            hx-target="#resource-table-body-{{ table_id }}"
+            hx-swap="innerHTML"
+            {% if not pagination.has_next %}disabled{% endif %}
+            style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid var(--sr-border); background: var(--sr-white); border-radius: 3px; cursor: pointer;"
+            title="Pagina successiva">
+        <i class="bi bi-chevron-right"></i>
+    </button>
+    
+    <!-- Last Page Button -->
+    <button class="sr-pagination-btn" 
+            hx-get="/htmx/scan/{{ scan_id }}/resources/{{ severity }}/{{ issue_type }}?page={{ pagination.total_pages }}&limit=50"
+            hx-target="#resource-table-body-{{ table_id }}"
+            hx-swap="innerHTML"
+            {% if not pagination.has_next %}disabled{% endif %}
+            style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid var(--sr-border); background: var(--sr-white); border-radius: 3px; cursor: pointer;"
+            title="Ultima pagina">
+        <i class="bi bi-chevron-double-right"></i>
+    </button>
+</div>
+
+<!-- Resources Count Info -->
+<div style="font-size: 0.875rem; font-weight: 500; color: var(--sr-text); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+    <span>Risorse {{ pagination.start_item }}-{{ pagination.end_item }} di {{ pagination.total_resources }}</span>
+    <span style="font-size: 0.75rem; color: var(--sr-text-muted);">
+        Caricamento via HTMX per performance ottimizzata
+    </span>
+</div>
+{% endif %}
+
+<!-- Resource Table Rows -->
+{% for resource in resources %}
+<tr class="sr-resource-row" style="border-bottom: 1px solid var(--sr-border-light);">
+    <!-- Page Column -->
+    <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+        <a href="{{ resource.page_url }}" target="_blank" class="sr-url sr-page-link" 
+           style="font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem; text-decoration: none;"
+           title="{{ resource.page_url }}">
+            <i class="bi bi-box-arrow-up-right" style="color: var(--sr-text-muted); font-size: 0.7rem; flex-shrink: 0;"></i>
+            <span class="sr-url-text">{{ resource.page_url|truncate(35, True, '...') }}</span>
+        </a>
+        {% if resource.page_context %}
+        <div class="sr-page-context" style="font-size: 0.65rem; color: var(--sr-text-muted); margin-top: 0.25rem; padding: 0.125rem 0.25rem; background: var(--sr-gray-25); border-radius: 2px;">
+            {{ resource.page_context|truncate(25, True, '...') }}
+        </div>
+        {% endif %}
+    </td>
+    
+    <!-- Resource Column -->
+    <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+        <div class="sr-resource-info" style="display: flex; align-items: flex-start; gap: 0.25rem;">
+            {% set resource_icon_class = {
+                'image': 'bi-image',
+                'css': 'bi-file-earmark-code',
+                'javascript': 'bi-file-earmark-text',
+                'meta_tag': 'bi-tag',
+                'social_meta': 'bi-share',
+                'heading': 'bi-type-h1',
+                'content_block': 'bi-file-text',
+                'schema_markup': 'bi-code-square',
+                'legacy': 'bi-file'
+            } %}
+            <i class="bi {{ resource_icon_class.get(resource.resource_type, 'bi-file') }}" 
+               style="color: var(--sr-primary); font-size: 0.8rem; margin-top: 0.1rem; flex-shrink: 0;"></i>
+            <div style="flex: 1; min-width: 0;">
+                <div class="sr-resource-url" style="font-size: 0.75rem; font-weight: 500; color: var(--sr-text); word-break: break-all;">
+                    {% if resource.resource_url != resource.page_url %}
+                    {{ resource.resource_url|truncate(40, True, '...') }}
+                    {% else %}
+                    Elemento pagina
+                    {% endif %}
+                </div>
+                <div class="sr-resource-type" style="font-size: 0.65rem; color: var(--sr-text-muted); margin-top: 0.125rem;">
+                    Tipo: {{ resource.resource_type.replace('_', ' ').title() }}
+                </div>
+            </div>
+        </div>
+    </td>
+    
+    <!-- Optimization Potential Column -->
+    <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+        {% if resource.issue_specific_data %}
+            {% set optimization_potential = resource.issue_specific_data.get('optimization_potential', []) %}
+            {% if optimization_potential %}
+            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                {% for potential in optimization_potential[:3] %}
+                <span class="sr-badge medium" style="font-size: 0.65rem; padding: 0.125rem 0.25rem;">
+                    {{ potential.replace('_', ' ').title() }}
+                </span>
+                {% endfor %}
+                {% if optimization_potential|length > 3 %}
+                <span style="font-size: 0.65rem; color: var(--sr-text-muted);">
+                    +{{ optimization_potential|length - 3 }} altro{% if optimization_potential|length > 4 %}i{% endif %}
+                </span>
+                {% endif %}
+            </div>
+            {% else %}
+            <span style="font-size: 0.7rem; color: var(--sr-text-muted);">Necessaria ottimizzazione</span>
+            {% endif %}
+        {% else %}
+        <span style="font-size: 0.7rem; color: var(--sr-text-muted);">Issue legacy</span>
+        {% endif %}
+    </td>
+    
+    <!-- Priority Column -->
+    <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+        <span class="sr-badge {{ resource.priority_level }}" style="font-size: 0.65rem; padding: 0.125rem 0.375rem;">
+            {{ resource.priority_level.title() }}
+        </span>
+    </td>
+    
+    <!-- Estimated Fix Time Column -->
+    <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+        <span style="font-size: 0.7rem; color: var(--sr-text); white-space: nowrap;">
+            <i class="bi bi-clock" style="color: var(--sr-text-muted); margin-right: 0.25rem;"></i>
+            {{ resource.estimated_fix_time }}
+        </span>
+    </td>
+    
+    <!-- Actions Column -->
+    <td class="sr-resource-cell" style="padding: 0.5rem; vertical-align: top;">
+        <button class="sr-btn-sm sr-btn-outline" 
+                onclick="toggleResourceDetails('{{ loop.index }}-{{ table_id }}')"
+                style="font-size: 0.65rem; padding: 0.25rem 0.375rem; white-space: nowrap;">
+            <i class="bi bi-chevron-down" id="resource-toggle-{{ loop.index }}-{{ table_id }}" 
+               style="transition: transform 0.2s;"></i>
+            Dettagli
+        </button>
+    </td>
+</tr>
+
+<!-- Resource Details Row (initially hidden) -->
+<tr id="resource-details-{{ loop.index }}-{{ table_id }}" style="display: none; border-bottom: 1px solid var(--sr-border-light);">
+    <td colspan="6" style="padding: 0.75rem; background: var(--sr-gray-25);">
+        <div class="sr-resource-details" style="border-radius: 4px; background: var(--sr-white); padding: 0.75rem; border: 1px solid var(--sr-border-light);">
+            <!-- Optimization Suggestions -->
+            {% if resource.optimization_suggestions %}
+            <div style="margin-bottom: 0.75rem;">
+                <h6 style="font-size: 0.8rem; font-weight: 600; color: var(--sr-text); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
+                    <i class="bi bi-lightbulb" style="color: var(--sr-warning);"></i>
+                    Suggerimenti di Ottimizzazione
+                </h6>
+                <ul style="margin: 0; padding-left: 1rem; font-size: 0.75rem; color: var(--sr-text); line-height: 1.4;">
+                    {% for suggestion in resource.optimization_suggestions[:5] %}
+                    {% if suggestion %}
+                    <li style="margin-bottom: 0.25rem;">{{ suggestion }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <!-- Technical Details -->
+            {% if resource.issue_specific_data %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+                <!-- Current State -->
+                <div>
+                    <h6 style="font-size: 0.75rem; font-weight: 500; color: var(--sr-text-muted); margin-bottom: 0.25rem;">Stato Attuale</h6>
+                    <div style="font-size: 0.7rem; color: var(--sr-text);">
+                        {% for key, value in resource.issue_specific_data.items() %}
+                        {% if key not in ['optimization_potential', 'suggested_implementation'] and value %}
+                        <div style="margin-bottom: 0.125rem;">
+                            <strong>{{ key.replace('_', ' ').title() }}:</strong> 
+                            {% if value is iterable and value is not string %}
+                                {{ value|join(', ') if value|length < 3 else (value[:2]|join(', ') + '...') }}
+                            {% else %}
+                                {{ value }}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Recommended Implementation -->
+                {% if resource.issue_specific_data.get('suggested_implementation') %}
+                <div>
+                    <h6 style="font-size: 0.75rem; font-weight: 500; color: var(--sr-text-muted); margin-bottom: 0.25rem;">Implementazione Suggerita</h6>
+                    <div style="font-size: 0.7rem; color: var(--sr-text); font-family: monospace; background: var(--sr-gray-50); padding: 0.375rem; border-radius: 3px; overflow-x: auto;">
+                        {% if resource.issue_specific_data.suggested_implementation is iterable and resource.issue_specific_data.suggested_implementation is not string %}
+                            {% for impl in resource.issue_specific_data.suggested_implementation[:3] %}
+                            <div>{{ impl }}</div>
+                            {% endfor %}
+                        {% else %}
+                            {{ resource.issue_specific_data.suggested_implementation }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="6" style="padding: 1rem; text-align: center; color: var(--sr-text-muted); font-style: italic;">
+        Nessuna risorsa trovata per questa pagina.
+    </td>
+</tr>
+{% endfor %}
+
+<!-- Bottom Pagination (if more than 1 page) -->
+{% if pagination.total_pages > 1 %}
+<tr>
+    <td colspan="6" style="padding: 0.75rem; border-top: 1px solid var(--sr-border); background: var(--sr-gray-25);">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+            <!-- Repeat pagination controls -->
+            <button class="sr-pagination-btn" 
+                    hx-get="/htmx/scan/{{ scan_id }}/resources/{{ severity }}/{{ issue_type }}?page={{ pagination.prev_page }}&limit=50"
+                    hx-target="#resource-table-body-{{ table_id }}"
+                    hx-swap="innerHTML"
+                    {% if not pagination.has_prev %}disabled{% endif %}
+                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid var(--sr-border); background: var(--sr-white); border-radius: 3px; cursor: pointer;">
+                <i class="bi bi-chevron-left"></i> Precedente
+            </button>
+            
+            <span style="font-size: 0.8rem; color: var(--sr-text); margin: 0 0.75rem;">
+                {{ pagination.current_page }} / {{ pagination.total_pages }}
+            </span>
+            
+            <button class="sr-pagination-btn" 
+                    hx-get="/htmx/scan/{{ scan_id }}/resources/{{ severity }}/{{ issue_type }}?page={{ pagination.next_page }}&limit=50"
+                    hx-target="#resource-table-body-{{ table_id }}"
+                    hx-swap="innerHTML"
+                    {% if not pagination.has_next %}disabled{% endif %}
+                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid var(--sr-border); background: var(--sr-white); border-radius: 3px; cursor: pointer;">
+                Successiva <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% endif %}

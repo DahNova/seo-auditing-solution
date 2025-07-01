@@ -161,15 +161,37 @@ class PerformanceAnalyzer:
         try:
             html_content = getattr(crawl_result, 'html', '')
             
-            # Large images detection
+            # Large images detection - converted to granular format
             if metrics.get('image_count', 0) > 10:
-                issues.append({
-                    'type': 'too_many_images',
-                    'severity': 'medium',
-                    'impact': 'Slows down page loading',
-                    'recommendation': f"Optimize or lazy-load {metrics['image_count']} images",
-                    'metric_affected': 'LCP, FCP'
-                })
+                # Extract detailed image information for granular issues
+                image_issues = self._extract_image_optimization_details(html_content, crawl_result)
+                
+                if image_issues:
+                    # Create granular issues for each image that needs optimization
+                    for image_issue in image_issues:
+                        severity = SeverityCalculator.calculate_severity('too_many_images')
+                        score_impact = SeverityCalculator.get_severity_score(severity)
+                        
+                        issue = IssueFactory.create_granular_issue(
+                            issue_type='too_many_images',
+                            severity=severity,
+                            category='performance',
+                            title=f'Immagine Necessita Ottimizzazione',
+                            description=f'Immagine {image_issue["optimization_potential"]} che rallenta il caricamento della pagina',
+                            recommendation=f'Ottimizza immagine: {", ".join(image_issue["optimization_suggestions"][:2])}',
+                            resource_details=image_issue["resource_details"],
+                            score_impact=score_impact
+                        )
+                        issues.append(issue)
+                else:
+                    # Fallback to legacy format if detailed extraction fails
+                    issues.append({
+                        'type': 'too_many_images',
+                        'severity': 'medium',
+                        'impact': 'Slows down page loading',
+                        'recommendation': f"Optimize or lazy-load {metrics['image_count']} images",
+                        'metric_affected': 'LCP, FCP'
+                    })
             
             # Individual blocking resources identification
             blocking_issues = self._identify_blocking_resources(html_content)
@@ -287,6 +309,102 @@ class PerformanceAnalyzer:
             logger.error(f"Error generating optimization opportunities: {str(e)}")
             
         return opportunities
+    
+    def _extract_image_optimization_details(self, html_content: str, crawl_result) -> List[Dict[str, Any]]:
+        """Extract detailed image information for granular optimization issues"""
+        image_issues = []
+        
+        try:
+            # Extract all image tags with detailed information
+            img_pattern = r'<img[^>]*src=["\']([^"\']+)["\'][^>]*>'
+            img_matches = re.finditer(img_pattern, html_content, re.IGNORECASE)
+            
+            page_url = getattr(crawl_result, 'url', '')
+            
+            for i, match in enumerate(img_matches):
+                img_tag = match.group(0)
+                img_src = match.group(1)
+                
+                # Skip data URLs and very small images
+                if img_src.startswith('data:') or any(skip in img_src.lower() for skip in ['icon', 'logo', 'avatar']):
+                    continue
+                
+                # Extract image attributes
+                width = self._extract_attribute(img_tag, 'width')
+                height = self._extract_attribute(img_tag, 'height')
+                alt_text = self._extract_attribute(img_tag, 'alt')
+                loading = self._extract_attribute(img_tag, 'loading')
+                
+                # Parse dimensions
+                width_int = None
+                height_int = None
+                try:
+                    if width and width.isdigit():
+                        width_int = int(width)
+                    if height and height.isdigit():
+                        height_int = int(height)
+                except ValueError:
+                    pass
+                
+                # Determine file format from URL
+                format_type = "unknown"
+                for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+                    if ext in img_src.lower():
+                        format_type = ext.replace('.', '').upper()
+                        break
+                
+                # Check lazy loading
+                has_lazy_loading = loading and loading.lower() == 'lazy'
+                
+                # Estimate file size based on format and dimensions (rough estimate)
+                estimated_file_size = None
+                if width_int and height_int:
+                    pixels = width_int * height_int
+                    if format_type in ['JPG', 'JPEG']:
+                        estimated_file_size = pixels * 3  # ~3 bytes per pixel for JPEG
+                    elif format_type == 'PNG':
+                        estimated_file_size = pixels * 4  # ~4 bytes per pixel for PNG
+                    elif format_type == 'WEBP':
+                        estimated_file_size = pixels * 2  # ~2 bytes per pixel for WebP
+                
+                # Create resource details
+                resource_details = ResourceDetailsBuilder.image_optimization_needed(
+                    img_src=img_src,
+                    width=width_int,
+                    height=height_int,
+                    file_size=estimated_file_size,
+                    alt_text=alt_text or "",
+                    lazy_loading=has_lazy_loading,
+                    format_type=format_type,
+                    page_context=f"Pagina: {page_url}"
+                )
+                
+                # Only include images that actually need optimization
+                optimization_potential = resource_details.issue_specific_data.get('optimization_potential', [])
+                if optimization_potential:
+                    image_issues.append({
+                        'resource_details': resource_details,
+                        'optimization_potential': ', '.join(optimization_potential),
+                        'optimization_suggestions': resource_details.optimization_suggestions
+                    })
+                
+                # Limit to prevent too many issues (performance consideration)
+                if len(image_issues) >= 20:
+                    break
+                    
+        except Exception as e:
+            logger.error(f"Error extracting image optimization details: {str(e)}")
+            
+        return image_issues
+    
+    def _extract_attribute(self, tag: str, attribute: str) -> Optional[str]:
+        """Extract attribute value from HTML tag"""
+        try:
+            pattern = rf'{attribute}=["\']([^"\']*)["\']'
+            match = re.search(pattern, tag, re.IGNORECASE)
+            return match.group(1) if match else None
+        except Exception:
+            return None
     
     def _identify_blocking_resources(self, html_content: str) -> List[Dict[str, Any]]:
         """Identify specific blocking CSS and JavaScript resources"""
