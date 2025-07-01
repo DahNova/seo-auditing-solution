@@ -21,6 +21,7 @@ class ResourceType(Enum):
     URL_STRUCTURE = "url_structure"
     SOCIAL_META = "social_meta"
     ACCESSIBILITY = "accessibility"
+    CONSOLIDATED = "consolidated"
 
 @dataclass
 class ResourceDetails:
@@ -283,6 +284,183 @@ class ResourceDetailsBuilder:
             priority_level="medium",
             estimated_fix_time="20-45 minutes"
         )
+    
+    @staticmethod
+    def canonical_missing(page_url: str, suggested_canonical: str, 
+                         duplicate_count: int = 0, page_context: str = "") -> ResourceDetails:
+        """Details for missing canonical URL issue"""
+        return ResourceDetails(
+            resource_url=page_url,
+            resource_type=ResourceType.META_TAG,
+            issue_specific_data={
+                "current_canonical": None,
+                "suggested_canonical": suggested_canonical,
+                "duplicate_count": duplicate_count,
+                "has_duplicates": duplicate_count > 1,
+                "canonical_status": "missing"
+            },
+            page_context=page_context,
+            element_selector="<head>",
+            optimization_suggestions=[
+                f"Aggiungi: <link rel=\"canonical\" href=\"{suggested_canonical}\">",
+                "Posiziona il tag canonical nella sezione <head>",
+                "Assicurati che l'URL canonical sia assoluto e accessibile"
+            ],
+            priority_level="high",
+            estimated_fix_time="2-5 minutes"
+        )
+    
+    @staticmethod
+    def h1_missing(page_url: str, suggested_h1: str, title_text: str = "", 
+                   top_keywords: List[str] = None, page_context: str = "") -> ResourceDetails:
+        """Details for missing H1 tag issue"""
+        keywords = top_keywords or []
+        keyword_suggestions = []
+        
+        if keywords:
+            keyword_suggestions = [
+                f"Includi la keyword principale: '{keywords[0]}'",
+                f"Considera keyword secondarie: {', '.join(keywords[1:3])}" if len(keywords) > 1 else ""
+            ]
+            keyword_suggestions = [s for s in keyword_suggestions if s]
+        
+        return ResourceDetails(
+            resource_url=page_url,
+            resource_type=ResourceType.HEADING,
+            issue_specific_data={
+                "current_h1": None,
+                "suggested_h1": suggested_h1,
+                "page_title": title_text,
+                "top_keywords": keywords[:5],
+                "h1_status": "missing",
+                "seo_impact": "major_ranking_factor"
+            },
+            page_context=page_context,
+            element_selector="<body>",
+            optimization_suggestions=[
+                f"Aggiungi H1 ottimizzato: <h1>{suggested_h1}</h1>",
+                "Posiziona l'H1 nella parte alta del contenuto principale",
+                "Mantieni l'H1 tra 10-70 caratteri per leggibilità ottimale",
+                "Usa un solo H1 per pagina per chiarezza semantica"
+            ] + keyword_suggestions,
+            priority_level="high",
+            estimated_fix_time="3-10 minutes"
+        )
+    
+    @staticmethod
+    def meta_description_missing(page_url: str, suggested_description: str, title_text: str = "", 
+                                content_preview: str = "", top_keywords: List[str] = None, 
+                                page_context: str = "") -> ResourceDetails:
+        """Details for missing meta description issue"""
+        keywords = top_keywords or []
+        
+        return ResourceDetails(
+            resource_url=page_url,
+            resource_type=ResourceType.META_TAG,
+            issue_specific_data={
+                "current_meta_description": None,
+                "suggested_meta_description": suggested_description,
+                "page_title": title_text,
+                "content_preview": content_preview[:200],
+                "top_keywords": keywords[:3],
+                "meta_description_status": "missing",
+                "optimal_length": "150-160 caratteri",
+                "seo_impact": "affects_search_results_ctr"
+            },
+            page_context=page_context,
+            element_selector='<head>',
+            optimization_suggestions=[
+                f"Aggiungi meta description: <meta name=\"description\" content=\"{suggested_description[:120]}...\">",
+                "Mantieni la lunghezza tra 150-160 caratteri per visualizzazione ottimale",
+                "Includi la keyword principale in modo naturale",
+                "Scrivi una descrizione accattivante che inviti al click",
+                "Evita duplicazioni con altre pagine del sito"
+            ],
+            priority_level="high",
+            estimated_fix_time="5-15 minutes"
+        )
+    
+    @staticmethod
+    def schema_markup_missing(page_url: str, recommended_schema_types: List[str], 
+                             page_content_type: str = "general", business_type: str = "",
+                             page_context: str = "") -> ResourceDetails:
+        """Details for missing schema markup issue"""
+        primary_schema = recommended_schema_types[0] if recommended_schema_types else "Organization"
+        
+        # Generate schema-specific suggestions based on content type
+        schema_suggestions = []
+        implementation_examples = {}
+        
+        if "Organization" in recommended_schema_types or "LocalBusiness" in recommended_schema_types:
+            schema_suggestions.extend([
+                "Aggiungi schema Organization per informazioni aziendali",
+                "Includi nome, indirizzo, telefono e sito web",
+                "Considera LocalBusiness se hai una sede fisica"
+            ])
+            implementation_examples["Organization"] = {
+                "@type": "Organization",
+                "name": "Nome Azienda",
+                "url": page_url,
+                "address": {"@type": "PostalAddress"},
+                "contactPoint": {"@type": "ContactPoint"}
+            }
+        
+        if "Product" in recommended_schema_types:
+            schema_suggestions.extend([
+                "Aggiungi schema Product per prodotti/servizi",
+                "Includi nome, descrizione, prezzo e disponibilità",
+                "Aggiungi recensioni e valutazioni se disponibili"
+            ])
+            implementation_examples["Product"] = {
+                "@type": "Product",
+                "name": "Nome Prodotto",
+                "description": "Descrizione prodotto",
+                "offers": {"@type": "Offer"}
+            }
+        
+        if "Article" in recommended_schema_types or "BlogPosting" in recommended_schema_types:
+            schema_suggestions.extend([
+                "Aggiungi schema Article per contenuti informativi",
+                "Includi autore, data pubblicazione e immagine",
+                "Considera NewsArticle per notizie specifiche"
+            ])
+            implementation_examples["Article"] = {
+                "@type": "Article",
+                "headline": "Titolo Articolo",
+                "author": {"@type": "Person", "name": "Nome Autore"},
+                "datePublished": "2024-01-01"
+            }
+        
+        if "BreadcrumbList" in recommended_schema_types:
+            schema_suggestions.append("Aggiungi schema BreadcrumbList per la navigazione")
+            implementation_examples["BreadcrumbList"] = {
+                "@type": "BreadcrumbList",
+                "itemListElement": [{"@type": "ListItem", "position": 1}]
+            }
+        
+        return ResourceDetails(
+            resource_url=page_url,
+            resource_type=ResourceType.SCHEMA_MARKUP,
+            issue_specific_data={
+                "missing_schema_types": recommended_schema_types,
+                "primary_recommended": primary_schema,
+                "page_content_type": page_content_type,
+                "business_type": business_type,
+                "implementation_examples": implementation_examples,
+                "schema_impact": "reduced_rich_snippets_and_visibility",
+                "priority_schemas": recommended_schema_types[:3]
+            },
+            page_context=page_context,
+            element_selector="<head>",
+            optimization_suggestions=[
+                f"Implementa schema {primary_schema} come priorità principale",
+                "Posiziona il JSON-LD nella sezione <head> della pagina",
+                "Testa l'implementazione con Google Rich Results Test",
+                "Includi tutte le proprietà richieste per rich snippets"
+            ] + schema_suggestions,
+            priority_level="medium",
+            estimated_fix_time="20-45 minutes"
+        )
 
 class IssueFactory:
     """Factory for creating granular issues with resource details"""
@@ -304,6 +482,29 @@ class IssueFactory:
         }
     
     @staticmethod
+    def create_consolidated_issue(issue_type: str, severity: str, category: str,
+                                title: str, description: str, recommendation: str,
+                                resources_details: List[ResourceDetails], score_impact: float = 0.0) -> Dict[str, Any]:
+        """Create a consolidated issue with multiple resource details"""
+        # Create a consolidated element with all resources
+        consolidated_element = {
+            'resource_type': 'consolidated',
+            'resources': [details.to_json() for details in resources_details],
+            'total_count': len(resources_details)
+        }
+        
+        return {
+            'type': issue_type,
+            'severity': severity,
+            'category': category,
+            'title': title,
+            'description': description,
+            'recommendation': recommendation,
+            'element': json.dumps(consolidated_element, ensure_ascii=False),
+            'score_impact': score_impact
+        }
+    
+    @staticmethod
     def extract_resource_details(issue: Dict[str, Any]) -> Optional[ResourceDetails]:
         """Extract ResourceDetails from an issue's element field"""
         element_data = issue.get('element')
@@ -318,16 +519,71 @@ class IssueFactory:
             return None
     
     @staticmethod
+    def extract_consolidated_resources(issue: Dict[str, Any]) -> Optional[List[ResourceDetails]]:
+        """Extract ResourceDetails list from a consolidated issue's element field"""
+        element_data = issue.get('element')
+        if not element_data:
+            return None
+        
+        try:
+            # Parse as JSON
+            data = json.loads(element_data)
+            if data.get('resource_type') == 'consolidated':
+                resources = []
+                for resource_json in data.get('resources', []):
+                    # Parse each individual resource
+                    resource_data = json.loads(resource_json)
+                    # Convert resource_type string back to enum
+                    resource_data['resource_type'] = ResourceType(resource_data['resource_type'])
+                    resources.append(ResourceDetails(**resource_data))
+                return resources
+            else:
+                # Single resource format - try to extract as normal ResourceDetails
+                try:
+                    single_resource = ResourceDetails.from_json(element_data)
+                    return [single_resource] if single_resource else None
+                except (ValueError, KeyError):
+                    # If it fails, it might be an old format - return None
+                    return None
+        except (json.JSONDecodeError, KeyError, ValueError):
+            # Fallback for old format
+            return None
+    
+    @staticmethod
+    def is_consolidated_issue(issue: Dict[str, Any]) -> bool:
+        """Check if an issue is a consolidated issue with multiple resources"""
+        element_data = issue.get('element')
+        if not element_data:
+            return False
+        
+        try:
+            data = json.loads(element_data)
+            return data.get('resource_type') == 'consolidated'
+        except (json.JSONDecodeError, KeyError):
+            return False
+    
+    @staticmethod
     def group_issues_by_resource_type(issues: List[Dict[str, Any]]) -> Dict[ResourceType, List[Dict[str, Any]]]:
         """Group issues by their resource type"""
         grouped = {}
         
         for issue in issues:
-            resource_details = IssueFactory.extract_resource_details(issue)
-            if resource_details:
-                resource_type = resource_details.resource_type
-                if resource_type not in grouped:
-                    grouped[resource_type] = []
-                grouped[resource_type].append(issue)
+            # Check if it's a consolidated issue first
+            if IssueFactory.is_consolidated_issue(issue):
+                # For consolidated issues, get the first resource type
+                consolidated_resources = IssueFactory.extract_consolidated_resources(issue)
+                if consolidated_resources and len(consolidated_resources) > 0:
+                    resource_type = consolidated_resources[0].resource_type
+                    if resource_type not in grouped:
+                        grouped[resource_type] = []
+                    grouped[resource_type].append(issue)
+            else:
+                # Single resource issue
+                resource_details = IssueFactory.extract_resource_details(issue)
+                if resource_details:
+                    resource_type = resource_details.resource_type
+                    if resource_type not in grouped:
+                        grouped[resource_type] = []
+                    grouped[resource_type].append(issue)
         
         return grouped

@@ -126,27 +126,11 @@ class AccessibilityAnalyzer(BaseAnalyzer):
         total_images = len(images)
         issues_count = len(missing_alt) + len(empty_alt)
         
-        if missing_alt:
-            result['issues'].append(
-                self.create_issue(
-                    'missing_alt_text', 'high', 'accessibility',
-                    'Alt Text Mancante',
-                    f'{len(missing_alt)} immagini senza attributo alt',
-                    'Aggiungi attributi alt descrittivi a tutte le immagini (WCAG 1.1.1)',
-                    seo_config.scoring_weights.get('missing_accessibility_features', -4.0)
-                )
-            )
+        # NOTE: Alt text issues are now handled by IssueDetector with granular format
+        # No need to create duplicate legacy issues here
         
-        if empty_alt:
-            result['issues'].append(
-                self.create_issue(
-                    'poor_alt_text', 'medium', 'accessibility',
-                    'Alt Text Inadeguato',
-                    f'{len(empty_alt)} immagini con alt text vuoto o troppo breve',
-                    'Scrivi alt text descrittivi e significativi (minimo 10 caratteri)',
-                    -2.0
-                )
-            )
+        # NOTE: Poor alt text issues are also handled by IssueDetector with granular format
+        # No need to create duplicate legacy issues here
         
         # Calculate score
         if total_images > 0:
@@ -326,7 +310,7 @@ class AccessibilityAnalyzer(BaseAnalyzer):
                 missing_labels = total_inputs - int(inputs_with_labels)
                 result['issues'].append(
                     self.create_issue(
-                        'missing_form_labels', 'high', 'accessibility',
+                        'etichette_form_mancanti', 'high', 'accessibility',
                         'Etichette Form Mancanti',
                         f'{missing_labels} campi form senza etichette appropriate',
                         'Associa ogni campo form con una label usando for/id o aria-label (WCAG 1.3.1)',

@@ -1,8 +1,12 @@
 from typing import List, Dict, Any
+import logging
+import re
 from app.core.config import seo_config
 from .core.resource_details import ResourceDetailsBuilder, IssueFactory
 from .performance_analyzer import PerformanceAnalyzer
 from .severity_calculator import SeverityCalculator
+
+logger = logging.getLogger(__name__)
 
 class IssueDetector:
     """Detects and categorizes SEO issues using configurable rules"""
@@ -36,13 +40,16 @@ class IssueDetector:
             issues.extend(self._check_title_issues(title))
             
             # Check meta description issues
-            issues.extend(self._check_meta_description_issues(meta_desc))
+            issues.extend(self._check_meta_description_issues(meta_desc, crawl_result))
             
             # Check content issues
             issues.extend(self._check_content_issues(word_count))
             
             # Check heading structure issues
             issues.extend(self._check_heading_issues(crawl_result))
+            
+            # Check canonical issues
+            issues.extend(self._check_canonical_issues(crawl_result))
         
         # Check image-specific issues for image files
         elif content_type == 'image':
@@ -109,20 +116,49 @@ class IssueDetector:
         
         return issues
     
-    def _check_meta_description_issues(self, meta_desc: str) -> List[Dict[str, Any]]:
+    def _check_meta_description_issues(self, meta_desc: str, crawl_result) -> List[Dict[str, Any]]:
         """Check meta description for SEO issues"""
         issues = []
         
         if not meta_desc:
-            issues.append({
-                'type': 'missing_meta_description',
-                'category': 'on_page',
-                'severity': 'high',
-                'title': 'Missing Meta Description',
-                'description': 'Page is missing a meta description',
-                'recommendation': f'Add a meta description of {seo_config.meta_desc_min_length}-{seo_config.meta_desc_max_length} characters',
-                'score_impact': seo_config.scoring_weights['missing_meta_description']
-            })
+            # Convert to granular format with optimized meta description suggestion
+            url = getattr(crawl_result, 'url', '')
+            metadata = getattr(crawl_result, 'metadata', {}) or {}
+            title_text = metadata.get('title', '')
+            
+            # Extract content preview and keywords for meta description optimization
+            content_preview = self._extract_content_preview(crawl_result)
+            top_keywords = self._extract_top_keywords(crawl_result)
+            
+            # Generate intelligent meta description suggestion
+            suggested_description = self._generate_meta_description_suggestion(
+                title_text, content_preview, top_keywords, url
+            )
+            page_context = f"Pagina: {url}"
+            
+            resource_details = ResourceDetailsBuilder.meta_description_missing(
+                page_url=url,
+                suggested_description=suggested_description,
+                title_text=title_text,
+                content_preview=content_preview,
+                top_keywords=top_keywords,
+                page_context=page_context
+            )
+            
+            severity = SeverityCalculator.calculate_severity('missing_meta_description')
+            score_impact = SeverityCalculator.get_severity_score(severity)
+            
+            issue = IssueFactory.create_granular_issue(
+                issue_type='missing_meta_description',
+                severity=severity,
+                category='on_page',
+                title='Meta Description Mancante',
+                description=f'La pagina {self._truncate_url(url)} non ha una meta description',
+                recommendation=f'Aggiungi meta description ottimizzata: "{suggested_description[:100]}..."',
+                resource_details=resource_details,
+                score_impact=score_impact
+            )
+            issues.append(issue)
         elif len(meta_desc) < seo_config.meta_desc_min_length:
             issues.append({
                 'type': 'meta_desc_too_short',
@@ -152,14 +188,14 @@ class IssueDetector:
         
         if word_count < seo_config.min_word_count:
             context = {'word_count': word_count}
-            severity = SeverityCalculator.calculate_severity('thin_content', context)
+            severity = SeverityCalculator.calculate_severity('contenuto_scarso', context)
             issues.append({
-                'type': 'thin_content',
+                'type': 'contenuto_scarso',
                 'category': 'content',
                 'severity': severity,
-                'title': 'Thin Content',
-                'description': f'Page has thin content ({word_count} words)',
-                'recommendation': f'Add more valuable content (minimum {seo_config.min_word_count} words)',
+                'title': 'Contenuto Scarso',
+                'description': f'La pagina ha contenuto scarso ({word_count} parole)',
+                'recommendation': f'Aggiungi contenuto più approfondito (minimo {seo_config.min_word_count} parole)',
                 'score_impact': SeverityCalculator.get_severity_score(severity)
             })
         
@@ -184,28 +220,52 @@ class IssueDetector:
             h2_tags = soup.find_all('h2')
             h3_tags = soup.find_all('h3')
             
-            # Check for missing H1
+            # Check for missing H1 - GRANULAR VERSION
             if len(h1_tags) == 0:
-                issues.append({
-                    'type': 'missing_h1',
-                    'category': 'on_page',
-                    'severity': 'high',
-                    'title': 'Missing H1 Tag',
-                    'description': 'Page is missing an H1 heading tag',
-                    'recommendation': 'Add a single, descriptive H1 tag that includes the main keyword',
-                    'score_impact': seo_config.scoring_weights.get('missing_h1', -8.0)
-                })
+                # Extract keywords and title for H1 optimization
+                metadata = getattr(crawl_result, 'metadata', {}) or {}
+                title_text = metadata.get('title', '')
+                
+                # Extract top keywords from content for H1 suggestions
+                top_keywords = self._extract_top_keywords(crawl_result)
+                
+                # Generate intelligent H1 suggestion
+                suggested_h1 = self._generate_h1_suggestion(title_text, top_keywords, getattr(crawl_result, 'url', ''))
+                page_context = f"Pagina: {getattr(crawl_result, 'url', '')}"
+                
+                resource_details = ResourceDetailsBuilder.h1_missing(
+                    page_url=getattr(crawl_result, 'url', ''),
+                    suggested_h1=suggested_h1,
+                    title_text=title_text,
+                    top_keywords=top_keywords,
+                    page_context=page_context
+                )
+                
+                severity = SeverityCalculator.calculate_severity('h1_mancante')
+                score_impact = SeverityCalculator.get_severity_score(severity)
+                
+                issue = IssueFactory.create_granular_issue(
+                    issue_type='h1_mancante',
+                    severity=severity,
+                    category='on_page',
+                    title='H1 Mancante',
+                    description=f'La pagina {self._truncate_url(getattr(crawl_result, "url", ""))} non ha un tag H1',
+                    recommendation=f'Aggiungi H1 ottimizzato: "{suggested_h1}"',
+                    resource_details=resource_details,
+                    score_impact=score_impact
+                )
+                issues.append(issue)
             
             # Check for multiple H1 tags
             elif len(h1_tags) > 1:
                 issues.append({
-                    'type': 'multiple_h1',
+                    'type': 'h1_multipli',
                     'category': 'on_page',
                     'severity': 'medium',
-                    'title': 'Multiple H1 Tags',
-                    'description': f'Page has {len(h1_tags)} H1 tags (should have exactly one)',
-                    'recommendation': 'Use only one H1 tag per page, convert others to H2-H6',
-                    'score_impact': seo_config.scoring_weights.get('multiple_h1', -4.0)
+                    'title': 'H1 Multipli',
+                    'description': f'La pagina ha {len(h1_tags)} tag H1 (dovrebbe averne esattamente uno)',
+                    'recommendation': 'Usa solo un tag H1 per pagina, converti gli altri in H2-H6',
+                    'score_impact': seo_config.scoring_weights.get('h1_multipli', -4.0)
                 })
             
             # Check for empty H1
@@ -360,7 +420,7 @@ class IssueDetector:
                     description=f'Image {self._truncate_url(src)} is missing descriptive alt text',
                     recommendation=f'Add descriptive alt text for {self._truncate_url(src)}',
                     resource_details=resource_details,
-                    score_impact=seo_config.scoring_weights['images_missing_alt'] / 5  # Distribute weight
+                    score_impact=seo_config.scoring_weights['image_missing_alt'] / 5  # Distribute weight
                 )
                 issues.append(issue)
             
@@ -383,7 +443,7 @@ class IssueDetector:
                     description=f'Image {self._truncate_url(src)} has non-descriptive filename',
                     recommendation=f'Rename to {suggested_filename}',
                     resource_details=resource_details,
-                    score_impact=seo_config.scoring_weights['images_bad_filename'] / 3  # Distribute weight
+                    score_impact=seo_config.scoring_weights['image_bad_filename'] / 3  # Distribute weight
                 )
                 issues.append(issue)
             
@@ -410,7 +470,7 @@ class IssueDetector:
                     description=f'Image {self._truncate_url(src)} is oversized ({width}x{height})',
                     recommendation=f'Optimize to max 1920x1080px and compress file size',
                     resource_details=resource_details,
-                    score_impact=seo_config.scoring_weights['oversized_images'] / 3  # Distribute weight
+                    score_impact=seo_config.scoring_weights['image_oversized'] / 3  # Distribute weight
                 )
                 issues.append(issue)
         
@@ -639,3 +699,282 @@ class IssueDetector:
             logging.getLogger(__name__).warning(f"Error checking performance issues: {str(e)}")
         
         return issues
+    
+    def _check_canonical_issues(self, crawl_result) -> List[Dict[str, Any]]:
+        """Check for missing canonical URL and create granular issue"""
+        issues = []
+        
+        try:
+            # Get HTML content to check for canonical tag
+            html_content = getattr(crawl_result, 'html', '') or getattr(crawl_result, 'cleaned_html', '')
+            page_url = getattr(crawl_result, 'url', '')
+            
+            if not html_content or not page_url:
+                return issues
+            
+            # Check if canonical tag exists
+            import re
+            canonical_match = re.search(
+                r'<link[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']*)["\']',
+                html_content, re.IGNORECASE
+            )
+            
+            if not canonical_match:
+                # Missing canonical - create granular issue
+                suggested_canonical = page_url  # Use current URL as suggested canonical
+                page_context = f"Pagina: {page_url}"
+                
+                resource_details = ResourceDetailsBuilder.canonical_missing(
+                    page_url=page_url,
+                    suggested_canonical=suggested_canonical,
+                    duplicate_count=1,
+                    page_context=page_context
+                )
+                
+                severity = SeverityCalculator.calculate_severity('canonical_mancante')
+                score_impact = SeverityCalculator.get_severity_score(severity)
+                
+                issue = IssueFactory.create_granular_issue(
+                    issue_type='canonical_mancante',
+                    severity=severity,
+                    category='technical_seo',
+                    title='Canonical Mancante',
+                    description=f'La pagina {self._truncate_url(page_url)} non ha un URL canonical',
+                    recommendation='Aggiungi tag canonical per prevenire problemi di contenuto duplicato',
+                    resource_details=resource_details,
+                    score_impact=score_impact
+                )
+                issues.append(issue)
+            
+        except Exception as e:
+            logger.error(f"Error checking canonical issues: {str(e)}")
+        
+        return issues
+    
+    def _extract_top_keywords(self, crawl_result) -> List[str]:
+        """Extract top keywords from page content for H1 optimization"""
+        try:
+            # Get text content from markdown or HTML
+            text_content = ""
+            
+            if hasattr(crawl_result, 'markdown') and crawl_result.markdown:
+                if hasattr(crawl_result.markdown, 'raw_markdown'):
+                    text_content = crawl_result.markdown.raw_markdown
+                else:
+                    text_content = str(crawl_result.markdown)
+            
+            if not text_content and hasattr(crawl_result, 'cleaned_html'):
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(crawl_result.cleaned_html, 'html.parser')
+                text_content = soup.get_text(separator=' ', strip=True)
+            
+            if not text_content:
+                return []
+            
+            # Simple keyword extraction based on word frequency
+            from collections import Counter
+            
+            # Clean text and extract words
+            words = re.findall(r'\b[a-zA-ZàáâäèéêëìíîïòóôöùúûüÀÁÂÄÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜ]{3,}\b', text_content.lower())
+            
+            # Common stop words in Italian
+            stop_words = {
+                'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+                'il', 'la', 'lo', 'le', 'gli', 'un', 'una', 'uno', 'del', 'della', 'dello',
+                'delle', 'dei', 'con', 'per', 'tra', 'fra', 'che', 'chi', 'cui', 'quando',
+                'dove', 'come', 'perché', 'mentre', 'però', 'quindi', 'anche', 'ancora',
+                'molto', 'tanto', 'più', 'meno', 'bene', 'male', 'meglio', 'peggio',
+                'questo', 'quello', 'questi', 'quelli', 'questa', 'quella', 'queste', 'quelle',
+                'sono', 'essere', 'avere', 'fare', 'dire', 'andare', 'vedere', 'sapere',
+                'dare', 'stare', 'venire', 'dovere', 'potere', 'volere', 'prima', 'dopo',
+                'sopra', 'sotto', 'dentro', 'fuori', 'sempre', 'mai', 'oggi', 'ieri', 'domani'
+            }
+            
+            # Filter out stop words and get word frequency
+            filtered_words = [word for word in words if word not in stop_words and len(word) > 3]
+            word_counts = Counter(filtered_words)
+            
+            # Return top 5 keywords
+            return [word for word, count in word_counts.most_common(5)]
+            
+        except Exception as e:
+            logger.warning(f"Error extracting keywords: {str(e)}")
+            return []
+    
+    def _generate_h1_suggestion(self, title_text: str, top_keywords: List[str], page_url: str) -> str:
+        """Generate intelligent H1 suggestion based on title and keywords"""
+        try:
+            # If we have a title, use it as base but make it more H1-friendly
+            if title_text:
+                # Remove brand name suffixes (common pattern: "Page Title - Brand Name")
+                h1_base = re.split(r'\s*[-|]\s*', title_text)[0].strip()
+                
+                # If title is good length for H1 (10-70 chars), use it
+                if 10 <= len(h1_base) <= 70:
+                    return h1_base
+                
+                # If title is too long, try to shorten it
+                if len(h1_base) > 70:
+                    # Try to cut at a logical point
+                    words = h1_base.split()
+                    shortened = ""
+                    for word in words:
+                        if len(shortened + " " + word) <= 65:
+                            shortened = shortened + " " + word if shortened else word
+                        else:
+                            break
+                    if len(shortened) >= 10:
+                        return shortened
+            
+            # If no good title or title too short, use keywords
+            if top_keywords:
+                # Create H1 from top keywords
+                primary_keyword = top_keywords[0].title()
+                
+                # Add secondary keyword if it makes sense
+                if len(top_keywords) > 1:
+                    secondary = top_keywords[1].title()
+                    suggested = f"{primary_keyword} - {secondary}"
+                    if len(suggested) <= 70:
+                        return suggested
+                
+                return primary_keyword
+            
+            # Fallback: extract from URL path
+            if page_url:
+                path_parts = page_url.strip('/').split('/')
+                if path_parts and path_parts[-1]:
+                    # Convert URL segment to readable format
+                    page_name = path_parts[-1].replace('-', ' ').replace('_', ' ')
+                    page_name = re.sub(r'\.[a-z]+$', '', page_name)  # Remove file extension
+                    if page_name:
+                        return page_name.title()
+            
+            # Ultimate fallback
+            return "Contenuto Principale"
+            
+        except Exception as e:
+            logger.warning(f"Error generating H1 suggestion: {str(e)}")
+            return "Titolo Principale"
+    
+    def _extract_content_preview(self, crawl_result) -> str:
+        """Extract content preview for meta description generation"""
+        try:
+            # Get text content from markdown or HTML
+            text_content = ""
+            
+            if hasattr(crawl_result, 'markdown') and crawl_result.markdown:
+                if hasattr(crawl_result.markdown, 'raw_markdown'):
+                    text_content = crawl_result.markdown.raw_markdown
+                else:
+                    text_content = str(crawl_result.markdown)
+            
+            if not text_content and hasattr(crawl_result, 'cleaned_html'):
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(crawl_result.cleaned_html, 'html.parser')
+                text_content = soup.get_text(separator=' ', strip=True)
+            
+            if not text_content:
+                return ""
+            
+            # Clean and extract first meaningful paragraph
+            
+            # Remove extra whitespace and split into sentences
+            cleaned_text = re.sub(r'\s+', ' ', text_content).strip()
+            sentences = re.split(r'[.!?]+', cleaned_text)
+            
+            # Find first substantial sentence (more than 20 characters)
+            preview = ""
+            for sentence in sentences[:5]:  # Look at first 5 sentences
+                sentence = sentence.strip()
+                if len(sentence) > 20:
+                    preview += sentence + ". "
+                    if len(preview) > 100:  # Stop when we have enough content
+                        break
+            
+            return preview.strip()
+            
+        except Exception as e:
+            logger.warning(f"Error extracting content preview: {str(e)}")
+            return ""
+    
+    def _generate_meta_description_suggestion(self, title_text: str, content_preview: str, 
+                                            top_keywords: List[str], page_url: str) -> str:
+        """Generate intelligent meta description suggestion"""
+        try:
+            target_length = 155  # Optimal meta description length
+            
+            # Start with content preview if available
+            if content_preview and len(content_preview) > 50:
+                # Use first part of content preview
+                base_description = content_preview[:120].strip()
+                
+                # Add primary keyword if not already present
+                if top_keywords and top_keywords[0].lower() not in base_description.lower():
+                    keyword = top_keywords[0]
+                    # Try to naturally integrate the keyword
+                    if len(base_description) + len(keyword) + 10 < target_length:
+                        base_description = f"{keyword}: {base_description}"
+                
+                # Ensure it ends properly
+                if not base_description.endswith('.'):
+                    base_description += '.'
+                
+                # Truncate to optimal length
+                if len(base_description) > target_length:
+                    words = base_description.split()
+                    truncated = ""
+                    for word in words:
+                        if len(truncated + " " + word) <= target_length - 3:
+                            truncated = truncated + " " + word if truncated else word
+                        else:
+                            break
+                    base_description = truncated + "..."
+                
+                return base_description
+            
+            # Fallback: use title as base
+            if title_text:
+                # Remove brand suffix and create description
+                title_base = re.split(r'\s*[-|]\s*', title_text)[0].strip()
+                
+                if top_keywords:
+                    primary_keyword = top_keywords[0]
+                    secondary_keywords = top_keywords[1:3]
+                    
+                    # Create description template
+                    if len(secondary_keywords) > 0:
+                        description = f"Scopri tutto su {title_base}: {primary_keyword}, {', '.join(secondary_keywords)} e molto altro. Guida completa e aggiornata."
+                    else:
+                        description = f"Scopri tutto su {title_base}. Guida completa su {primary_keyword} con informazioni dettagliate e aggiornate."
+                else:
+                    description = f"Scopri tutto su {title_base}. Informazioni complete e aggiornate per le tue esigenze."
+                
+                # Ensure optimal length
+                if len(description) > target_length:
+                    words = description.split()
+                    truncated = ""
+                    for word in words:
+                        if len(truncated + " " + word) <= target_length - 3:
+                            truncated = truncated + " " + word if truncated else word
+                        else:
+                            break
+                    description = truncated + "..."
+                
+                return description
+            
+            # Fallback: use URL path
+            if page_url:
+                path_parts = page_url.strip('/').split('/')
+                if path_parts and path_parts[-1]:
+                    page_name = path_parts[-1].replace('-', ' ').replace('_', ' ')
+                    page_name = re.sub(r'\.[a-z]+$', '', page_name)
+                    if page_name:
+                        return f"Informazioni complete su {page_name.title()}. Scopri tutti i dettagli in questa guida aggiornata."
+            
+            # Ultimate fallback
+            return "Scopri informazioni complete e aggiornate. Contenuti di qualità per le tue esigenze specifiche."
+            
+        except Exception as e:
+            logger.warning(f"Error generating meta description suggestion: {str(e)}")
+            return "Contenuto informativo completo e aggiornato per le tue esigenze."

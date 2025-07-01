@@ -40,14 +40,23 @@ make test-unit           # Fast unit tests only
 make test-api            # API endpoint tests
 make test-seo            # SEO analyzer tests
 make test-working        # Quick tests for active development
+make test-services       # Service layer tests only
+make test-tasks          # Background task tests only
+make test-models         # Database model tests only
 
 # Coverage and quality
-make test-coverage       # Test coverage report
+make test-coverage       # Test coverage report (80% minimum)
 make full-test           # Tests + linting + type checking
+make test-performance    # Performance baseline tests
 
 # Development workflow
 make pre-commit          # Format + lint + unit tests
 make quick-test          # Fast tests (unit + API)
+make test-watch          # Tests in watch mode for TDD
+
+# CI/CD testing
+make ci-test             # CI-compatible test output (JUnit XML)
+make ci-security         # Security scanning (bandit + safety)
 ```
 
 ### Docker Operations
@@ -81,8 +90,13 @@ make migrate             # Apply pending migrations
 make migrate-create      # Create new migration
 
 # Database utilities
-make backup-db           # Backup database
-make test-db             # Reset test database
+make backup-db           # Backup database with timestamp
+make restore-db          # Restore database from backup
+make test-db             # Reset test database (SQLite)
+
+# Development utilities
+make check-env           # Check Python/package versions
+make shell               # Python shell with app context loaded
 ```
 
 ## Core System Components
@@ -97,9 +111,15 @@ make test-db             # Reset test database
 - `content/` - Content quality and accessibility analyzers
 - `severity_calculator.py` - Standardized severity assignment with context-based escalation
 
-**Granular Resource Details**: Issues contain structured JSON in the `element` field with specific resource information (URLs, file sizes, optimization recommendations). Each resource generates individual issues rather than aggregate counts.
+**Granular Resource Details**: Issues contain structured JSON in the `element` field with specific resource information (URLs, file sizes, optimization recommendations). Each resource generates individual issues rather than aggregate counts. The system uses `ResourceDetailsBuilder` for creating structured issue data and `IssueFactory` for both granular and consolidated issue formats.
 
-**Performance-Aware Issue Limiting**: For large scans (>5000 issues), the system automatically limits to 2000 issues for UI performance, distributed across severity levels.
+**Smart Issue Conversion**: Major issues have been converted to granular format with intelligent suggestions:
+- `canonical_mancante` - Generates suggested canonical URLs
+- `h1_mancante` - Provides optimized H1 suggestions based on content analysis
+- `meta_description_mancante` - Creates SEO-optimized meta descriptions
+- `missing_schema_markup` - Recommends appropriate schema types based on page content
+
+**Performance-Aware Issue Limiting**: For large scans (>5000 issues), the system automatically limits to 2000 issues for UI performance, with smart distribution prioritizing critical (40%) and high (35%) severity issues. Granular issues (those with detailed element data) are prioritized over legacy issues.
 
 ### Background Processing (`app/tasks/`)
 
@@ -127,12 +147,20 @@ Client -> Website -> Scan -> Page -> Issue
 
 ### Frontend Architecture (`app/templates/`)
 
-**Component-Based Structure**:
+**Hybrid HTMX/Static Architecture**:
 - `components/sections/` - Main page sections (SEMrush-inspired design)
-- `components/modals/` - Form modals for CRUD operations
+- `components/modals/` - Form modals use static includes (not HTMX) to avoid form data persistence issues
 - `components/cards/` - Metric display components
+- `components/forms/` - Standalone edit forms used in both static and HTMX contexts
 
-**Template Router** (`app/routers/templates.py`): Processes database data for template consumption, including resource detail grouping for granular issue display with pagination support.
+**Critical Modal Implementation**: The system uses **static modal includes** in `base.html` rather than HTMX-loaded modals. This architectural decision prevents form data persistence issues where dynamically loaded forms would reset values. The JavaScript functions `showAddClientModal()` and `showAddWebsiteModal()` directly trigger static modals via Bootstrap's modal API.
+
+**HTMX Router** (`app/routers/htmx.py`): Provides dynamic modal content for edit operations and table updates. These endpoints return partial HTML for:
+- Edit form modals with pre-populated data
+- Updated table rows after CRUD operations
+- Dynamic client/website dropdowns
+
+**Template Router** (`app/routers/templates.py`): Processes database data for template consumption, ensuring all pages that include modals have access to required data (e.g., `clients` list for website creation dropdown).
 
 **Resource Details Display**: The scan results use nested accordions (Severity → Issue Type → Resource Details) with:
 - Enhanced 6-column resource tables for granular issues
@@ -159,14 +187,22 @@ Client -> Website -> Scan -> Page -> Issue
 All API endpoints use `async def` with `AsyncSession = Depends(get_db)`. Database operations use SQLAlchemy's async session pattern.
 
 ### Key Endpoints Structure
-- `/api/v1/clients/` - Client CRUD
-- `/api/v1/websites/` - Website management 
+- `/api/v1/clients/` - Client CRUD (expects `name`, `contact_email`, `description`)
+- `/api/v1/websites/` - Website management (expects `domain`, `name`, `client_id`, optional config)
 - `/api/v1/scans/` - Scan operations including `/api/v1/scans/{id}/results`
 - `/api/v1/scheduler/` - Real-time worker monitoring and queue management
-- `/templated/` - Server-side rendered interface
+- `/templated/` - Server-side rendered interface (clients, websites, scans, scheduler sections)
+- `/htmx/` - Partial HTML endpoints for dynamic content (edit modals, table updates)
 
 ### Error Handling
 HTTP exceptions use FastAPI's `HTTPException`. Database errors include rollback handling. Celery tasks have retry logic with exponential backoff.
+
+### Schema Validation Patterns
+The API uses Pydantic schemas in `app/schemas/` with strict validation:
+- **Client Creation**: Requires `name` (min 1 char), optional `contact_email` and `description`
+- **Website Creation**: Requires `domain` (extracted from full URLs), `client_id`, optional `name` and config
+- JavaScript form handlers automatically extract domains from full URLs and map form fields to API schema expectations
+- Validation errors return 422 with detailed field-level error messages
 
 ## Web Crawling Integration
 
@@ -190,6 +226,11 @@ make pre-commit          # Format + lint + unit tests
 make format              # Black + isort formatting
 make lint                # flake8 + black check + isort check
 make type-check          # mypy type checking
+make clean               # Clean cache and temporary files
+
+# Additional quality checks
+make check-deps          # Security audit (pip-audit + safety)
+make update-deps         # Update dependency locks (pip-compile)
 ```
 
 ### Testing Database
@@ -202,6 +243,13 @@ The system uses SQLite for testing with async support (`aiosqlite`). Test databa
 - Core Web Vitals calculation uses efficient aggregation
 - URL cleaning utility (`app/services/url_utils.py`) removes invisible Unicode characters
 - Resource details tables use JavaScript-based pagination to handle 20k+ issues per type
+
+### JavaScript Architecture (`app/static/js/app-minimal.js`)
+**Namespace Pattern**: JavaScript functions are organized in namespaces (`clients`, `websites`) to avoid global pollution while maintaining compatibility with inline onclick handlers.
+
+**Error Handling**: Client-side JavaScript includes proper error handling with specific validation error parsing for 422 responses, displaying user-friendly error messages via toast notifications.
+
+**Form Data Processing**: Form submission functions automatically transform form data to match API schemas (e.g., extracting domain from full URLs, mapping form field names to API field names).
 
 ## Production Deployment
 
@@ -234,7 +282,13 @@ Real-time scheduler status via `/api/v1/scheduler/status` includes worker health
 ```bash
 make logs                # Application logs
 docker-compose logs celery-worker --tail=20  # Celery worker logs
-make debug               # Debug server with breakpoints
+make debug               # Debug server with breakpoints (port 5678)
+make profile             # Performance profiling with cProfile
+
+# Service-specific debugging
+docker-compose logs postgres --tail=20  # Database logs
+docker-compose logs redis --tail=20     # Redis/Celery broker logs
+docker-compose ps                       # Service status check
 ```
 
 ### Performance Debugging
@@ -242,14 +296,18 @@ The system includes built-in performance monitoring. Core Web Vitals analysis pr
 
 ## Key Files for Common Tasks
 
-- **Add new SEO analyzer**: Extend `app/services/seo_analyzer/` with new analyzer class
+- **Add new SEO analyzer**: Extend `app/services/seo_analyzer/` with new analyzer class, import in `seo_analyzer.py`
 - **Modify issue detection**: Update `issue_detector.py` and scoring weights in `config.py`
-- **Add new API endpoint**: Create router in `app/routers/` following existing async patterns
-- **Modify frontend**: Update templates in `app/templates/components/`
-- **Add background task**: Extend `app/tasks/` and register with Celery app
-- **Create granular issues**: Use `ResourceDetailsBuilder` and `IssueFactory` from `core/resource_details.py`
-- **Handle large scans**: Modify issue limiting logic in `templates.py` (MAX_ISSUES_FOR_UI constant)
+- **Convert legacy to granular**: Add `ResourceDetailsBuilder` method in `core/resource_details.py`, update analyzer to use `IssueFactory.create_granular_issue()`
+- **Add new API endpoint**: Create router in `app/routers/` following existing async patterns with `AsyncSession = Depends(get_db)`
+- **Add frontend modals**: Create static templates in `components/modals/`, include in `base.html`, add JavaScript trigger functions
+- **Add HTMX endpoints**: Extend `app/routers/htmx.py` for partial HTML responses (edit forms, table updates)
+- **Modify template sections**: Update templates in `app/templates/components/sections/` and ensure required data in `templates.py`
+- **Add background task**: Extend `app/tasks/` and register with Celery app in `celery_app.py`
+- **Handle large scans**: Modify issue limiting logic in `templates.py` (MAX_ISSUES_FOR_UI constant, smart severity distribution)
 - **Add table pagination**: Follow pattern in `scan_results_semrush.html` with data attributes and JavaScript functions
+- **Debug scan issues**: Check Celery worker logs, verify crawl results in issue detection methods
+- **Update Italian translations**: Modify issue type mappings in `templates.py` ISSUE_TYPE_INFO
 
 ## Critical Architecture Decisions
 
@@ -258,6 +316,12 @@ The system includes built-in performance monitoring. Core Web Vitals analysis pr
 **Severity Escalation**: Base severities are defined in `SeverityCalculator.BASE_SEVERITIES` but can be escalated based on context (e.g., JS in `<head>` vs `<body>`, file sizes, site-wide frequency).
 
 **Async/Sync Database Sessions**: The system maintains both async sessions (for API/web) and sync sessions (for Celery compatibility) defined in `database.py`.
+
+**Frontend Form Handling**: The system uses a hybrid approach where create modals are statically included to avoid form persistence issues, while edit modals are loaded via HTMX with pre-populated data. This prevents the common issue where dynamically loaded forms lose user input due to DOM replacement timing.
+
+**Granular Issue Format**: The system has evolved from simple aggregate issues to detailed granular format with intelligent suggestions. Key conversions include Italian standardization and context-aware optimization recommendations using content analysis and keyword extraction.
+
+**Anti-Overload System**: Large scans are handled with smart issue distribution (40% critical, 35% high, 20% medium, 5% low) and prioritization of granular issues over legacy format to maintain UI performance while maximizing actionable insights.
 
 ## Commercial Context
 

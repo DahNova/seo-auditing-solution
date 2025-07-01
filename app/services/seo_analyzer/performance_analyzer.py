@@ -296,76 +296,98 @@ class PerformanceAnalyzer:
             return blocking_issues
         
         try:
-            # Identify blocking CSS files
+            # Identify blocking CSS files and consolidate into single issue
             css_pattern = r'<link[^>]*rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+)["\'][^>]*(?!media=["\']print["\'])'
             css_matches = re.findall(css_pattern, html_content, re.IGNORECASE)
             
-            for css_url in css_matches:
-                css_url = clean_url(css_url)  # Clean URL to remove invisible characters
-                # Check if CSS is in critical path (not async loaded)
-                if not self._is_async_loaded(css_url, html_content):
-                    estimated_delay = 150.0  # Estimated blocking delay in ms
-                    
-                    # Calculate severity using standardized calculator
+            if css_matches:
+                # Collect all CSS resources  
+                css_resources = []
+                total_estimated_delay = 0
+                
+                for css_url in css_matches:
+                    css_url = clean_url(css_url)  # Clean URL to remove invisible characters
+                    # Check if CSS is in critical path (not async loaded)
+                    if not self._is_async_loaded(css_url, html_content):
+                        estimated_delay = 150.0  # Estimated blocking delay in ms
+                        total_estimated_delay += estimated_delay
+                        
+                        resource_details = ResourceDetailsBuilder.blocking_css(
+                            css_url=css_url,
+                            load_priority="high",
+                            estimated_delay=estimated_delay
+                        )
+                        css_resources.append(resource_details)
+                
+                if css_resources:
+                    # Calculate unified severity
                     severity_context = {
-                        'estimated_delay_ms': estimated_delay,
-                        'resource_type': 'css'
+                        'estimated_delay_ms': total_estimated_delay,
+                        'resource_type': 'css',
+                        'resource_count': len(css_resources)
                     }
                     severity = SeverityCalculator.calculate_severity('blocking_css_resource', severity_context)
-                    score_impact = SeverityCalculator.get_severity_score(severity)
+                    score_impact = SeverityCalculator.get_severity_score(severity) * len(css_resources)
                     
-                    resource_details = ResourceDetailsBuilder.blocking_css(
-                        css_url=css_url,
-                        load_priority="high",
-                        estimated_delay=estimated_delay
-                    )
-                    
-                    issue = IssueFactory.create_granular_issue(
+                    # Create single consolidated issue with all CSS resources
+                    issue = IssueFactory.create_consolidated_issue(
                         issue_type='blocking_css_resource',
                         severity=severity,
                         category='performance',
                         title='Render-Blocking CSS',
-                        description=f'CSS file {self._truncate_url(css_url)} blocks page rendering',
-                        recommendation=f'Add media query, preload, or inline critical CSS for {self._get_filename(css_url)}',
-                        resource_details=resource_details,
+                        description=f'{len(css_resources)} CSS files block page rendering',
+                        recommendation='Add media queries, preload, or inline critical CSS',
+                        resources_details=css_resources,
                         score_impact=score_impact
                     )
                     blocking_issues.append(issue)
             
-            # Identify blocking JavaScript files
+            # Identify blocking JavaScript files and consolidate into single issue
             js_pattern = r'<script[^>]*src=["\']([^"\']+)["\'][^>]*(?!async|defer)'
             js_matches = re.findall(js_pattern, html_content, re.IGNORECASE)
             
-            for js_url in js_matches:
-                js_url = clean_url(js_url)  # Clean URL to remove invisible characters
-                # Check if script is in head (more critical blocking)
-                in_head = self._is_script_in_head(js_url, html_content)
-                estimated_delay = 200.0 if in_head else 100.0
+            if js_matches:
+                # Collect all JS resources and determine unified severity
+                js_resources = []
+                has_head_js = False
+                total_estimated_delay = 0
                 
-                # Calculate severity using standardized calculator
+                for js_url in js_matches:
+                    js_url = clean_url(js_url)  # Clean URL to remove invisible characters
+                    in_head = self._is_script_in_head(js_url, html_content)
+                    estimated_delay = 200.0 if in_head else 100.0
+                    
+                    if in_head:
+                        has_head_js = True
+                    total_estimated_delay += estimated_delay
+                    
+                    resource_details = ResourceDetailsBuilder.blocking_javascript(
+                        js_url=js_url,
+                        has_async=False,
+                        has_defer=False,
+                        estimated_delay=estimated_delay
+                    )
+                    js_resources.append(resource_details)
+                
+                # Calculate unified severity based on most critical context
                 severity_context = {
-                    'in_head': in_head,
-                    'estimated_delay_ms': estimated_delay,
-                    'resource_type': 'javascript'
+                    'in_head': has_head_js,
+                    'estimated_delay_ms': total_estimated_delay,
+                    'resource_type': 'javascript',
+                    'resource_count': len(js_matches)
                 }
                 severity = SeverityCalculator.calculate_severity('blocking_js_resource', severity_context)
-                score_impact = SeverityCalculator.get_severity_score(severity)
+                score_impact = SeverityCalculator.get_severity_score(severity) * len(js_matches)
                 
-                resource_details = ResourceDetailsBuilder.blocking_javascript(
-                    js_url=js_url,
-                    has_async=False,
-                    has_defer=False,
-                    estimated_delay=estimated_delay
-                )
-                
-                issue = IssueFactory.create_granular_issue(
+                # Create single consolidated issue with all JS resources
+                issue = IssueFactory.create_consolidated_issue(
                     issue_type='blocking_js_resource',
                     severity=severity,
                     category='performance',
                     title='Blocking JavaScript',
-                    description=f'JavaScript file {self._truncate_url(js_url)} blocks page parsing',
-                    recommendation=f'Add async/defer attributes or move {self._get_filename(js_url)} to end of body',
-                    resource_details=resource_details,
+                    description=f'{len(js_matches)} JavaScript files block page parsing',
+                    recommendation='Add async/defer attributes or move scripts to end of body',
+                    resources_details=js_resources,
                     score_impact=score_impact
                 )
                 blocking_issues.append(issue)

@@ -67,8 +67,8 @@ class SEOConfig(BaseSettings):
         'missing_meta_description': -8.0,
         'meta_desc_too_short': -3.0,  # Increased importance
         'meta_desc_too_long': -2.0,
-        'missing_h1': -8.0,  # Increased - very important
-        'multiple_h1': -4.0,  # Increased - confuses Google
+        'h1_mancante': -8.0,  # Increased - very important
+        'h1_multipli': -4.0,  # Increased - confuses Google
         'empty_h1': -6.0,
         'h1_too_short': -3.0,
         'h1_too_long': -2.0,
@@ -76,15 +76,17 @@ class SEOConfig(BaseSettings):
         'h1_too_similar_title': -2.0,  # New - reduces keyword diversity
         'broken_heading_hierarchy': -3.0,
         'excessive_headings': -1.0,
-        'images_missing_alt': -4.0,
-        'images_bad_filename': -1.0,
-        'oversized_images': -2.0,
-        'thin_content': -5.0,
+        'image_missing_alt': -4.0,
+        'image_bad_filename': -1.0,
+        'image_oversized': -2.0,
+        'contenuto_scarso': -5.0,
+        'contenuto_insufficiente': -5.0,
         'broken_links': -6.0,
         # Content quality weights
         'poor_readability': -4.0,
         'keyword_stuffing': -6.0,
         'duplicate_content': -8.0,
+        'canonical_mancante': -6.0,  # High impact for duplicate content prevention
         'outdated_content': -3.0,
         'missing_internal_links': -2.0,
         # Accessibility weights

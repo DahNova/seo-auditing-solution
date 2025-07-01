@@ -37,7 +37,8 @@ class SeverityCalculator:
         'large_html': 'medium',
         
         # Content quality issues
-        'thin_content': 'medium',
+        'contenuto_scarso': 'medium',
+        'contenuto_insufficiente': 'high',
         'poor_readability': 'medium',
         'outdated_content': 'low',
         'duplicate_content': 'high',
@@ -46,16 +47,15 @@ class SeverityCalculator:
         # Technical SEO issues
         'missing_schema_markup': 'medium',
         'poor_social_meta': 'medium',
-        'missing_canonical': 'high',
+        'canonical_mancante': 'high',
         'url_structure_issue': 'medium',
         'missing_language_declaration': 'medium',
         
         # Accessibility issues
-        'missing_alt_text': 'high',
         'image_missing_alt': 'high',
-        'missing_form_labels': 'high',
+        'etichette_form_mancanti': 'high',
         'keyboard_navigation_issues': 'medium',
-        'poor_mobile_optimization': 'medium',
+        'ottimizzazione_mobile_scarsa': 'high',
         
         # Image optimization
         'image_oversized': 'medium',

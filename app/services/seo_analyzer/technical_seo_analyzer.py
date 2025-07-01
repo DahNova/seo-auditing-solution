@@ -556,17 +556,41 @@ class TechnicalSEOAnalyzer:
         """Identify technical SEO issues"""
         issues = []
         
-        # Schema issues
+        # Schema issues - converted to granular format
         schema_data = analysis.get('schema_markup', {})
         if not schema_data.get('has_schema'):
-            issues.append({
-                'type': 'missing_schema_markup',
-                'severity': 'medium',
-                'category': 'structured_data',
-                'message': 'No structured data markup found',
-                'recommendation': 'Add JSON-LD structured data for better search engine understanding',
-                'impact': 'Reduced rich snippet opportunities'
-            })
+            # Import required modules for granular schema issues
+            from .core.resource_details import ResourceDetailsBuilder, IssueFactory
+            from .severity_calculator import SeverityCalculator
+            
+            # Determine recommended schema types based on page analysis
+            recommended_schemas = self._determine_recommended_schemas(analysis)
+            page_content_type = self._detect_page_content_type(analysis)
+            
+            page_url = getattr(analysis, 'page_url', '')
+            page_context = f"Pagina: {page_url}"
+            
+            resource_details = ResourceDetailsBuilder.schema_markup_missing(
+                page_url=page_url,
+                recommended_schema_types=recommended_schemas,
+                page_content_type=page_content_type,
+                page_context=page_context
+            )
+            
+            severity = SeverityCalculator.calculate_severity('missing_schema_markup')
+            score_impact = SeverityCalculator.get_severity_score(severity)
+            
+            issue = IssueFactory.create_granular_issue(
+                issue_type='missing_schema_markup',
+                severity=severity,
+                category='structured_data',
+                title='Schema Markup Mancante',
+                description=f'La pagina non ha markup di dati strutturati per migliorare la visibilità nei risultati di ricerca',
+                recommendation=f'Implementa schema {recommended_schemas[0] if recommended_schemas else "Organization"} per rich snippets',
+                resource_details=resource_details,
+                score_impact=score_impact
+            )
+            issues.append(issue)
         
         if schema_data.get('schema_errors'):
             for error in schema_data['schema_errors']:
@@ -591,18 +615,11 @@ class TechnicalSEOAnalyzer:
                 'impact': 'Poor social media sharing experience'
             })
         
-        # Technical tag issues
-        tech_data = analysis.get('technical_tags', {})
-        if not tech_data.get('canonical_url'):
-            issues.append({
-                'type': 'missing_canonical',
-                'severity': 'high',
-                'category': 'technical_seo',
-                'message': 'Missing canonical URL',
-                'recommendation': 'Add canonical link tag to prevent duplicate content issues',
-                'impact': 'Potential duplicate content penalties'
-            })
+        # NOTE: Canonical issues are now handled by IssueDetector with granular format
+        # No legacy canonical issues generated here to avoid duplicates
         
+        # Technical tags issues
+        tech_data = analysis.get('technical_tags', {})
         if not tech_data.get('viewport_meta'):
             issues.append({
                 'type': 'missing_viewport',
@@ -617,11 +634,11 @@ class TechnicalSEOAnalyzer:
         mobile_data = analysis.get('mobile_optimization', {})
         if mobile_data.get('mobile_score', 0) < 70:
             issues.append({
-                'type': 'poor_mobile_optimization',
+                'type': 'ottimizzazione_mobile_scarsa',
                 'severity': 'high',
                 'category': 'mobile_optimization',
-                'message': 'Poor mobile optimization detected',
-                'recommendation': 'Implement responsive design and mobile-first approach',
+                'message': 'Ottimizzazione mobile scarsa rilevata',
+                'recommendation': 'Implementa design responsive e approccio mobile-first',
                 'impact': 'Reduced mobile search rankings'
             })
         
@@ -851,12 +868,12 @@ class TechnicalSEOAnalyzer:
             
             if pages_without_canonical:
                 duplicate_analysis['duplicate_issues'].append({
-                    'type': 'missing_canonical',
+                    'type': 'canonical_mancante',
                     'severity': 'high',
                     'category': 'duplicate_content',
-                    'message': f"{len(pages_without_canonical)} pages without canonical URLs",
+                    'message': f"{len(pages_without_canonical)} pagine senza URL canonical",
                     'affected_pages': [p['url'] for p in pages_without_canonical],
-                    'recommendation': 'Add canonical link tags to all pages'
+                    'recommendation': 'Aggiungi tag canonical a tutte le pagine'
                 })
             
             return duplicate_analysis
@@ -899,3 +916,66 @@ class TechnicalSEOAnalyzer:
                             })
         
         return loops
+
+    def _determine_recommended_schemas(self, analysis: Dict[str, Any]) -> List[str]:
+        """Determine recommended schema types based on page analysis"""
+        recommended = []
+        
+        # Always recommend Organization as a base
+        recommended.append("Organization")
+        
+        # Analyze page content to suggest additional schemas
+        page_content = analysis.get('content', {})
+        
+        # Check for business indicators
+        if any(term in str(analysis).lower() for term in ['contact', 'address', 'phone', 'business', 'company']):
+            recommended.append("LocalBusiness")
+        
+        # Check for product indicators
+        if any(term in str(analysis).lower() for term in ['product', 'service', 'price', 'offer', 'buy']):
+            recommended.append("Product")
+        
+        # Check for article/blog indicators
+        if any(term in str(analysis).lower() for term in ['article', 'blog', 'news', 'post', 'author']):
+            recommended.append("Article")
+        
+        # Check for FAQ indicators
+        if any(term in str(analysis).lower() for term in ['faq', 'question', 'answer', 'domande']):
+            recommended.append("FAQPage")
+        
+        # Check for review indicators
+        if any(term in str(analysis).lower() for term in ['review', 'rating', 'testimonial', 'recensione']):
+            recommended.append("Review")
+        
+        # Always recommend BreadcrumbList for navigation
+        recommended.append("BreadcrumbList")
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_recommended = []
+        for item in recommended:
+            if item not in seen:
+                seen.add(item)
+                unique_recommended.append(item)
+        
+        return unique_recommended[:5]  # Limit to top 5 recommendations
+    
+    def _detect_page_content_type(self, analysis: Dict[str, Any]) -> str:
+        """Detect the primary content type of the page"""
+        content_str = str(analysis).lower()
+        
+        # Check for specific content patterns
+        if any(term in content_str for term in ['product', 'shop', 'buy', 'cart', 'price']):
+            return "product_page"
+        elif any(term in content_str for term in ['article', 'blog', 'news', 'post']):
+            return "article_page"
+        elif any(term in content_str for term in ['contact', 'phone', 'address', 'email']):
+            return "contact_page"
+        elif any(term in content_str for term in ['about', 'chi siamo', 'company', 'storia']):
+            return "about_page"
+        elif any(term in content_str for term in ['service', 'servizi', 'offer', 'solution']):
+            return "service_page"
+        elif any(term in content_str for term in ['home', 'homepage', 'index']):
+            return "homepage"
+        else:
+            return "general_page"

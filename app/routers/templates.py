@@ -695,28 +695,73 @@ async def scan_results(
             select(func.count(Issue.id)).join(Page).where(Page.scan_id == scan_id)
         )
         
-        # Performance-aware issue loading
-        MAX_ISSUES_FOR_UI = 2000  # Max issues to load in UI
-        issues_per_severity = MAX_ISSUES_FOR_UI // 4  # Distribute across severities
+        # Enhanced Performance-aware issue loading with smart granular distribution
+        MAX_ISSUES_FOR_UI = 2000  # Max issues to load in UI for performance
+        
+        # Smart distribution: prioritize critical and high severity issues
+        severity_distribution = {
+            'critical': 0.4,  # 40% for critical
+            'high': 0.35,     # 35% for high  
+            'medium': 0.2,    # 20% for medium
+            'low': 0.05       # 5% for low priority
+        }
         
         if total_issues_count > MAX_ISSUES_FOR_UI:
-            logger.warning(f"Scan {scan_id} has {total_issues_count} issues. Loading limited set for performance.")
+            logger.warning(f"Scan {scan_id} has {total_issues_count} issues. Loading limited set ({MAX_ISSUES_FOR_UI}) with smart distribution for performance.")
             
-            # Load limited issues per severity for performance
+            # Load issues with smart severity distribution
             issues_raw = []
+            total_loaded = 0
+            
             for severity in ['critical', 'high', 'medium', 'low']:
-                severity_issues = await db.execute(
-                    select(Issue).join(Page)
+                # Calculate limit for this severity
+                severity_limit = int(MAX_ISSUES_FOR_UI * severity_distribution[severity])
+                
+                # Get actual count for this severity
+                severity_count = await db.scalar(
+                    select(func.count(Issue.id)).join(Page)
                     .where(Page.scan_id == scan_id)
                     .where(Issue.severity == severity)
-                    .order_by(Issue.id)
-                    .limit(issues_per_severity)
                 )
-                issues_raw.extend(severity_issues.scalars().all())
                 
+                if severity_count > 0:
+                    # Take minimum of calculated limit and actual count
+                    actual_limit = min(severity_limit, severity_count)
+                    
+                    # Prioritize granular issues (those with detailed element data)
+                    severity_issues = await db.execute(
+                        select(Issue).join(Page)
+                        .where(Page.scan_id == scan_id)
+                        .where(Issue.severity == severity)
+                        .order_by(
+                            # Prioritize issues with detailed element data (granular issues)
+                            func.length(Issue.element).desc(),
+                            Issue.id
+                        )
+                        .limit(actual_limit)
+                    )
+                    loaded_issues = severity_issues.scalars().all()
+                    issues_raw.extend(loaded_issues)
+                    total_loaded += len(loaded_issues)
+                    
+                    logger.info(f"Loaded {len(loaded_issues)}/{severity_count} {severity} issues")
+            
+            # Fill remaining slots with any unloaded issues if we have space
+            if total_loaded < MAX_ISSUES_FOR_UI:
+                remaining_slots = MAX_ISSUES_FOR_UI - total_loaded
+                additional_issues = await db.execute(
+                    select(Issue).join(Page)
+                    .where(Page.scan_id == scan_id)
+                    .where(~Issue.id.in_([issue.id for issue in issues_raw]))
+                    .order_by(func.length(Issue.element).desc(), Issue.id)
+                    .limit(remaining_slots)
+                )
+                issues_raw.extend(additional_issues.scalars().all())
+            
             # Add metadata about truncation
             issues_truncated = True
             issues_truncated_count = total_issues_count - len(issues_raw)
+            logger.info(f"Final loaded: {len(issues_raw)}/{total_issues_count} issues ({issues_truncated_count} truncated)")
         else:
             # Load all issues for smaller scans
             issues_result = await db.execute(
@@ -752,8 +797,7 @@ async def scan_results(
             'missing_h1': {'name': 'H1 Mancante', 'icon': 'bi-type-h1'},
             'duplicate_h1': {'name': 'H1 Duplicato', 'icon': 'bi-files'},
             'multiple_h1': {'name': 'H1 Multipli', 'icon': 'bi-type-h1'},
-            'images_without_alt': {'name': 'Immagini Senza Alt', 'icon': 'bi-image'},
-            'oversized_images': {'name': 'Immagini Troppo Grandi', 'icon': 'bi-image'},
+            'image_without_alt': {'name': 'Immagini Senza Alt', 'icon': 'bi-image'},
             'broken_links': {'name': 'Link Rotti', 'icon': 'bi-link-45deg'},
             'missing_canonical': {'name': 'Canonical Mancante', 'icon': 'bi-link'},
             'poor_performance': {'name': 'Performance Scadenti', 'icon': 'bi-speedometer'},
@@ -764,11 +808,18 @@ async def scan_results(
             'analysis_error': {'name': 'Errore Analisi', 'icon': 'bi-exclamation-triangle'},
             'crawl_error': {'name': 'Errore Crawling', 'icon': 'bi-exclamation-triangle'},
             # NEW: Granular issue types
-            'image_missing_alt': {'name': 'Immagine Senza Alt Text', 'icon': 'bi-image'},
-            'image_oversized': {'name': 'Immagine Troppo Grande', 'icon': 'bi-image'},
-            'image_bad_filename': {'name': 'Nome File Immagine Non-SEO', 'icon': 'bi-image'},
+            'image_missing_alt': {'name': 'Immagini Senza Alt Text', 'icon': 'bi-image'},
+            'image_oversized': {'name': 'Immagini Troppo Grandi', 'icon': 'bi-image'},
+            'image_bad_filename': {'name': 'Nomi File Immagini Non-SEO', 'icon': 'bi-image'},
             'blocking_css_resource': {'name': 'CSS Bloccante', 'icon': 'bi-filetype-css'},
-            'blocking_js_resource': {'name': 'JavaScript Bloccante', 'icon': 'bi-filetype-js'}
+            'blocking_js_resource': {'name': 'JavaScript Bloccante', 'icon': 'bi-filetype-js'},
+            'h1_mancante': {'name': 'H1 Mancante', 'icon': 'bi-type-h1'},
+            'h1_multipli': {'name': 'H1 Multipli', 'icon': 'bi-type-h1'},
+            'canonical_mancante': {'name': 'Canonical Mancante', 'icon': 'bi-link'},
+            'contenuto_scarso': {'name': 'Contenuto Scarso', 'icon': 'bi-file-text'},
+            'contenuto_insufficiente': {'name': 'Contenuto Insufficiente', 'icon': 'bi-file-text'},
+            'etichette_form_mancanti': {'name': 'Etichette Form Mancanti', 'icon': 'bi-form'},
+            'ottimizzazione_mobile_scarsa': {'name': 'Ottimizzazione Mobile Scarsa', 'icon': 'bi-phone'}
         }
         
         for issue in issues:
@@ -805,30 +856,36 @@ async def scan_results(
                 issues_hierarchy[severity][issue_type]['pages'].append(page_url)
                 issues_hierarchy[severity][issue_type]['count'] += 1
             
-            # Add resource details if available
-            resource_details = IssueFactory.extract_resource_details({
+            # Add resource details if available (handle both single and consolidated issues)
+            consolidated_resources = IssueFactory.extract_consolidated_resources({
                 'element': getattr(issue, 'element', '')
             })
-            if resource_details:
-                # Add resource details with page URL for template display
-                resource_data = {
-                    'page_url': page_url,
-                    'resource_url': resource_details.resource_url,
-                    'resource_type': resource_details.resource_type.value,
-                    'issue_specific_data': resource_details.issue_specific_data,
-                    'page_context': resource_details.page_context
-                }
-                issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
+            if consolidated_resources:
+                for resource_details in consolidated_resources:
+                    # Add resource details with page URL for template display
+                    resource_data = {
+                        'page_url': page_url,
+                        'resource_url': resource_details.resource_url,
+                        'resource_type': resource_details.resource_type.value,
+                        'issue_specific_data': resource_details.issue_specific_data,
+                        'page_context': resource_details.page_context
+                    }
+                    issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
         
         # NEW: Process resource details for granular issues display
         issues_with_resources = []
         for issue in issues:
             page_url = page_url_mapping.get(issue.page_id, 'N/A')
             
-            # Try to extract resource details
-            resource_details = IssueFactory.extract_resource_details({
+            # Try to extract resource details (handle both single and consolidated)
+            consolidated_resources = IssueFactory.extract_consolidated_resources({
                 'element': getattr(issue, 'element', '')
             })
+            
+            # For consolidated issues, we store the list of resources
+            # For single resource issues, we store just the first resource for backward compatibility
+            resource_details = consolidated_resources[0] if consolidated_resources else None
+            all_resources = consolidated_resources if consolidated_resources else []
             
             issue_data = {
                 'id': issue.id,
@@ -839,7 +896,9 @@ async def scan_results(
                 'description': issue.description or '',
                 'recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
                 'page_url': page_url,
-                'resource_details': resource_details
+                'resource_details': resource_details,
+                'all_resources': all_resources,
+                'is_consolidated': IssueFactory.is_consolidated_issue({'element': getattr(issue, 'element', '')})
             }
             issues_with_resources.append(issue_data)
         

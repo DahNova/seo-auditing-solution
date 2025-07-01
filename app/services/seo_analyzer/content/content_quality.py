@@ -82,10 +82,10 @@ class ContentQualityAnalyzer(BaseAnalyzer):
         if not text or len(text) < 100:
             result['issues'].append(
                 self.create_issue(
-                    'insufficient_content', 'high', 'content_quality',
+                    'contenuto_insufficiente', 'high', 'content_quality',
                     'Contenuto Insufficiente', 'Il contenuto è troppo breve per l\'analisi',
                     'Aggiungi più contenuto testuale (minimo 100 caratteri)',
-                    seo_config.scoring_weights.get('thin_content', -5.0)
+                    seo_config.scoring_weights.get('contenuto_scarso', -5.0)
                 )
             )
             return result
