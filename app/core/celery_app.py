@@ -20,6 +20,7 @@ celery_app.conf.update(
     # Task routing
     task_routes={
         'app.tasks.scan_tasks.run_website_scan': {'queue': 'scans'},
+        'app.tasks.scan_tasks.run_enterprise_website_scan': {'queue': 'scans'},
         'app.tasks.monitoring_tasks.check_robots_sitemap': {'queue': 'monitoring'},
     },
     

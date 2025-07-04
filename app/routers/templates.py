@@ -13,7 +13,6 @@ from app.database import get_db
 from app.services.scan_service import ScanService
 from app.services.schedule_service import ScheduleService
 from app.services.seo_analyzer.seo_analyzer import SEOAnalyzer
-from app.services.seo_analyzer.issue_prioritizer import SmartIssuePrioritizer
 from app.services.seo_analyzer.core.resource_details import IssueFactory
 from app.models import Client, Website, Scan, Issue, Page, Schedule
 from app.core.celery_app import celery_app
@@ -872,20 +871,69 @@ async def scan_results(
                     }
                     issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
         
-        # NEW: Process resource details for granular issues display
+        # NEW: Process ALL resource details for both consolidated and granular issues
         issues_with_resources = []
         for issue in issues:
             page_url = page_url_mapping.get(issue.page_id, 'N/A')
             
-            # Try to extract resource details (handle both single and consolidated)
-            consolidated_resources = IssueFactory.extract_consolidated_resources({
-                'element': getattr(issue, 'element', '')
-            })
+            # Convert SQLAlchemy object to dictionary for IssueFactory
+            issue_dict = {
+                'id': issue.id,
+                'type': issue.type,
+                'severity': issue.severity,
+                'category': issue.category,
+                'title': issue.title,
+                'description': issue.description,
+                'recommendation': issue.recommendation,
+                'element': issue.element,
+                'score_impact': issue.score_impact,
+                'page': issue
+            }
             
-            # For consolidated issues, we store the list of resources
-            # For single resource issues, we store just the first resource for backward compatibility
-            resource_details = consolidated_resources[0] if consolidated_resources else None
-            all_resources = consolidated_resources if consolidated_resources else []
+            all_resources = []
+            
+            # Check if it's a consolidated issue first
+            if IssueFactory.is_consolidated_issue(issue_dict):
+                # Handle consolidated issues - extract all resources
+                consolidated_resources = IssueFactory.extract_consolidated_resources(issue_dict)
+                if consolidated_resources:
+                    for resource_details in consolidated_resources:
+                        all_resources.append({
+                            'page_url': page_url,
+                            'resource_url': resource_details.resource_url,
+                            'resource_type': resource_details.resource_type.value,
+                            'page_context': resource_details.page_context or '',
+                            'optimization_suggestions': resource_details.optimization_suggestions or [],
+                            'priority_level': resource_details.priority_level or 'medium',
+                            'estimated_fix_time': resource_details.estimated_fix_time or '5-10 minutes',
+                            'issue_specific_data': resource_details.issue_specific_data
+                        })
+            else:
+                # Try to extract single granular resource details
+                resource_details = IssueFactory.extract_resource_details(issue_dict)
+                if resource_details:
+                    all_resources.append({
+                        'page_url': page_url,
+                        'resource_url': resource_details.resource_url,
+                        'resource_type': resource_details.resource_type.value,
+                        'page_context': resource_details.page_context or '',
+                        'optimization_suggestions': resource_details.optimization_suggestions or [],
+                        'priority_level': resource_details.priority_level or 'medium',
+                        'estimated_fix_time': resource_details.estimated_fix_time or '5-10 minutes',
+                        'issue_specific_data': resource_details.issue_specific_data
+                    })
+                else:
+                    # Fallback for legacy issues - create basic resource representation
+                    all_resources.append({
+                        'page_url': page_url,
+                        'resource_url': page_url,  # Same as page for legacy issues
+                        'resource_type': 'legacy',
+                        'page_context': f"Pagina: {page_url}",
+                        'optimization_suggestions': [issue.recommendation] if issue.recommendation else [],
+                        'priority_level': issue.severity,
+                        'estimated_fix_time': '5-10 minutes',
+                        'issue_specific_data': {'description': issue.description, 'legacy_issue': True}
+                    })
             
             issue_data = {
                 'id': issue.id,
@@ -896,9 +944,9 @@ async def scan_results(
                 'description': issue.description or '',
                 'recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
                 'page_url': page_url,
-                'resource_details': resource_details,
+                'resource_details': all_resources,  # Now contains ALL resources for this issue
                 'all_resources': all_resources,
-                'is_consolidated': IssueFactory.is_consolidated_issue({'element': getattr(issue, 'element', '')})
+                'is_consolidated': IssueFactory.is_consolidated_issue(issue_dict)
             }
             issues_with_resources.append(issue_data)
         
@@ -907,48 +955,6 @@ async def scan_results(
             [{'element': getattr(issue, 'element', '')} for issue in issues]
         )
         
-        # Apply Smart Issue Prioritization
-        priority_data = {}
-        if issues:
-            try:
-                seo_analyzer = SEOAnalyzer()
-                
-                # Prepare issues for prioritization
-                issues_for_prioritization = []
-                for issue in issues:
-                    issue_data = {
-                        'category': getattr(issue, 'category', 'technical_seo'),
-                        'severity': issue.severity,
-                        'message': issue.description or '',
-                        'description': issue.description or '',
-                        'recommendation': getattr(issue, 'recommendation', 'Review and fix this issue'),
-                        'page_url': page_url_mapping.get(issue.page_id, ''),
-                        'element': getattr(issue, 'element', '')
-                    }
-                    issues_for_prioritization.append(issue_data)
-                
-                # Website context for better prioritization
-                website_context = {
-                    'total_pages': len(all_pages),
-                    'website_type': 'business',  # Could be determined from domain analysis
-                    'performance_level': 'medium' if avg_performance_score < 70 else 'high'
-                }
-                
-                # Get prioritized issues with matrix data
-                priority_result = await seo_analyzer.prioritize_scan_issues(
-                    issues_for_prioritization, 
-                    website_context
-                )
-                priority_data = priority_result
-                
-            except Exception as e:
-                logger.error(f"Error generating priority matrix: {str(e)}")
-                # Fallback to empty priority data
-                priority_data = {
-                    'prioritized_issues': [],
-                    'priority_matrix': {'quadrants': {}, 'all_issues': [], 'summary': {}},
-                    'summary': {'total_issues': 0, 'critical_count': 0, 'high_count': 0, 'quick_wins_count': 0, 'major_projects_count': 0}
-                }
         
         context = {
             "request": request,
@@ -998,7 +1004,6 @@ async def scan_results(
             # NEW: Nested hierarchy for double accordion
             "issues_hierarchy": issues_hierarchy,
             "page_url_mapping": page_url_mapping,
-            "priority_data": priority_data,
             # NEW: Resource details for granular display
             "issues_with_resources": issues_with_resources,
             "resource_grouped_issues": resource_grouped_issues,

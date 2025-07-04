@@ -661,6 +661,12 @@ class IssueFactory:
             return None
         
         try:
+            # First check if it's a consolidated issue
+            data = json.loads(element_data)
+            if data.get('resource_type') == 'consolidated':
+                # This is a consolidated issue, return None for single resource extraction
+                return None
+            
             # Try to parse as JSON (new format)
             return ResourceDetails.from_json(element_data)
         except (json.JSONDecodeError, KeyError):

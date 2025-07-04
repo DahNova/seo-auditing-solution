@@ -66,6 +66,28 @@ class Page(Base):
     url_quality_score = Column(Float, default=100.0)  # URL structure quality score
     url_structure_data = Column(JSON, default=dict)  # Detailed URL analysis
     
+    # URL Discovery Metadata (Enterprise Features)
+    discovery_source = Column(String(50), nullable=True, index=True)  # sitemap, crawl, manual, robots, feed
+    discovery_priority = Column(Float, nullable=True)  # Original discovery priority
+    sitemap_priority = Column(Float, nullable=True)  # Original sitemap priority (0.0-1.0)
+    sitemap_changefreq = Column(String(20), nullable=True)  # always, hourly, daily, weekly, monthly, yearly, never
+    sitemap_lastmod = Column(DateTime(timezone=True), nullable=True)  # Last modified from sitemap
+    source_sitemap_url = Column(Text, nullable=True)  # Which sitemap contained this URL
+    parent_url = Column(Text, nullable=True)  # Parent URL if discovered via crawling
+    crawl_depth = Column(Integer, default=0)  # Depth from homepage (0 = homepage)
+    
+    # Processing Metadata
+    queue_priority = Column(String(20), nullable=True)  # critical, high, medium, low, deferred
+    processing_started = Column(DateTime(timezone=True), nullable=True)
+    processing_completed = Column(DateTime(timezone=True), nullable=True)
+    estimated_processing_time = Column(Integer, nullable=True)  # Estimated time in seconds
+    actual_processing_time = Column(Integer, nullable=True)  # Actual time in seconds
+    
+    # Retry and Error Handling
+    retry_count = Column(Integer, default=0)
+    last_error = Column(Text, nullable=True)
+    processing_status = Column(String(20), default='pending')  # pending, processing, completed, failed, skipped, retry
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

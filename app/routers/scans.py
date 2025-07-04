@@ -11,7 +11,7 @@ import os
 from app.database import get_db
 from app.models import Scan, Website, Page, Issue
 from app.schemas import ScanCreate, ScanResponse, PageResponse, IssueResponse
-from app.tasks.scan_tasks import run_website_scan
+from app.tasks.scan_tasks import run_website_scan, run_enterprise_website_scan
 from app.services.report_service import ReportService
 from celery import current_app as celery_app
 
@@ -20,7 +20,8 @@ router = APIRouter(prefix="/scans", tags=["scans"])
 @router.post("/", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
 async def create_scan(
     scan: ScanCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    scan_type: str = "enterprise"  # "enterprise" or "basic"
 ):
     # Verify website exists
     website_result = await db.execute(
@@ -39,9 +40,44 @@ async def create_scan(
     await db.commit()
     await db.refresh(db_scan)
     
-    # Queue scan task with Celery
-    task = run_website_scan.delay(website.id, db_scan.id)
-    db_scan.config = {"celery_task_id": task.id}
+    # Queue scan task with Celery - choose scan type
+    if scan_type.lower() == "enterprise":
+        task = run_enterprise_website_scan.delay(website.id, db_scan.id)
+        db_scan.config = {"celery_task_id": task.id, "scan_type": "enterprise"}
+    else:
+        task = run_website_scan.delay(website.id, db_scan.id)
+        db_scan.config = {"celery_task_id": task.id, "scan_type": "basic"}
+    
+    await db.commit()
+    
+    return db_scan
+
+@router.post("/enterprise", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
+async def create_enterprise_scan(
+    scan: ScanCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create enterprise scan with sitemap-based URL discovery"""
+    # Verify website exists
+    website_result = await db.execute(
+        select(Website).where(Website.id == scan.website_id)
+    )
+    website = website_result.scalar_one_or_none()
+    if not website:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Website not found"
+        )
+    
+    # Create scan record
+    db_scan = Scan(website_id=scan.website_id)
+    db.add(db_scan)
+    await db.commit()
+    await db.refresh(db_scan)
+    
+    # Queue enterprise scan task
+    task = run_enterprise_website_scan.delay(website.id, db_scan.id)
+    db_scan.config = {"celery_task_id": task.id, "scan_type": "enterprise"}
     await db.commit()
     
     return db_scan

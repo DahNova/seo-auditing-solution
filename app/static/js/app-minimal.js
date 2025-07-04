@@ -361,6 +361,159 @@ function closeModal(modalId) {
     }
 }
 
+// Clean Resource Table Pagination
+const resourceTablePagination = {
+    itemsPerPage: 20,
+    
+    initializePagination: function() {
+        // Initialize all resource tables on page load
+        const tables = document.querySelectorAll('.sr-clean-table');
+        tables.forEach(table => {
+            const containerId = table.closest('.sr-clean-container').id;
+            if (containerId) {
+                this.setupTable(containerId);
+            }
+        });
+    },
+    
+    setupTable: function(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Check if already initialized
+        if (container.dataset.paginationInitialized === 'true') {
+            return;
+        }
+        
+        const table = container.querySelector('.sr-clean-table');
+        if (!table) return;
+        
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        if (rows.length <= this.itemsPerPage) {
+            // No pagination needed
+            return;
+        }
+        
+        // Remove any existing pagination controls
+        const existingPagination = container.querySelector('.sr-clean-pagination');
+        if (existingPagination) {
+            existingPagination.remove();
+        }
+        
+        // Create pagination controls
+        const paginationContainer = this.createPaginationControls(containerId, rows.length);
+        container.appendChild(paginationContainer);
+        
+        // Mark as initialized
+        container.dataset.paginationInitialized = 'true';
+        
+        // Initialize data attributes
+        const totalPages = Math.ceil(rows.length / this.itemsPerPage);
+        container.dataset.currentPage = '1';
+        container.dataset.totalPages = totalPages.toString();
+        
+        // Show first page
+        this.showPage(containerId, 1);
+    },
+    
+    createPaginationControls: function(containerId, totalItems) {
+        const totalPages = Math.ceil(totalItems / this.itemsPerPage);
+        
+        const paginationDiv = document.createElement('div');
+        paginationDiv.className = 'sr-clean-pagination';
+        paginationDiv.innerHTML = `
+            <button onclick="resourceTablePagination.showPage('${containerId}', 1)" id="${containerId}-first">‹‹</button>
+            <button onclick="resourceTablePagination.prevPage('${containerId}')" id="${containerId}-prev">‹</button>
+            <span class="page-info" id="${containerId}-info">1 di ${totalPages}</span>
+            <button onclick="resourceTablePagination.nextPage('${containerId}')" id="${containerId}-next">›</button>
+            <button onclick="resourceTablePagination.showPage('${containerId}', ${totalPages})" id="${containerId}-last">››</button>
+        `;
+        
+        return paginationDiv;
+    },
+    
+    showPage: function(containerId, pageNum) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const table = container.querySelector('.sr-clean-table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const totalPages = Math.ceil(rows.length / this.itemsPerPage);
+        
+        // Validate page number
+        if (pageNum < 1) pageNum = 1;
+        if (pageNum > totalPages) pageNum = totalPages;
+        
+        // Calculate start and end indices
+        const startIndex = (pageNum - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        
+        // Hide all rows, then show current page
+        rows.forEach((row, index) => {
+            if (index >= startIndex && index < endIndex) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+        
+        // Update pagination controls
+        this.updatePaginationControls(containerId, pageNum, totalPages);
+    },
+    
+    updatePaginationControls: function(containerId, currentPage, totalPages) {
+        const container = document.getElementById(containerId);
+        const firstBtn = document.getElementById(`${containerId}-first`);
+        const prevBtn = document.getElementById(`${containerId}-prev`);
+        const nextBtn = document.getElementById(`${containerId}-next`);
+        const lastBtn = document.getElementById(`${containerId}-last`);
+        const info = document.getElementById(`${containerId}-info`);
+        
+        if (firstBtn) firstBtn.disabled = currentPage === 1;
+        if (prevBtn) prevBtn.disabled = currentPage === 1;
+        if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+        if (lastBtn) lastBtn.disabled = currentPage === totalPages;
+        if (info) info.textContent = `${currentPage} di ${totalPages}`;
+        
+        // Store current page for next/prev functions
+        if (container) {
+            container.dataset.currentPage = currentPage;
+            container.dataset.totalPages = totalPages;
+        }
+    },
+    
+    nextPage: function(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const currentPage = parseInt(container.dataset.currentPage) || 1;
+        const totalPages = parseInt(container.dataset.totalPages) || 1;
+        
+        if (currentPage < totalPages) {
+            this.showPage(containerId, currentPage + 1);
+        }
+    },
+    
+    prevPage: function(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const currentPage = parseInt(container.dataset.currentPage) || 1;
+        
+        if (currentPage > 1) {
+            this.showPage(containerId, currentPage - 1);
+        }
+    }
+};
+
+// Initialize pagination when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    resourceTablePagination.initializePagination();
+});
+
 // Toast Notifications (Minimal Implementation)
 function showToast(message, type = 'info') {
     const toastContainer = getOrCreateToastContainer();
@@ -1065,3 +1218,5 @@ function updateTimestamp() {
 // Auto-update timestamp every minute
 setInterval(updateTimestamp, 60000);
 updateTimestamp(); // Initial call
+
+

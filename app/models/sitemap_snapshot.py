@@ -14,8 +14,25 @@ class SitemapSnapshot(Base):
     content_hash = Column(String(255), nullable=False, index=True)
     urls_count = Column(Integer, default=0)
     
+    # Enterprise Sitemap Features
+    sitemap_type = Column(String(20), default='regular')  # regular, index, image, video, news, mobile
+    is_sitemap_index = Column(Boolean, default=False)  # True if this is a sitemap index
+    parent_sitemap_url = Column(Text, nullable=True)  # Parent sitemap if this is a child
+    child_sitemaps_count = Column(Integer, default=0)  # Number of child sitemaps if this is an index
+    
     # Content analysis
     urls_list = Column(JSON, default=list)  # List of URLs found in sitemap
+    urls_with_metadata = Column(JSON, default=list)  # Detailed URL data with priority, changefreq, lastmod
+    priority_distribution = Column(JSON, default=dict)  # Distribution of priority values
+    changefreq_distribution = Column(JSON, default=dict)  # Distribution of changefreq values
+    image_urls_count = Column(Integer, default=0)  # Count of image URLs if image sitemap
+    
+    # Processing Statistics
+    parsing_time = Column(Integer, nullable=True)  # Time taken to parse in seconds
+    parsing_errors = Column(JSON, default=list)  # List of parsing errors encountered
+    compressed_size = Column(Integer, nullable=True)  # Size if gzip compressed
+    uncompressed_size = Column(Integer, nullable=True)  # Uncompressed size
+    
     last_modified = Column(DateTime(timezone=True), nullable=True)
     
     # Status

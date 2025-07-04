@@ -32,6 +32,7 @@
         </div>
 
         <!-- Overview Metrics -->
+        {% if overview_stats %}
         <div class="sr-metrics">
             <div class="sr-metric-card">
                 <div class="sr-metric-header">
@@ -39,7 +40,7 @@
                         <i class="bi bi-file-earmark-text"></i>
                     </div>
                 </div>
-                <div class="sr-metric-value">{{ scan.pages_scanned or pages|length }}</div>
+                <div class="sr-metric-value">{{ overview_stats.total_pages }}</div>
                 <div class="sr-metric-label">Pagine Analizzate</div>
             </div>
             
@@ -49,7 +50,7 @@
                         <i class="bi bi-exclamation-triangle"></i>
                     </div>
                 </div>
-                <div class="sr-metric-value">{{ issues_performance.loaded_issues_count }}</div>
+                <div class="sr-metric-value">{{ overview_stats.total_issues }}</div>
                 <div class="sr-metric-label">Problemi Rilevati</div>
             </div>
             
@@ -59,7 +60,7 @@
                         <i class="bi bi-x-circle"></i>
                     </div>
                 </div>
-                <div class="sr-metric-value">{{ issues_by_severity.get('critical', [])|length }}</div>
+                <div class="sr-metric-value">{{ overview_stats.critical_issues }}</div>
                 <div class="sr-metric-label">Critici</div>
             </div>
             
@@ -69,13 +70,14 @@
                         <i class="bi bi-speedometer2"></i>
                     </div>
                 </div>
-                <div class="sr-metric-value">{{ scan.seo_score or 0 }}/100</div>
+                <div class="sr-metric-value">{{ overview_stats.avg_seo_score }}/100</div>
                 <div class="sr-metric-label">Punteggio SEO</div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Issues Section -->
-        {% if issues_hierarchy and issues_hierarchy|length > 0 %}
+        {% if categorized_issues and categorized_issues|length > 0 %}
         <div class="sr-section sr-fade-in">
             <div class="sr-section-header">
                 <h2 class="sr-section-title">
@@ -89,7 +91,7 @@
             
             <div class="sr-section-body">
                 <div class="accordion" id="issuesAccordion">
-                    {% for severity, issues_by_type in issues_hierarchy.items() %}
+                    {% for severity, issues_by_type in categorized_issues.items() %}
                         {% if issues_by_type and issues_by_type|length > 0 %}
                         <div class="accordion-item mb-3">
                             <h2 class="accordion-header">
@@ -137,6 +139,7 @@
                                             {% if issue_data.resource_details %}
                                             <!-- Clean Resource Table -->
                                             {% set resources = issue_data.resource_details %}
+                                            {% set issue_type = issue_type %}
                                             {% include 'components/partials/clean_resource_table.html' %}
                                             {% else %}
                                             <div style="text-align: center; padding: 1rem; color: var(--sr-text-muted);">
@@ -249,12 +252,9 @@ function toggleNestedAccordionLazy(nestedId, scanId, severity, issueType) {
         content.style.display = 'block';
         icon.style.transform = 'rotate(90deg)';
         
-        // Initialize pagination for the specific table in this accordion
+        // Initialize pagination for any tables in this content
         setTimeout(() => {
-            const tableContainer = content.querySelector('.sr-clean-container');
-            if (tableContainer && tableContainer.id) {
-                resourceTablePagination.setupTable(tableContainer.id);
-            }
+            resourceTablePagination.initializePagination();
         }, 50);
         
     } else {

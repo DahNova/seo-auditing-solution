@@ -6,7 +6,6 @@ from .scoring_engine import ScoringEngine
 from .issue_detector import IssueDetector
 from .performance_analyzer import PerformanceAnalyzer
 from .technical_seo_analyzer import TechnicalSEOAnalyzer
-from .issue_prioritizer import SmartIssuePrioritizer
 from .content.content_quality import ContentQualityAnalyzer
 from .content.accessibility import AccessibilityAnalyzer
 
@@ -19,7 +18,6 @@ class SEOAnalyzer:
         self.issue_detector = IssueDetector()
         self.performance_analyzer = PerformanceAnalyzer()
         self.technical_seo_analyzer = TechnicalSEOAnalyzer()
-        self.issue_prioritizer = SmartIssuePrioritizer()
         self.content_quality_analyzer = ContentQualityAnalyzer()
         self.accessibility_analyzer = AccessibilityAnalyzer()
     
@@ -117,53 +115,107 @@ class SEOAnalyzer:
             logger.error(f"Error detecting issues for {crawl_result.url}: {str(e)}")
             return []
     
-    async def prioritize_scan_issues(self, all_issues: List[Dict[str, Any]], 
-                                   website_context: Dict[str, Any] = None) -> Dict[str, Any]:
+    
+    def analyze_page(self, crawl_result, domain: str) -> Dict[str, Any]:
         """
-        Apply smart prioritization to all issues from a scan
-        Returns prioritized issues with visual matrix data
+        Synchronous wrapper for page analysis - required for enterprise scans
+        Combines content analysis and issue detection into a single result
         """
         try:
-            # Prepare issues for prioritization
-            issues_for_prioritization = []
+            # Since we're in sync context, we need to run async methods
+            import asyncio
             
-            for issue in all_issues:
-                issue_data = {
-                    'category': issue.get('category', 'technical_seo'),
-                    'severity': issue.get('severity', 'medium'),
-                    'message': issue.get('message', ''),
-                    'description': issue.get('description', ''),
-                    'recommendation': issue.get('recommendation', ''),
-                    'page_url': issue.get('page_url', ''),
-                    'element': issue.get('affected_element', '')
-                }
-                issues_for_prioritization.append(issue_data)
+            # Check if there's already an event loop running
+            try:
+                loop = asyncio.get_running_loop()
+                # If there's a running loop, we need to create a new one in a thread
+                import concurrent.futures
+                import threading
+                
+                def run_analysis():
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        # Run content analysis
+                        content_result = new_loop.run_until_complete(
+                            self.analyze_page_content(crawl_result, domain)
+                        )
+                        
+                        # Run issue detection (using fake page_id for now)
+                        issues_result = new_loop.run_until_complete(
+                            self.analyze_page_issues(crawl_result, 0)
+                        )
+                        
+                        return content_result, issues_result
+                    finally:
+                        new_loop.close()
+                
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_analysis)
+                    content_result, issues_result = future.result(timeout=60)
+                    
+            except RuntimeError:
+                # No event loop running, we can create one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    # Run content analysis
+                    content_result = loop.run_until_complete(
+                        self.analyze_page_content(crawl_result, domain)
+                    )
+                    
+                    # Run issue detection (using fake page_id for now)
+                    issues_result = loop.run_until_complete(
+                        self.analyze_page_issues(crawl_result, 0)
+                    )
+                finally:
+                    loop.close()
+                    asyncio.set_event_loop(None)
             
-            # Apply smart prioritization
-            prioritized_issues = self.issue_prioritizer.prioritize_issues(
-                issues_for_prioritization, 
-                website_context
-            )
+            # Combine results
+            combined_result = content_result.copy()
+            combined_result['issues'] = issues_result
             
-            # Generate priority matrix data for visualization
-            matrix_data = self.issue_prioritizer.generate_priority_matrix_data(prioritized_issues)
+            # Calculate scores from the scoring engine
+            seo_score = self.scoring_engine.calculate_page_score(issues_result)
             
-            return {
-                'prioritized_issues': prioritized_issues,
-                'priority_matrix': matrix_data,
-                'summary': {
-                    'total_issues': len(prioritized_issues),
-                    'critical_count': len([i for i in prioritized_issues if i.priority.value == 'critical']),
-                    'high_count': len([i for i in prioritized_issues if i.priority.value == 'high']),
-                    'quick_wins_count': len(matrix_data['quadrants']['quick_wins']),
-                    'major_projects_count': len(matrix_data['quadrants']['major_projects'])
-                }
+            # Extract other scores from content analysis
+            scores = {
+                'seo_score': seo_score,
+                'performance_score': content_result.get('core_web_vitals', {}).get('performance_score', 0),
+                'technical_score': content_result.get('technical_seo', {}).get('technical_score', 0),
+                'mobile_score': content_result.get('mobile_score', 0),
+                'content_score': content_result.get('content_quality', {}).get('scores', {}).get('overall_score', 0),
+                'accessibility_score': content_result.get('accessibility', {}).get('scores', {}).get('overall_score', 0)
             }
             
+            # Add scores to result
+            combined_result.update({
+                'seo_score': scores.get('seo_score', 0),
+                'performance_score': scores.get('performance_score', 0),
+                'technical_score': scores.get('technical_score', 0),
+                'mobile_score': scores.get('mobile_score', 0),
+                'content_score': scores.get('content_score', 0),
+                'accessibility_score': scores.get('accessibility_score', 0)
+            })
+            
+            return combined_result
+            
         except Exception as e:
-            logger.error(f"Error prioritizing issues: {str(e)}")
+            logger.error(f"Error in analyze_page for {crawl_result.url}: {str(e)}")
             return {
-                'prioritized_issues': [],
-                'priority_matrix': {'quadrants': {}, 'all_issues': [], 'summary': {}},
-                'summary': {'total_issues': 0, 'critical_count': 0, 'high_count': 0, 'quick_wins_count': 0, 'major_projects_count': 0}
+                'title': '',
+                'meta_description': '',
+                'h1_tags': [],
+                'h2_tags': [],
+                'h3_tags': [],
+                'word_count': 0,
+                'content_hash': '',
+                'seo_score': 0,
+                'performance_score': 0,
+                'technical_score': 0,
+                'mobile_score': 0,
+                'content_score': 0,
+                'accessibility_score': 0,
+                'issues': []
             }

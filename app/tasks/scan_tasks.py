@@ -6,6 +6,7 @@ from app.core.celery_app import celery_app
 from app.database import SyncSessionLocal
 from app.models import Website, Scan, Schedule
 from app.services.scan_service_sync import SyncScanService
+from app.services.enterprise_scan_service import EnterpriseScanService
 from app.services.schedule_service import ScheduleService
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -126,6 +127,62 @@ def run_scheduled_scans():
     except Exception as e:
         logger.error(f"❌ Error in run_scheduled_scans: {str(e)}")
         return 0
+
+@celery_app.task(bind=True, max_retries=2)
+def run_enterprise_website_scan(self, website_id: int, scan_id: int = None):
+    """Run enterprise SEO scan with sitemap-based URL discovery"""
+    try:
+        # Use sync database operations to avoid async/sync conflicts
+        with SyncSessionLocal() as db:
+            # Get website first
+            website = db.query(Website).filter(Website.id == website_id).first()
+            
+            if not website:
+                raise ValueError(f"Website {website_id} not found")
+            
+            # Create or get scan
+            if scan_id:
+                scan = db.query(Scan).filter(Scan.id == scan_id).first()
+                if not scan:
+                    raise ValueError(f"Scan {scan_id} not found")
+                scan_id_to_use = scan.id
+            else:
+                # Create new scan
+                scan = Scan(website_id=website_id)
+                db.add(scan)
+                db.commit()
+                db.refresh(scan)
+                scan_id_to_use = scan.id
+        
+        # Run enterprise scan using enterprise service
+        enterprise_service = EnterpriseScanService()
+        result = enterprise_service.run_enterprise_scan(scan_id_to_use, website)
+        
+        logger.info(f"Enterprise scan completed successfully for website {website_id}")
+        return {"status": "completed", "scan_id": scan_id_to_use, **result}
+        
+    except Exception as exc:
+        logger.error(f"Enterprise scan failed for website {website_id}: {str(exc)}")
+        
+        # Retry with exponential backoff
+        try:
+            raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
+        except self.MaxRetriesExceededError:
+            logger.error(f"Max retries exceeded for enterprise scan {website_id}")
+            # Update scan status to failed using sync database
+            try:
+                with SyncSessionLocal() as db:
+                    if scan_id:
+                        scan = db.query(Scan).filter(Scan.id == scan_id).first()
+                        if scan:
+                            scan.status = "failed"
+                            scan.error_message = str(exc)
+                            scan.completed_at = datetime.utcnow()
+                            db.commit()
+            except Exception as db_error:
+                logger.error(f"Failed to mark enterprise scan as failed in database: {str(db_error)}")
+                
+            return {"status": "failed", "error": str(exc)}
 
 def _needs_scan(website: Website, now: datetime) -> bool:
     """Check if website needs a scan based on frequency"""
