@@ -31,7 +31,8 @@
       "Bash(done)",
       "Bash(chmod:*)",
       "Bash(timeout:*)",
-      "Bash(alembic current:*)"
+      "Bash(alembic current:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

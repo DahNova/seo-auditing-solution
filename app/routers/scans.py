@@ -89,7 +89,7 @@ async def list_scans(
     limit: int = 100,
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Scan)
+    query = select(Scan).options(selectinload(Scan.website))  # Eager load website for potential UI display
     if website_id:
         query = query.where(Scan.website_id == website_id)
     
@@ -105,7 +105,7 @@ async def get_scan(
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(Scan).where(Scan.id == scan_id)
+        select(Scan).options(selectinload(Scan.website)).where(Scan.id == scan_id)  # Eager load website
     )
     scan = result.scalar_one_or_none()
     

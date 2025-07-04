@@ -1,67 +1,34 @@
 """
-Advanced Technical SEO Analyzer
-Analyzes Schema markup, Social meta tags, and technical SEO factors
+Refactored Technical SEO Analyzer - Modular Architecture
+Main coordinator that uses specialized analyzers for different aspects
 """
 from typing import Dict, List, Any, Optional
 import logging
 import re
-import json
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
+
+from .technical.schema_analyzer import SchemaAnalyzer
+from .technical.social_meta_analyzer import SocialMetaAnalyzer
+from .technical.technical_tags_analyzer import TechnicalTagsAnalyzer
 from app.services.url_utils import clean_url, normalize_url
 
 logger = logging.getLogger(__name__)
 
 class TechnicalSEOAnalyzer:
-    """Advanced technical SEO analysis including Schema, Social tags, and more"""
+    """Refactored Technical SEO analyzer using modular components"""
     
     def __init__(self):
-        # Schema.org types commonly used for SEO
-        self.important_schema_types = {
-            'Organization', 'LocalBusiness', 'Person', 'Product', 'Service',
-            'Article', 'BlogPosting', 'NewsArticle', 'Recipe', 'Event',
-            'FAQ', 'HowTo', 'Review', 'AggregateRating', 'BreadcrumbList',
-            'Website', 'WebPage', 'WebSite'
-        }
-        
-        # Social media platforms and their meta tags
-        self.social_platforms = {
-            'facebook': {
-                'prefix': 'og:',
-                'required': ['og:title', 'og:description', 'og:image', 'og:url', 'og:type'],
-                'recommended': ['og:site_name', 'og:locale', 'fb:app_id']
-            },
-            'twitter': {
-                'prefix': 'twitter:',
-                'required': ['twitter:card', 'twitter:title', 'twitter:description'],
-                'recommended': ['twitter:image', 'twitter:site', 'twitter:creator']
-            },
-            'linkedin': {
-                'prefix': 'og:',  # LinkedIn uses Open Graph
-                'required': ['og:title', 'og:description', 'og:image', 'og:url'],
-                'recommended': ['og:type', 'og:site_name']
-            }
-        }
-        
-        # Technical SEO factors
-        self.technical_factors = {
-            'canonical_url': {'importance': 'high'},
-            'robots_meta': {'importance': 'high'},
-            'viewport_meta': {'importance': 'high'},
-            'charset_meta': {'importance': 'medium'},
-            'lang_attribute': {'importance': 'medium'},
-            'url_structure': {'importance': 'medium'},
-            'duplicate_content': {'importance': 'high'},
-            'hreflang': {'importance': 'medium'},
-            'sitemap_reference': {'importance': 'medium'},
-            'robots_txt_reference': {'importance': 'low'}
-        }
+        # Initialize specialized analyzers
+        self.schema_analyzer = SchemaAnalyzer()
+        self.social_analyzer = SocialMetaAnalyzer()
+        self.technical_tags_analyzer = TechnicalTagsAnalyzer()
     
     def analyze_technical_seo(self, crawl_result, domain: str) -> Dict[str, Any]:
-        """Comprehensive technical SEO analysis"""
+        """Comprehensive technical SEO analysis using modular components"""
         analysis = {
-            'schema_markup': self.analyze_schema_markup(crawl_result),
-            'social_meta_tags': self.analyze_social_meta_tags(crawl_result),
-            'technical_tags': self.analyze_technical_tags(crawl_result, domain),
+            'schema_markup': self.schema_analyzer.analyze_schema_markup(crawl_result),
+            'social_meta_tags': self.social_analyzer.analyze_social_meta_tags(crawl_result),
+            'technical_tags': self.technical_tags_analyzer.analyze_technical_tags(crawl_result, domain),
             'robots_analysis': self.analyze_robots_directives(crawl_result),
             'mobile_optimization': self.analyze_mobile_optimization(crawl_result),
             'internationalization': self.analyze_internationalization(crawl_result),
@@ -75,967 +42,498 @@ class TechnicalSEOAnalyzer:
         
         return analysis
     
-    def analyze_schema_markup(self, crawl_result) -> Dict[str, Any]:
-        """Analyze structured data (Schema.org) markup"""
-        schema_data = {
-            'has_schema': False,
-            'schema_types': [],
-            'json_ld_count': 0,
-            'microdata_count': 0,
-            'rdfa_count': 0,
-            'valid_schemas': [],
-            'schema_errors': [],
-            'coverage_score': 0
-        }
-        
-        try:
-            html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return schema_data
-            
-            # JSON-LD detection and parsing
-            json_ld_scripts = re.findall(
-                r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
-                html_content, re.DOTALL | re.IGNORECASE
-            )
-            
-            schema_data['json_ld_count'] = len(json_ld_scripts)
-            
-            for script_content in json_ld_scripts:
-                try:
-                    # Clean and parse JSON-LD
-                    cleaned_content = script_content.strip()
-                    schema_json = json.loads(cleaned_content)
-                    
-                    # Extract schema types
-                    schema_types = self._extract_schema_types(schema_json)
-                    schema_data['schema_types'].extend(schema_types)
-                    
-                    # Validate common schemas
-                    validation = self._validate_schema_structure(schema_json)
-                    if validation['valid']:
-                        schema_data['valid_schemas'].append(validation)
-                    else:
-                        schema_data['schema_errors'].extend(validation['errors'])
-                        
-                except json.JSONDecodeError as e:
-                    schema_data['schema_errors'].append(f"Invalid JSON-LD: {str(e)}")
-                except Exception as e:
-                    logger.error(f"Error parsing schema: {str(e)}")
-            
-            # Microdata detection
-            microdata_items = re.findall(r'itemtype=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            schema_data['microdata_count'] = len(microdata_items)
-            
-            # RDFa detection  
-            rdfa_items = re.findall(r'typeof=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            schema_data['rdfa_count'] = len(rdfa_items)
-            
-            # Overall schema presence
-            schema_data['has_schema'] = (
-                schema_data['json_ld_count'] > 0 or 
-                schema_data['microdata_count'] > 0 or 
-                schema_data['rdfa_count'] > 0
-            )
-            
-            # Calculate coverage score
-            schema_data['coverage_score'] = self._calculate_schema_coverage_score(schema_data)
-            
-        except Exception as e:
-            logger.error(f"Error analyzing schema markup: {str(e)}")
-            
-        return schema_data
-    
-    def analyze_social_meta_tags(self, crawl_result) -> Dict[str, Any]:
-        """Analyze social media meta tags (Open Graph, Twitter Cards, etc.)"""
-        social_data = {
-            'platforms': {},
-            'overall_coverage': 0,
-            'missing_tags': [],
-            'social_score': 0
-        }
-        
-        try:
-            html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return social_data
-            
-            # Extract all meta tags
-            meta_tags = re.findall(
-                r'<meta[^>]*(?:property|name)=["\']([^"\']*)["\'][^>]*content=["\']([^"\']*)["\'][^>]*>',
-                html_content, re.IGNORECASE
-            )
-            
-            meta_dict = {tag[0].lower(): tag[1] for tag in meta_tags}
-            
-            # Analyze each platform
-            for platform, config in self.social_platforms.items():
-                platform_data = {
-                    'present_tags': [],
-                    'missing_required': [],
-                    'missing_recommended': [],
-                    'coverage_score': 0
-                }
-                
-                # Check required tags
-                for required_tag in config['required']:
-                    if required_tag.lower() in meta_dict:
-                        platform_data['present_tags'].append({
-                            'tag': required_tag,
-                            'content': meta_dict[required_tag.lower()],
-                            'type': 'required'
-                        })
-                    else:
-                        platform_data['missing_required'].append(required_tag)
-                
-                # Check recommended tags
-                for recommended_tag in config['recommended']:
-                    if recommended_tag.lower() in meta_dict:
-                        platform_data['present_tags'].append({
-                            'tag': recommended_tag,
-                            'content': meta_dict[recommended_tag.lower()],
-                            'type': 'recommended'
-                        })
-                    else:
-                        platform_data['missing_recommended'].append(recommended_tag)
-                
-                # Calculate platform coverage score
-                required_present = len(config['required']) - len(platform_data['missing_required'])
-                recommended_present = len(config['recommended']) - len(platform_data['missing_recommended'])
-                
-                # Weight required tags more heavily
-                total_possible = len(config['required']) * 2 + len(config['recommended'])
-                total_score = required_present * 2 + recommended_present
-                platform_data['coverage_score'] = (total_score / total_possible * 100) if total_possible > 0 else 0
-                
-                social_data['platforms'][platform] = platform_data
-            
-            # Calculate overall social coverage
-            platform_scores = [data['coverage_score'] for data in social_data['platforms'].values()]
-            social_data['overall_coverage'] = sum(platform_scores) / len(platform_scores) if platform_scores else 0
-            social_data['social_score'] = social_data['overall_coverage']
-            
-            # Collect all missing tags
-            for platform_data in social_data['platforms'].values():
-                social_data['missing_tags'].extend(platform_data['missing_required'])
-                social_data['missing_tags'].extend(platform_data['missing_recommended'])
-            
-        except Exception as e:
-            logger.error(f"Error analyzing social meta tags: {str(e)}")
-            
-        return social_data
-    
-    def analyze_technical_tags(self, crawl_result, domain: str) -> Dict[str, Any]:
-        """Analyze technical meta tags and HTML attributes"""
-        tech_data = {
-            'canonical_url': None,
-            'robots_meta': None,
-            'viewport_meta': None,
-            'charset_meta': None,
-            'lang_attribute': None,
-            'hreflang_tags': [],
-            'dns_prefetch': [],
-            'preload_tags': [],
-            'technical_score': 0
-        }
-        
-        try:
-            html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return tech_data
-            
-            # Canonical URL
-            canonical_match = re.search(r'<link[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if canonical_match:
-                tech_data['canonical_url'] = clean_url(canonical_match.group(1))
-            
-            # Robots meta tag
-            robots_match = re.search(r'<meta[^>]*name=["\']robots["\'][^>]*content=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if robots_match:
-                tech_data['robots_meta'] = robots_match.group(1)
-            
-            # Viewport meta tag
-            viewport_match = re.search(r'<meta[^>]*name=["\']viewport["\'][^>]*content=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if viewport_match:
-                tech_data['viewport_meta'] = viewport_match.group(1)
-            
-            # Charset declaration
-            charset_match = re.search(r'<meta[^>]*charset=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if charset_match:
-                tech_data['charset_meta'] = charset_match.group(1)
-            
-            # Language attribute
-            lang_match = re.search(r'<html[^>]*lang=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if lang_match:
-                tech_data['lang_attribute'] = lang_match.group(1)
-            
-            # Hreflang tags
-            hreflang_matches = re.findall(
-                r'<link[^>]*rel=["\']alternate["\'][^>]*hreflang=["\']([^"\']*)["\'][^>]*href=["\']([^"\']*)["\']',
-                html_content, re.IGNORECASE
-            )
-            tech_data['hreflang_tags'] = [{'lang': match[0], 'url': clean_url(match[1])} for match in hreflang_matches]
-            
-            # DNS prefetch
-            dns_prefetch_matches = re.findall(
-                r'<link[^>]*rel=["\']dns-prefetch["\'][^>]*href=["\']([^"\']*)["\']',
-                html_content, re.IGNORECASE
-            )
-            tech_data['dns_prefetch'] = [clean_url(url) for url in dns_prefetch_matches]
-            
-            # Preload tags
-            preload_matches = re.findall(
-                r'<link[^>]*rel=["\']preload["\'][^>]*href=["\']([^"\']*)["\'][^>]*as=["\']([^"\']*)["\']',
-                html_content, re.IGNORECASE
-            )
-            tech_data['preload_tags'] = [{'href': clean_url(match[0]), 'as': match[1]} for match in preload_matches]
-            
-            # Calculate technical score
-            tech_data['technical_score'] = self._calculate_technical_score(tech_data)
-            
-        except Exception as e:
-            logger.error(f"Error analyzing technical tags: {str(e)}")
-            
-        return tech_data
-    
     def analyze_robots_directives(self, crawl_result) -> Dict[str, Any]:
-        """Analyze robots directives and crawling instructions"""
+        """Analyze robots.txt and robots meta directives"""
         robots_data = {
-            'meta_robots': None,
-            'meta_googlebot': None,
-            'meta_bingbot': None,
-            'directives': [],
-            'crawling_allowed': True,
-            'indexing_allowed': True,
-            'following_allowed': True
+            'meta_robots': {
+                'present': False,
+                'directives': [],
+                'issues': []
+            },
+            'robots_txt': {
+                'accessible': False,
+                'content': None,
+                'disallowed_paths': [],
+                'crawl_delay': None,
+                'sitemap_references': []
+            },
+            'recommendations': []
         }
         
         try:
             html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return robots_data
             
-            # Extract robots meta tags
-            robots_patterns = [
-                (r'<meta[^>]*name=["\']robots["\'][^>]*content=["\']([^"\']*)["\']', 'meta_robots'),
-                (r'<meta[^>]*name=["\']googlebot["\'][^>]*content=["\']([^"\']*)["\']', 'meta_googlebot'),
-                (r'<meta[^>]*name=["\']bingbot["\'][^>]*content=["\']([^"\']*)["\']', 'meta_bingbot')
-            ]
+            # Analyze meta robots (delegated to technical_tags_analyzer)
+            tech_analysis = self.technical_tags_analyzer.analyze_technical_tags(crawl_result, '')
+            robots_data['meta_robots'] = tech_analysis['robots_meta']
             
-            for pattern, key in robots_patterns:
-                match = re.search(pattern, html_content, re.IGNORECASE)
-                if match:
-                    content = match.group(1).lower()
-                    robots_data[key] = content
-                    robots_data['directives'].extend(content.split(','))
+            # robots.txt analysis would need additional HTTP request
+            # This is a simplified version focusing on meta robots
             
-            # Analyze directives
-            all_directives = ' '.join(robots_data['directives']).lower()
-            
-            if 'noindex' in all_directives:
-                robots_data['indexing_allowed'] = False
-            if 'nofollow' in all_directives:
-                robots_data['following_allowed'] = False
-            if 'nocrawl' in all_directives or 'noarchive' in all_directives:
-                robots_data['crawling_allowed'] = False
-                
         except Exception as e:
             logger.error(f"Error analyzing robots directives: {str(e)}")
-            
+            robots_data['error'] = str(e)
+        
         return robots_data
     
     def analyze_mobile_optimization(self, crawl_result) -> Dict[str, Any]:
         """Analyze mobile optimization factors"""
         mobile_data = {
-            'has_viewport': False,
-            'viewport_content': None,
-            'responsive_indicators': 0,
-            'mobile_score': 0,
-            'mobile_issues': []
+            'viewport_tag': {
+                'present': False,
+                'content': None,
+                'is_responsive': False
+            },
+            'mobile_friendly_score': 0,
+            'touch_elements': {
+                'count': 0,
+                'properly_sized': True
+            },
+            'font_size': {
+                'is_readable': True,
+                'issues': []
+            },
+            'content_sizing': {
+                'fits_viewport': True,
+                'horizontal_scroll': False
+            },
+            'recommendations': []
         }
         
         try:
             html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return mobile_data
             
-            # Viewport meta tag
-            viewport_match = re.search(r'<meta[^>]*name=["\']viewport["\'][^>]*content=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if viewport_match:
-                mobile_data['has_viewport'] = True
-                mobile_data['viewport_content'] = viewport_match.group(1)
-                
-                # Check for proper viewport configuration
-                viewport_content = viewport_match.group(1).lower()
-                if 'width=device-width' in viewport_content:
-                    mobile_data['responsive_indicators'] += 1
-                if 'initial-scale=1' in viewport_content:
-                    mobile_data['responsive_indicators'] += 1
-            else:
-                mobile_data['mobile_issues'].append("Missing viewport meta tag")
+            # Get viewport analysis from technical_tags_analyzer
+            tech_analysis = self.technical_tags_analyzer.analyze_technical_tags(crawl_result, '')
+            mobile_data['viewport_tag'] = tech_analysis['viewport']
+            
+            # Basic mobile optimization checks
+            if mobile_data['viewport_tag']['is_mobile_friendly']:
+                mobile_data['mobile_friendly_score'] += 40
             
             # Check for responsive design indicators
-            responsive_patterns = [
-                r'@media[^{]*\([^)]*max-width|min-width',  # CSS media queries
-                r'class=["\'][^"\']*responsive[^"\']*["\']',  # Responsive CSS classes
-                r'class=["\'][^"\']*mobile[^"\']*["\']',     # Mobile CSS classes
-            ]
+            if self._has_responsive_design_indicators(html_content):
+                mobile_data['mobile_friendly_score'] += 30
+                mobile_data['content_sizing']['fits_viewport'] = True
             
-            for pattern in responsive_patterns:
-                if re.search(pattern, html_content, re.IGNORECASE):
-                    mobile_data['responsive_indicators'] += 1
+            # Check for mobile-specific meta tags
+            if self._has_mobile_meta_tags(html_content):
+                mobile_data['mobile_friendly_score'] += 15
             
-            # Calculate mobile score
-            max_indicators = 5  # viewport + scale + 3 responsive patterns
-            mobile_data['mobile_score'] = (mobile_data['responsive_indicators'] / max_indicators * 100)
+            # Check for touch-friendly elements
+            touch_score = self._analyze_touch_elements(html_content)
+            mobile_data['touch_elements'] = touch_score
+            mobile_data['mobile_friendly_score'] += touch_score['score']
+            
+            # Generate recommendations
+            mobile_data['recommendations'] = self._generate_mobile_recommendations(mobile_data)
             
         except Exception as e:
             logger.error(f"Error analyzing mobile optimization: {str(e)}")
-            
+            mobile_data['error'] = str(e)
+        
         return mobile_data
     
     def analyze_internationalization(self, crawl_result) -> Dict[str, Any]:
-        """Analyze internationalization and localization"""
+        """Analyze internationalization and localization factors"""
         i18n_data = {
-            'lang_attribute': None,
-            'hreflang_tags': [],
-            'has_i18n': False,
-            'i18n_score': 0
+            'lang_attribute': {
+                'present': False,
+                'value': None,
+                'is_valid': True
+            },
+            'hreflang_tags': {
+                'present': False,
+                'count': 0,
+                'languages': [],
+                'issues': []
+            },
+            'content_language': {
+                'detected': None,
+                'confidence': 0
+            },
+            'currency_symbols': [],
+            'date_formats': [],
+            'recommendations': []
         }
         
         try:
+            # Get lang and hreflang analysis from technical_tags_analyzer
+            tech_analysis = self.technical_tags_analyzer.analyze_technical_tags(crawl_result, '')
+            i18n_data['lang_attribute'] = tech_analysis['lang_attr']
+            i18n_data['hreflang_tags'] = tech_analysis['hreflang']
+            
+            # Simple content language detection
             html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return i18n_data
+            i18n_data['content_language'] = self._detect_content_language(html_content)
             
-            # Language attribute on html tag
-            lang_match = re.search(r'<html[^>]*lang=["\']([^"\']*)["\']', html_content, re.IGNORECASE)
-            if lang_match:
-                i18n_data['lang_attribute'] = lang_match.group(1)
-                i18n_data['has_i18n'] = True
-            
-            # Hreflang tags
-            hreflang_matches = re.findall(
-                r'<link[^>]*rel=["\']alternate["\'][^>]*hreflang=["\']([^"\']*)["\'][^>]*href=["\']([^"\']*)["\']',
-                html_content, re.IGNORECASE
-            )
-            
-            if hreflang_matches:
-                i18n_data['hreflang_tags'] = [{'lang': match[0], 'url': clean_url(match[1])} for match in hreflang_matches]
-                i18n_data['has_i18n'] = True
-            
-            # Calculate i18n score
-            score = 0
-            if i18n_data['lang_attribute']:
-                score += 50
-            if i18n_data['hreflang_tags']:
-                score += 50
-            
-            i18n_data['i18n_score'] = score
+            # Generate recommendations
+            i18n_data['recommendations'] = self._generate_i18n_recommendations(i18n_data)
             
         except Exception as e:
             logger.error(f"Error analyzing internationalization: {str(e)}")
-            
+            i18n_data['error'] = str(e)
+        
         return i18n_data
     
-    def _extract_schema_types(self, schema_json) -> List[str]:
-        """Extract schema types from JSON-LD"""
-        types = []
+    def _has_responsive_design_indicators(self, html_content: str) -> bool:
+        """Check for responsive design indicators"""
+        indicators = [
+            r'@media\s*\([^)]*\)',  # CSS media queries
+            r'viewport\s*=.*device-width',  # Viewport meta tag
+            r'responsive',  # Responsive keywords in CSS classes
+            r'col-\w+',  # Bootstrap grid classes
+            r'flex\w*',  # Flexbox classes
+            r'grid\w*'  # CSS Grid classes
+        ]
         
-        try:
-            if isinstance(schema_json, dict):
-                if '@type' in schema_json:
-                    type_value = schema_json['@type']
-                    if isinstance(type_value, list):
-                        types.extend(type_value)
-                    else:
-                        types.append(type_value)
-                
-                # Recursively check nested objects
-                for value in schema_json.values():
-                    if isinstance(value, (dict, list)):
-                        types.extend(self._extract_schema_types(value))
-            
-            elif isinstance(schema_json, list):
-                for item in schema_json:
-                    types.extend(self._extract_schema_types(item))
-                    
-        except Exception as e:
-            logger.error(f"Error extracting schema types: {str(e)}")
-            
-        return types
+        return any(re.search(pattern, html_content, re.IGNORECASE) for pattern in indicators)
     
-    def _validate_schema_structure(self, schema_json) -> Dict[str, Any]:
-        """Basic validation of schema structure"""
-        validation = {'valid': True, 'errors': [], 'type': None}
+    def _has_mobile_meta_tags(self, html_content: str) -> bool:
+        """Check for mobile-specific meta tags"""
+        mobile_tags = [
+            r'name=["\']format-detection["\']',
+            r'name=["\']mobile-web-app-capable["\']',
+            r'name=["\']apple-mobile-web-app-capable["\']'
+        ]
         
-        try:
-            if isinstance(schema_json, dict) and '@type' in schema_json:
-                schema_type = schema_json['@type']
-                validation['type'] = schema_type
-                
-                # Basic required fields validation for common types
-                required_fields = {
-                    'Organization': ['name'],
-                    'Person': ['name'],
-                    'Product': ['name'],
-                    'Article': ['headline', 'author'],
-                    'LocalBusiness': ['name', 'address']
-                }
-                
-                if schema_type in required_fields:
-                    for field in required_fields[schema_type]:
-                        if field not in schema_json:
-                            validation['valid'] = False
-                            validation['errors'].append(f"Missing required field '{field}' for {schema_type}")
-            
-        except Exception as e:
-            validation['valid'] = False
-            validation['errors'].append(f"Schema validation error: {str(e)}")
-            
-        return validation
+        return any(re.search(tag, html_content, re.IGNORECASE) for tag in mobile_tags)
     
-    def _calculate_schema_coverage_score(self, schema_data: Dict[str, Any]) -> float:
-        """Calculate schema markup coverage score"""
-        score = 0
+    def _analyze_touch_elements(self, html_content: str) -> Dict[str, Any]:
+        """Analyze touch-friendly elements"""
+        touch_data = {
+            'count': 0,
+            'properly_sized': True,
+            'score': 0
+        }
         
-        # Points for having any schema
-        if schema_data['has_schema']:
-            score += 30
+        # Count interactive elements
+        interactive_patterns = [
+            r'<button[^>]*>',
+            r'<a[^>]*href[^>]*>',
+            r'<input[^>]*type=["\'](?:button|submit|reset)["\'][^>]*>',
+            r'onclick=["\'][^"\']*["\']'
+        ]
         
-        # Points for JSON-LD (preferred format)
-        if schema_data['json_ld_count'] > 0:
-            score += 40
+        for pattern in interactive_patterns:
+            matches = re.findall(pattern, html_content, re.IGNORECASE)
+            touch_data['count'] += len(matches)
         
-        # Points for important schema types
-        important_types_found = sum(1 for t in schema_data['schema_types'] if t in self.important_schema_types)
-        score += min(important_types_found * 10, 30)  # Max 30 points
+        # Basic scoring
+        if touch_data['count'] > 0:
+            touch_data['score'] = 15
         
-        return min(score, 100)
+        return touch_data
+    
+    def _detect_content_language(self, html_content: str) -> Dict[str, Any]:
+        """Simple content language detection"""
+        # This is a very basic implementation
+        # In a production system, you'd use a proper language detection library
+        
+        language_indicators = {
+            'italian': ['e ', 'di ', 'la ', 'il ', 'che ', 'è ', 'per ', 'con ', 'dei ', 'delle '],
+            'english': ['the ', 'and ', 'of ', 'to ', 'a ', 'in ', 'is ', 'it ', 'you ', 'that '],
+            'spanish': ['el ', 'de ', 'que ', 'y ', 'en ', 'un ', 'es ', 'se ', 'no ', 'te '],
+            'french': ['le ', 'de ', 'et ', 'à ', 'un ', 'il ', 'être ', 'et ', 'en ', 'avoir '],
+            'german': ['der ', 'die ', 'und ', 'in ', 'den ', 'von ', 'zu ', 'das ', 'mit ', 'sich ']
+        }
+        
+        # Extract text content (very basic)
+        text_content = re.sub(r'<[^>]+>', ' ', html_content).lower()
+        
+        best_language = None
+        best_score = 0
+        
+        for language, indicators in language_indicators.items():
+            score = sum(text_content.count(indicator) for indicator in indicators)
+            if score > best_score:
+                best_score = score
+                best_language = language
+        
+        confidence = min(best_score / 100, 1.0) if best_score > 0 else 0
+        
+        return {
+            'detected': best_language,
+            'confidence': confidence
+        }
+    
+    def _generate_mobile_recommendations(self, mobile_data: Dict[str, Any]) -> List[str]:
+        """Generate mobile optimization recommendations"""
+        recommendations = []
+        
+        if not mobile_data['viewport_tag']['present']:
+            recommendations.append("Add viewport meta tag for mobile optimization")
+        elif not mobile_data['viewport_tag']['is_mobile_friendly']:
+            recommendations.append("Update viewport meta tag to include 'width=device-width'")
+        
+        if mobile_data['mobile_friendly_score'] < 70:
+            recommendations.append("Improve mobile responsiveness with CSS media queries")
+        
+        if not mobile_data['content_sizing']['fits_viewport']:
+            recommendations.append("Ensure content fits within viewport width")
+        
+        return recommendations
+    
+    def _generate_i18n_recommendations(self, i18n_data: Dict[str, Any]) -> List[str]:
+        """Generate internationalization recommendations"""
+        recommendations = []
+        
+        if not i18n_data['lang_attribute']['present']:
+            recommendations.append("Add lang attribute to HTML element for better accessibility")
+        
+        if i18n_data['hreflang_tags']['present'] and i18n_data['hreflang_tags']['issues']:
+            recommendations.append("Fix hreflang implementation issues")
+        
+        return recommendations
     
     def _calculate_technical_score(self, tech_data: Dict[str, Any]) -> float:
-        """Calculate technical SEO score"""
-        score = 0
-        max_score = 100
+        """Calculate overall technical SEO score"""
+        scores = []
         
-        # Canonical URL (20 points)
-        if tech_data['canonical_url']:
-            score += 20
+        # Schema markup score (25% weight)
+        schema_score = tech_data['schema_markup'].get('coverage_score', 0)
+        scores.append(schema_score * 0.25)
         
-        # Viewport meta (15 points)
-        if tech_data['viewport_meta']:
-            score += 15
+        # Social meta score (20% weight)
+        social_score = tech_data['social_meta_tags'].get('overall_score', 0)
+        scores.append(social_score * 0.20)
         
-        # Charset (10 points)
-        if tech_data['charset_meta']:
-            score += 10
+        # Technical tags score (25% weight)
+        technical_score = tech_data['technical_tags'].get('technical_score', 0)
+        scores.append(technical_score * 0.25)
         
-        # Language attribute (15 points)
-        if tech_data['lang_attribute']:
-            score += 15
+        # Mobile optimization score (20% weight)
+        mobile_score = tech_data['mobile_optimization'].get('mobile_friendly_score', 0)
+        scores.append(mobile_score * 0.20)
         
-        # Robots meta (10 points)
-        if tech_data['robots_meta']:
-            score += 10
+        # Internationalization score (10% weight)
+        i18n_score = self._calculate_i18n_score(tech_data['internationalization'])
+        scores.append(i18n_score * 0.10)
         
-        # Hreflang (10 points)
-        if tech_data['hreflang_tags']:
-            score += 10
+        return sum(scores)
+    
+    def _calculate_i18n_score(self, i18n_data: Dict[str, Any]) -> float:
+        """Calculate internationalization score"""
+        score = 0.0
         
-        # Performance hints (10 points)
-        if tech_data['dns_prefetch'] or tech_data['preload_tags']:
-            score += 10
+        if i18n_data['lang_attribute']['present']:
+            score += 50.0
+            if i18n_data['lang_attribute']['is_valid']:
+                score += 25.0
         
-        # Technical optimization bonus (10 points)
-        if len(tech_data['preload_tags']) > 2:
-            score += 10
+        if i18n_data['hreflang_tags']['present']:
+            score += 25.0
         
-        return min(score, max_score)
+        return score
     
     def _identify_technical_issues(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Identify technical SEO issues"""
         issues = []
         
-        # Schema issues - converted to granular format
-        schema_data = analysis.get('schema_markup', {})
-        if not schema_data.get('has_schema'):
-            # Import required modules for granular schema issues
-            from .core.resource_details import ResourceDetailsBuilder, IssueFactory
-            from .severity_calculator import SeverityCalculator
-            
-            # Determine recommended schema types based on page analysis
-            recommended_schemas = self._determine_recommended_schemas(analysis)
-            page_content_type = self._detect_page_content_type(analysis)
-            
-            page_url = getattr(analysis, 'page_url', '')
-            page_context = f"Pagina: {page_url}"
-            
-            resource_details = ResourceDetailsBuilder.schema_markup_missing(
-                page_url=page_url,
-                recommended_schema_types=recommended_schemas,
-                page_content_type=page_content_type,
-                page_context=page_context
-            )
-            
-            severity = SeverityCalculator.calculate_severity('missing_schema_markup')
-            score_impact = SeverityCalculator.get_severity_score(severity)
-            
-            issue = IssueFactory.create_granular_issue(
-                issue_type='missing_schema_markup',
-                severity=severity,
-                category='structured_data',
-                title='Schema Markup Mancante',
-                description=f'La pagina non ha markup di dati strutturati per migliorare la visibilità nei risultati di ricerca',
-                recommendation=f'Implementa schema {recommended_schemas[0] if recommended_schemas else "Organization"} per rich snippets',
-                resource_details=resource_details,
-                score_impact=score_impact
-            )
-            issues.append(issue)
-        
-        if schema_data.get('schema_errors'):
-            for error in schema_data['schema_errors']:
-                issues.append({
-                    'type': 'invalid_schema',
-                    'severity': 'high',
-                    'category': 'structured_data',
-                    'message': f'Schema validation error: {error}',
-                    'recommendation': 'Fix schema markup errors',
-                    'impact': 'Invalid structured data may be ignored by search engines'
-                })
-        
-        # Social meta tag issues - converted to granular format
-        social_data = analysis.get('social_meta_tags', {})
-        if social_data.get('overall_coverage', 0) < 50:
-            # Import required modules for granular social meta issues
-            from .core.resource_details import ResourceDetailsBuilder, IssueFactory
-            from .severity_calculator import SeverityCalculator
-            
-            page_url = getattr(analysis, 'page_url', '')
-            page_context = f"Pagina: {page_url}"
-            
-            # Extract missing tags and platform coverage
-            missing_tags = social_data.get('missing_tags', [])
-            platform_coverage = {}
-            present_tags = []
-            
-            # Build platform coverage data
-            for platform, platform_data in social_data.get('platforms', {}).items():
-                platform_coverage[platform] = platform_data.get('coverage_score', 0)
-                present_tags.extend(platform_data.get('present_tags', []))
-            
-            # Extract page title for better suggestions
-            page_title = getattr(analysis, 'page_title', '')
-            
-            resource_details = ResourceDetailsBuilder.poor_social_meta(
-                page_url=page_url,
-                missing_tags=missing_tags,
-                present_tags=present_tags,
-                platform_coverage=platform_coverage,
-                page_title=page_title,
-                page_context=page_context
-            )
-            
-            severity = SeverityCalculator.calculate_severity('poor_social_meta')
-            score_impact = SeverityCalculator.get_severity_score(severity)
-            
-            # Determine most critical platform for personalized recommendation
-            critical_platforms = resource_details.issue_specific_data.get('critical_platforms', [])
-            critical_platform_text = f" (priorità: {', '.join(critical_platforms)})" if critical_platforms else ""
-            
-            issue = IssueFactory.create_granular_issue(
-                issue_type='poor_social_meta',
-                severity=severity,
-                category='social_optimization',
-                title='Meta Tag Social Mancanti',
-                description=f'La pagina ha una copertura social insufficiente ({social_data.get("overall_coverage", 0):.0f}%) per condivisioni ottimali',
-                recommendation=f'Implementa meta tag Open Graph e Twitter Card mancanti{critical_platform_text}',
-                resource_details=resource_details,
-                score_impact=score_impact
-            )
-            issues.append(issue)
-        
-        # NOTE: Canonical issues are now handled by IssueDetector with granular format
-        # No legacy canonical issues generated here to avoid duplicates
-        
-        # Technical tags issues - converted to granular format
-        tech_data = analysis.get('technical_tags', {})
-        if not tech_data.get('viewport_meta'):
-            # Import required modules for granular viewport issues
-            from .core.resource_details import ResourceDetailsBuilder, IssueFactory
-            from .severity_calculator import SeverityCalculator
-            
-            # Get mobile analysis data for intelligent viewport suggestions
-            mobile_data = analysis.get('mobile_optimization', {})
-            page_url = getattr(analysis, 'page_url', '')
-            page_context = f"Pagina: {page_url}"
-            
-            resource_details = ResourceDetailsBuilder.viewport_missing(
-                page_url=page_url,
-                page_context=page_context,
-                mobile_analysis=mobile_data
-            )
-            
-            severity = SeverityCalculator.calculate_severity('missing_viewport')
-            score_impact = SeverityCalculator.get_severity_score(severity)
-            
-            issue = IssueFactory.create_granular_issue(
-                issue_type='missing_viewport',
-                severity=severity,
-                category='mobile_optimization',
-                title='Viewport Meta Tag Mancante',
-                description='La pagina non ha un meta tag viewport, compromettendo la visualizzazione su dispositivi mobili',
-                recommendation=f'Aggiungi viewport meta tag ottimizzato per mobile: {resource_details.issue_specific_data["optimal_viewport"]}',
-                resource_details=resource_details,
-                score_impact=score_impact
-            )
-            issues.append(issue)
-        
-        # Mobile optimization issues
-        mobile_data = analysis.get('mobile_optimization', {})
-        if mobile_data.get('mobile_score', 0) < 70:
+        # Schema issues
+        schema_data = analysis['schema_markup']
+        if not schema_data['has_schema']:
             issues.append({
-                'type': 'ottimizzazione_mobile_scarsa',
+                'type': 'missing_schema',
+                'severity': 'medium',
+                'category': 'technical',
+                'title': 'Missing Schema Markup',
+                'description': 'Page lacks structured data markup',
+                'recommendation': 'Add relevant Schema.org markup'
+            })
+        
+        # Social meta issues
+        social_data = analysis['social_meta_tags']
+        if not social_data['open_graph']['present']:
+            issues.append({
+                'type': 'missing_og_tags',
+                'severity': 'medium',
+                'category': 'technical',
+                'title': 'Missing Open Graph Tags',
+                'description': 'Page lacks Open Graph meta tags for social sharing',
+                'recommendation': 'Add Open Graph meta tags'
+            })
+        
+        # Technical tag issues
+        tech_data = analysis['technical_tags']
+        if not tech_data['canonical']['present']:
+            issues.append({
+                'type': 'missing_canonical',
                 'severity': 'high',
-                'category': 'mobile_optimization',
-                'message': 'Ottimizzazione mobile scarsa rilevata',
-                'recommendation': 'Implementa design responsive e approccio mobile-first',
-                'impact': 'Reduced mobile search rankings'
+                'category': 'technical',
+                'title': 'Missing Canonical URL',
+                'description': 'Page lacks canonical URL specification',
+                'recommendation': 'Add canonical link tag'
+            })
+        
+        if not tech_data['viewport']['present']:
+            issues.append({
+                'type': 'missing_viewport',
+                'severity': 'high',
+                'category': 'technical',
+                'title': 'Missing Viewport Meta Tag',
+                'description': 'Page lacks viewport meta tag for mobile optimization',
+                'recommendation': 'Add viewport meta tag with device-width'
             })
         
         return issues
     
     def _generate_technical_opportunities(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate technical SEO improvement opportunities"""
+        """Generate technical SEO opportunities"""
         opportunities = []
         
-        # Schema opportunities
-        schema_data = analysis.get('schema_markup', {})
-        if schema_data.get('coverage_score', 0) < 80:
+        schema_data = analysis['schema_markup']
+        if schema_data['has_schema'] and schema_data['coverage_score'] < 80:
             opportunities.append({
-                'category': 'Structured Data',
-                'title': 'Enhance structured data markup',
-                'description': 'Add comprehensive schema markup for better search engine understanding',
-                'impact': 'High',
-                'effort': 'Medium',
-                'implementation': 'Add JSON-LD for Organization, Product, Article, or other relevant schema types'
+                'category': 'Schema Enhancement',
+                'title': 'Expand structured data coverage',
+                'description': f"Current schema coverage: {schema_data['coverage_score']:.0f}%",
+                'impact': 'Medium',
+                'effort': 'Low',
+                'implementation': 'Add missing schema types based on page content'
             })
         
-        # Social media opportunities
-        social_data = analysis.get('social_meta_tags', {})
-        if social_data.get('overall_coverage', 0) < 90:
+        social_data = analysis['social_meta_tags']
+        if social_data['overall_score'] < 80:
             opportunities.append({
                 'category': 'Social Optimization',
-                'title': 'Complete social media meta tags',
-                'description': 'Add missing Open Graph and Twitter Card tags',
+                'title': 'Improve social media optimization',
+                'description': f"Current social score: {social_data['overall_score']:.0f}%",
                 'impact': 'Medium',
                 'effort': 'Low',
-                'implementation': 'Add og:image, twitter:card, and other missing social meta tags'
-            })
-        
-        # Technical performance opportunities
-        tech_data = analysis.get('technical_tags', {})
-        if not tech_data.get('preload_tags'):
-            opportunities.append({
-                'category': 'Performance',
-                'title': 'Implement resource preloading',
-                'description': 'Preload critical resources for faster page loading',
-                'impact': 'Medium',
-                'effort': 'Low',
-                'implementation': 'Add <link rel="preload"> for critical CSS, fonts, and images'
-            })
-        
-        # International SEO opportunities
-        i18n_data = analysis.get('internationalization', {})
-        if not i18n_data.get('has_i18n') and i18n_data.get('i18n_score', 0) < 50:
-            opportunities.append({
-                'category': 'International SEO',
-                'title': 'Implement internationalization',
-                'description': 'Add language declarations and hreflang tags for better international SEO',
-                'impact': 'Medium',
-                'effort': 'Medium',
-                'implementation': 'Add lang attribute to HTML tag and hreflang tags for multiple language versions'
+                'implementation': 'Complete Open Graph and Twitter Card implementations'
             })
         
         return opportunities
-
+    
+    # Delegation methods for backward compatibility
+    def analyze_schema_markup(self, crawl_result) -> Dict[str, Any]:
+        """Delegate to schema analyzer"""
+        return self.schema_analyzer.analyze_schema_markup(crawl_result)
+    
+    def analyze_social_meta_tags(self, crawl_result) -> Dict[str, Any]:
+        """Delegate to social meta analyzer"""
+        return self.social_analyzer.analyze_social_meta_tags(crawl_result)
+    
+    def analyze_technical_tags(self, crawl_result, domain: str) -> Dict[str, Any]:
+        """Delegate to technical tags analyzer"""
+        return self.technical_tags_analyzer.analyze_technical_tags(crawl_result, domain)
+    
     def extract_canonical_url(self, crawl_result) -> Optional[str]:
-        """Extract canonical URL from page"""
-        try:
-            html_content = getattr(crawl_result, 'html', '')
-            if not html_content:
-                return None
-            
-            # Look for canonical link tag
-            canonical_match = re.search(
-                r'<link[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']+)["\']',
-                html_content, re.IGNORECASE
-            )
-            
-            if canonical_match:
-                canonical_url = clean_url(canonical_match.group(1))
-                # Convert relative URLs to absolute
-                if canonical_url.startswith('/'):
-                    page_url = getattr(crawl_result, 'url', '')
-                    if page_url:
-                        parsed = urlparse(page_url)
-                        canonical_url = f"{parsed.scheme}://{parsed.netloc}{canonical_url}"
-                
-                return clean_url(canonical_url)
-            
-            return None
-            
-        except Exception as e:
-            logger.warning(f"Error extracting canonical URL: {str(e)}")
-            return None
-
+        """Delegate to technical tags analyzer"""
+        return self.technical_tags_analyzer.extract_canonical_url(crawl_result)
+    
     def analyze_url_structure(self, url: str) -> Dict[str, Any]:
-        """Analyze URL structure and quality"""
+        """Analyze URL structure for SEO"""
         analysis = {
-            'url_length': len(url),
-            'url_depth': 0,
-            'has_trailing_slash': False,
-            'has_query_params': False,
-            'has_fragment': False,
-            'url_quality_score': 100,
-            'url_issues': []
+            'url': url,
+            'is_seo_friendly': True,
+            'issues': [],
+            'recommendations': [],
+            'score': 100
         }
         
         try:
             parsed = urlparse(url)
-            path = parsed.path.strip('/')
             
-            # Calculate URL depth (number of path segments)
-            if path:
-                analysis['url_depth'] = len(path.split('/'))
+            # URL length check
+            if len(url) > 100:
+                analysis['issues'].append('URL is longer than 100 characters')
+                analysis['score'] -= 10
+                analysis['is_seo_friendly'] = False
             
-            # Check for trailing slash
-            analysis['has_trailing_slash'] = parsed.path.endswith('/')
+            # Check for parameters
+            if parsed.query:
+                analysis['issues'].append('URL contains query parameters')
+                analysis['score'] -= 5
             
-            # Check for query parameters
-            analysis['has_query_params'] = bool(parsed.query)
+            # Check for underscores
+            if '_' in parsed.path:
+                analysis['issues'].append('URL contains underscores (use hyphens instead)')
+                analysis['score'] -= 5
+                analysis['is_seo_friendly'] = False
             
-            # Check for fragment
-            analysis['has_fragment'] = bool(parsed.fragment)
+            # Check for uppercase letters
+            if any(c.isupper() for c in parsed.path):
+                analysis['issues'].append('URL contains uppercase letters')
+                analysis['score'] -= 5
+                analysis['is_seo_friendly'] = False
             
-            # URL Quality Assessment
-            score_deductions = []
+            # Check for stop words
+            stop_words = ['a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']
+            path_words = parsed.path.lower().split('/')
+            for word in stop_words:
+                if word in path_words:
+                    analysis['recommendations'].append(f'Consider removing stop word: {word}')
             
-            # Length check
-            if analysis['url_length'] > 100:
-                score_deductions.append(('long_url', 10))
-                analysis['url_issues'].append('URL too long (>100 characters)')
-            elif analysis['url_length'] > 75:
-                score_deductions.append(('moderately_long_url', 5))
-            
-            # Depth check
-            if analysis['url_depth'] > 4:
-                score_deductions.append(('deep_url', 15))
-                analysis['url_issues'].append('URL too deep (>4 levels)')
-            elif analysis['url_depth'] > 3:
-                score_deductions.append(('moderately_deep_url', 5))
-            
-            # Pattern checks
-            if '--' in path:
-                score_deductions.append(('double_dashes', 10))
-                analysis['url_issues'].append('Contains double dashes')
-            
-            if re.search(r'-\d+$', path):
-                score_deductions.append(('trailing_numbers', 5))
-                analysis['url_issues'].append('Ends with number (possible pagination)')
-            
-            if re.search(r'[^a-zA-Z0-9\-/_.]', url):
-                score_deductions.append(('special_characters', 10))
-                analysis['url_issues'].append('Contains special characters')
-            
-            # Inconsistent naming patterns
-            if re.search(r'(brass-balls|brassballs|brass_balls)', path, re.IGNORECASE):
-                # Check for multiple naming conventions
-                conventions = []
-                if 'brass-balls' in path.lower(): conventions.append('hyphen')
-                if 'brassballs' in path.lower(): conventions.append('single')
-                if 'brass_balls' in path.lower(): conventions.append('underscore')
-                
-                if len(conventions) > 1:
-                    score_deductions.append(('inconsistent_naming', 8))
-                    analysis['url_issues'].append('Inconsistent naming convention')
-            
-            # Calculate final score
-            total_deduction = sum(deduction for _, deduction in score_deductions)
-            analysis['url_quality_score'] = max(0, 100 - total_deduction)
-            
-            return analysis
+            # Check for dynamic parameters
+            dynamic_indicators = ['id=', 'page=', 'category=', 'product=']
+            if any(indicator in url.lower() for indicator in dynamic_indicators):
+                analysis['recommendations'].append('Consider using URL rewriting for cleaner URLs')
             
         except Exception as e:
-            logger.warning(f"Error analyzing URL structure for {url}: {str(e)}")
-            analysis['url_quality_score'] = 0
-            analysis['url_issues'].append('URL parsing error')
-            return analysis
-
+            logger.error(f"Error analyzing URL structure: {str(e)}")
+            analysis['error'] = str(e)
+        
+        return analysis
+    
     def detect_duplicate_content_issues(self, pages_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Detect duplicate content and canonical issues across multiple pages"""
+        """Detect potential duplicate content issues"""
         duplicate_analysis = {
-            'canonical_groups': {},
-            'duplicate_issues': [],
-            'canonical_chains': [],
-            'canonical_loops': [],
-            'pages_without_canonical': [],
-            'total_duplicates': 0
+            'potential_duplicates': [],
+            'canonical_issues': [],
+            'recommendations': []
         }
         
         try:
-            # Group pages by canonical URL
-            canonical_map = {}
-            pages_without_canonical = []
+            # Group pages by similar content indicators
+            title_groups = {}
+            description_groups = {}
             
-            for page_data in pages_data:
-                url = page_data.get('url', '')
-                canonical = page_data.get('canonical_url')
+            for page in pages_data:
+                title = page.get('title', '').strip().lower()
+                description = page.get('meta_description', '').strip().lower()
                 
-                if canonical:
-                    if canonical not in canonical_map:
-                        canonical_map[canonical] = []
-                    canonical_map[canonical].append(page_data)
-                else:
-                    pages_without_canonical.append(page_data)
+                if title:
+                    if title not in title_groups:
+                        title_groups[title] = []
+                    title_groups[title].append(page)
+                
+                if description:
+                    if description not in description_groups:
+                        description_groups[description] = []
+                    description_groups[description].append(page)
             
-            # Analyze canonical groups
-            for canonical_url, pages in canonical_map.items():
+            # Find duplicates
+            for title, pages in title_groups.items():
                 if len(pages) > 1:
-                    duplicate_analysis['canonical_groups'][canonical_url] = {
-                        'canonical_url': canonical_url,
-                        'duplicate_count': len(pages),
-                        'pages': [p['url'] for p in pages]
-                    }
-                    duplicate_analysis['total_duplicates'] += len(pages) - 1
-            
-            # Detect canonical chains and loops
-            duplicate_analysis['canonical_chains'] = self._detect_canonical_chains(canonical_map)
-            duplicate_analysis['canonical_loops'] = self._detect_canonical_loops(canonical_map)
-            
-            duplicate_analysis['pages_without_canonical'] = [p['url'] for p in pages_without_canonical]
-            
-            # Generate duplicate content issues
-            for canonical_url, group in duplicate_analysis['canonical_groups'].items():
-                if group['duplicate_count'] > 1:
-                    duplicate_analysis['duplicate_issues'].append({
-                        'type': 'duplicate_canonical_group',
-                        'severity': 'medium',
-                        'category': 'duplicate_content',
-                        'message': f"Multiple pages with same canonical: {canonical_url}",
-                        'affected_pages': group['pages'],
-                        'recommendation': 'Ensure canonical URLs are correctly set to avoid duplicate content'
+                    duplicate_analysis['potential_duplicates'].append({
+                        'type': 'duplicate_title',
+                        'title': title,
+                        'pages': [p.get('url') for p in pages],
+                        'count': len(pages)
                     })
             
-            if pages_without_canonical:
-                duplicate_analysis['duplicate_issues'].append({
-                    'type': 'canonical_mancante',
-                    'severity': 'high',
-                    'category': 'duplicate_content',
-                    'message': f"{len(pages_without_canonical)} pagine senza URL canonical",
-                    'affected_pages': [p['url'] for p in pages_without_canonical],
-                    'recommendation': 'Aggiungi tag canonical a tutte le pagine'
-                })
+            for description, pages in description_groups.items():
+                if len(pages) > 1:
+                    duplicate_analysis['potential_duplicates'].append({
+                        'type': 'duplicate_description',
+                        'description': description[:100] + '...',
+                        'pages': [p.get('url') for p in pages],
+                        'count': len(pages)
+                    })
             
-            return duplicate_analysis
-            
+            # Generate recommendations
+            if duplicate_analysis['potential_duplicates']:
+                duplicate_analysis['recommendations'].append(
+                    'Review and consolidate duplicate content or implement proper canonicalization'
+                )
+                duplicate_analysis['recommendations'].append(
+                    'Ensure each page has unique title tags and meta descriptions'
+                )
+        
         except Exception as e:
-            logger.error(f"Error detecting duplicate content issues: {str(e)}")
-            return duplicate_analysis
-
-    def _detect_canonical_chains(self, canonical_map: Dict[str, List]) -> List[Dict[str, Any]]:
-        """Detect canonical chains (A->B->C)"""
-        chains = []
+            logger.error(f"Error detecting duplicate content: {str(e)}")
+            duplicate_analysis['error'] = str(e)
         
-        for canonical_url, pages in canonical_map.items():
-            # Check if canonical URL itself appears as a page URL in another group
-            for other_canonical, other_pages in canonical_map.items():
-                if canonical_url != other_canonical:
-                    for page in other_pages:
-                        if page['url'] == canonical_url:
-                            chains.append({
-                                'chain': [page['url'], canonical_url, other_canonical],
-                                'type': 'canonical_chain'
-                            })
-        
-        return chains
-
-    def _detect_canonical_loops(self, canonical_map: Dict[str, List]) -> List[Dict[str, Any]]:
-        """Detect canonical loops (A->B->A)"""
-        loops = []
-        
-        for canonical_url, pages in canonical_map.items():
-            for page in pages:
-                # Check if canonical points back to a page that points to this canonical
-                if page['url'] in canonical_map:
-                    target_pages = canonical_map[page['url']]
-                    for target_page in target_pages:
-                        if target_page.get('canonical_url') == canonical_url:
-                            loops.append({
-                                'loop': [page['url'], canonical_url],
-                                'type': 'canonical_loop'
-                            })
-        
-        return loops
-
-    def _determine_recommended_schemas(self, analysis: Dict[str, Any]) -> List[str]:
-        """Determine recommended schema types based on page analysis"""
-        recommended = []
-        
-        # Always recommend Organization as a base
-        recommended.append("Organization")
-        
-        # Analyze page content to suggest additional schemas
-        page_content = analysis.get('content', {})
-        
-        # Check for business indicators
-        if any(term in str(analysis).lower() for term in ['contact', 'address', 'phone', 'business', 'company']):
-            recommended.append("LocalBusiness")
-        
-        # Check for product indicators
-        if any(term in str(analysis).lower() for term in ['product', 'service', 'price', 'offer', 'buy']):
-            recommended.append("Product")
-        
-        # Check for article/blog indicators
-        if any(term in str(analysis).lower() for term in ['article', 'blog', 'news', 'post', 'author']):
-            recommended.append("Article")
-        
-        # Check for FAQ indicators
-        if any(term in str(analysis).lower() for term in ['faq', 'question', 'answer', 'domande']):
-            recommended.append("FAQPage")
-        
-        # Check for review indicators
-        if any(term in str(analysis).lower() for term in ['review', 'rating', 'testimonial', 'recensione']):
-            recommended.append("Review")
-        
-        # Always recommend BreadcrumbList for navigation
-        recommended.append("BreadcrumbList")
-        
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_recommended = []
-        for item in recommended:
-            if item not in seen:
-                seen.add(item)
-                unique_recommended.append(item)
-        
-        return unique_recommended[:5]  # Limit to top 5 recommendations
-    
-    def _detect_page_content_type(self, analysis: Dict[str, Any]) -> str:
-        """Detect the primary content type of the page"""
-        content_str = str(analysis).lower()
-        
-        # Check for specific content patterns
-        if any(term in content_str for term in ['product', 'shop', 'buy', 'cart', 'price']):
-            return "product_page"
-        elif any(term in content_str for term in ['article', 'blog', 'news', 'post']):
-            return "article_page"
-        elif any(term in content_str for term in ['contact', 'phone', 'address', 'email']):
-            return "contact_page"
-        elif any(term in content_str for term in ['about', 'chi siamo', 'company', 'storia']):
-            return "about_page"
-        elif any(term in content_str for term in ['service', 'servizi', 'offer', 'solution']):
-            return "service_page"
-        elif any(term in content_str for term in ['home', 'homepage', 'index']):
-            return "homepage"
-        else:
-            return "general_page"
+        return duplicate_analysis
