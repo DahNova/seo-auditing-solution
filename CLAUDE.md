@@ -101,6 +101,23 @@ make shell               # Python shell with app context loaded
 
 ## Core System Components
 
+### Enterprise URL Discovery System (`app/services/`)
+
+**Multi-Phase Scanning Architecture**: The system implements enterprise-scale URL discovery with intelligent processing:
+- `enterprise_scan_service.py` - Multi-phase enterprise scanning orchestrator with sitemap-first discovery
+- `url_discovery_service.py` - Multi-source URL discovery coordination (sitemaps, robots.txt, crawling)
+- `sitemap_parser.py` - Comprehensive XML sitemap parsing with sitemap index support and metadata extraction
+- `url_queue_manager.py` - Priority-based URL queue with intelligent scoring and crawl budget management
+- `url_utils.py` - URL normalization, cleaning, and validation utilities
+
+**Enterprise Database Schema**: Enhanced Pages and SitemapSnapshot models with 17+ new columns for:
+- URL discovery source tracking and metadata
+- Processing timestamps and performance metrics
+- Queue management with priority scoring
+- Sitemap analysis (changefreq, priority, lastmod processing)
+
+**Sitemap-First Strategy**: Prioritizes structured sitemap URLs before crawl discovery, enabling efficient processing of large websites (10k+ pages) with intelligent crawl budget allocation.
+
 ### SEO Analysis Engine (`app/services/seo_analyzer/`)
 
 **Multi-Layer Analysis Architecture**:
@@ -120,6 +137,12 @@ make shell               # Python shell with app context loaded
 - `missing_schema_markup` - Recommends appropriate schema types based on page content
 
 **Performance-Aware Issue Limiting**: For large scans (>5000 issues), the system automatically limits to 2000 issues for UI performance, with smart distribution prioritizing critical (40%) and high (35%) severity issues. Granular issues (those with detailed element data) are prioritized over legacy issues.
+
+**Modular Template Performance**: The scan results processing has been extracted into `app/routers/templates/scan_results.py` with dedicated performance optimizations:
+- Smart issue loading with severity-based distribution
+- Eager loading using `selectinload()` to prevent N+1 queries
+- Template caching and specialized CSS/JS loading via `scan_results_wrapper.html`
+- Resource details processing with fallback data for comprehensive issue display
 
 ### Background Processing (`app/tasks/`)
 
@@ -160,7 +183,11 @@ Client -> Website -> Scan -> Page -> Issue
 - Updated table rows after CRUD operations
 - Dynamic client/website dropdowns
 
-**Template Router** (`app/routers/templates.py`): Processes database data for template consumption, ensuring all pages that include modals have access to required data (e.g., `clients` list for website creation dropdown).
+**Modular Template Router** (`app/routers/templates/`): Now organized as a modular package with performance optimizations:
+- `__init__.py` - Main template router with all sections and database optimization
+- `scan_results.py` - Dedicated optimized handler for complex scan results processing
+- Template caching configuration for production performance
+- Smart database queries with eager loading to prevent N+1 issues
 
 **Resource Details Display**: The scan results use nested accordions (Severity → Issue Type → Resource Details) with:
 - Enhanced 6-column resource tables for granular issues
@@ -304,10 +331,12 @@ The system includes built-in performance monitoring. Core Web Vitals analysis pr
 - **Add HTMX endpoints**: Extend `app/routers/htmx.py` for partial HTML responses (edit forms, table updates)
 - **Modify template sections**: Update templates in `app/templates/components/sections/` and ensure required data in `templates.py`
 - **Add background task**: Extend `app/tasks/` and register with Celery app in `celery_app.py`
-- **Handle large scans**: Modify issue limiting logic in `templates.py` (MAX_ISSUES_FOR_UI constant, smart severity distribution)
+- **Handle large scans**: Modify issue limiting logic in `scan_results.py` (MAX_ISSUES_FOR_UI constant, smart severity distribution)
 - **Add table pagination**: Follow pattern in `scan_results_semrush.html` with data attributes and JavaScript functions
 - **Debug scan issues**: Check Celery worker logs, verify crawl results in issue detection methods
-- **Update Italian translations**: Modify issue type mappings in `templates.py` ISSUE_TYPE_INFO
+- **Update Italian translations**: Modify issue type mappings in `scan_results.py` ISSUE_TYPE_INFO
+- **Add enterprise URL discovery**: Extend `url_discovery_service.py` and `url_queue_manager.py` for new discovery sources
+- **Optimize template performance**: Follow modular pattern in `app/routers/templates/` with dedicated handlers for complex pages
 
 ## Critical Architecture Decisions
 
@@ -322,6 +351,14 @@ The system includes built-in performance monitoring. Core Web Vitals analysis pr
 **Granular Issue Format**: The system has evolved from simple aggregate issues to detailed granular format with intelligent suggestions. Key conversions include Italian standardization and context-aware optimization recommendations using content analysis and keyword extraction.
 
 **Anti-Overload System**: Large scans are handled with smart issue distribution (40% critical, 35% high, 20% medium, 5% low) and prioritization of granular issues over legacy format to maintain UI performance while maximizing actionable insights.
+
+**Modular Template Architecture**: The template system has been modernized from a monolithic 1646-line file to a modular package structure with performance optimizations:
+- Template router package (`app/routers/templates/`) with specialized handlers
+- Dedicated scan results processing with smart database queries
+- Template caching and optimized CSS/JS loading patterns
+- Component-based architecture enabling 75% reduction in code duplication
+
+**Enterprise URL Discovery**: Implements three-phase scanning workflow (Discovery → Priority Processing → SEO Analysis) with sitemap-first strategy, enabling efficient processing of large enterprise websites while maintaining crawl budget control and comprehensive metadata tracking.
 
 ## Commercial Context
 
