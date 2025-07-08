@@ -28,6 +28,55 @@ templates = Jinja2Templates(directory=template_dir)
 # Performance constants
 MAX_ISSUES_FOR_UI = 2000
 CRITICAL_ISSUE_RATIO = 0.40
+
+
+def _calculate_avg_load_time(pages: List[Page]) -> float:
+    """Calculate average load time from pages core web vitals data"""
+    load_times = []
+    
+    for page in pages:
+        if page.core_web_vitals:
+            # Try to get TTFB (Time to First Byte) from core web vitals
+            ttfb = page.core_web_vitals.get('ttfb')
+            if ttfb and isinstance(ttfb, (int, float)) and ttfb > 0:
+                load_times.append(ttfb / 1000)  # Convert ms to seconds
+            
+            # Fallback to LCP (Largest Contentful Paint) if TTFB not available
+            elif page.core_web_vitals.get('lcp'):
+                lcp = page.core_web_vitals.get('lcp')
+                if isinstance(lcp, (int, float)) and lcp > 0:
+                    load_times.append(lcp / 1000)  # Convert ms to seconds
+    
+    # Return average or fallback to reasonable default
+    if load_times:
+        return round(sum(load_times) / len(load_times), 2)
+    return 0.0  # No performance data available
+
+
+def _calculate_avg_page_size(pages: List[Page]) -> int:
+    """Calculate average page size from pages performance data"""
+    page_sizes = []
+    
+    for page in pages:
+        if page.core_web_vitals:
+            # Try to get page size from technical SEO data
+            if page.technical_seo_data and 'page_size' in page.technical_seo_data:
+                size = page.technical_seo_data['page_size']
+                if isinstance(size, (int, float)) and size > 0:
+                    page_sizes.append(int(size))
+            
+            # Fallback: estimate from content length if available
+            elif page.technical_seo_data and 'content_length' in page.technical_seo_data:
+                length = page.technical_seo_data['content_length']
+                if isinstance(length, (int, float)) and length > 0:
+                    page_sizes.append(int(length))
+    
+    # Return average or fallback to reasonable default
+    if page_sizes:
+        return int(sum(page_sizes) / len(page_sizes))
+    return 0  # No size data available
+
+
 HIGH_ISSUE_RATIO = 0.35
 MEDIUM_ISSUE_RATIO = 0.20
 LOW_ISSUE_RATIO = 0.05
@@ -181,11 +230,23 @@ async def scan_results_handler(
         # Issue type display mappings
         issue_type_info = {
             'missing_title': {'name': 'Title Tag Mancante', 'icon': 'bi-tag'},
+            'title_too_short': {'name': 'Title Troppo Corto', 'icon': 'bi-tag'},
+            'title_too_long': {'name': 'Title Troppo Lungo', 'icon': 'bi-tag'},
             'missing_meta_description': {'name': 'Meta Description Mancante', 'icon': 'bi-card-text'},
+            'meta_desc_too_short': {'name': 'Meta Description Troppo Corta', 'icon': 'bi-card-text'},
+            'meta_desc_too_long': {'name': 'Meta Description Troppo Lunga', 'icon': 'bi-card-text'},
             'missing_h1': {'name': 'H1 Mancante', 'icon': 'bi-type-h1'},
+            'h1_mancante': {'name': 'H1 Mancante', 'icon': 'bi-type-h1'},
+            'h1_multipli': {'name': 'H1 Multipli', 'icon': 'bi-type-h1'},
+            'h1_too_short': {'name': 'H1 Troppo Corto', 'icon': 'bi-type-h1'},
+            'h1_too_long': {'name': 'H1 Troppo Lungo', 'icon': 'bi-type-h1'},
             'duplicate_h1': {'name': 'H1 Duplicato', 'icon': 'bi-files'},
             'multiple_h1': {'name': 'H1 Multipli', 'icon': 'bi-type-h1'},
+            'canonical_mancante': {'name': 'Canonical Mancante', 'icon': 'bi-link'},
+            'missing_canonical': {'name': 'Canonical Mancante', 'icon': 'bi-link'},
             'image_without_alt': {'name': 'Immagini Senza Alt', 'icon': 'bi-image'},
+            'image_missing_alt': {'name': 'Immagini Senza Alt', 'icon': 'bi-image'},
+            'contenuto_scarso': {'name': 'Contenuto Scarso', 'icon': 'bi-file-text'},
             'blocking_css_resource': {'name': 'CSS Bloccante', 'icon': 'bi-file-earmark-code'},
             'blocking_js_resource': {'name': 'JavaScript Bloccante', 'icon': 'bi-file-earmark-text'},
             'large_image': {'name': 'Immagini Grandi', 'icon': 'bi-image'},
@@ -237,63 +298,110 @@ async def scan_results_handler(
             }
             
             try:
-                resource_details = IssueFactory.extract_resource_details(issue_dict)
-                if resource_details:
-                    resource_data = {
-                        'page_url': page_url,
-                        'resource_url': getattr(resource_details, 'resource_url', ''),
-                        'resource_type': getattr(resource_details, 'resource_type', ''),
-                        'file_size': getattr(resource_details, 'file_size', ''),
-                        'load_time': getattr(resource_details, 'load_time', ''),
-                        'blocking_type': getattr(resource_details, 'blocking_type', ''),
-                        'optimization': getattr(resource_details, 'optimization', ''),
-                        'mime_type': getattr(resource_details, 'mime_type', ''),
-                        'alt_text': getattr(resource_details, 'alt_text', ''),
-                        'title': getattr(resource_details, 'title', ''),
-                        'content': getattr(resource_details, 'content', ''),
-                        'href': getattr(resource_details, 'href', ''),
-                        'status_code': getattr(resource_details, 'status_code', '')
-                    }
-                    issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
-                    logger.debug(f"Added resource details for issue {issue.id} type {issue_type}")
+                # Prima prova a estrarre come issue consolidato
+                consolidated_resources = IssueFactory.extract_consolidated_resources(issue_dict)
+                if consolidated_resources:
+                    # Issue consolidato con multiple risorse
+                    for resource_details in consolidated_resources:
+                        resource_data = {
+                            'page_url': page_url,
+                            'resource_url': getattr(resource_details, 'resource_url', ''),
+                            'resource_type': getattr(resource_details, 'resource_type', ''),
+                            'file_size': getattr(resource_details, 'file_size', ''),
+                            'load_time': getattr(resource_details, 'load_time', ''),
+                            'blocking_type': getattr(resource_details, 'blocking_type', ''),
+                            'optimization': getattr(resource_details, 'optimization', ''),
+                            'mime_type': getattr(resource_details, 'mime_type', ''),
+                            'alt_text': getattr(resource_details, 'alt_text', ''),
+                            'title': getattr(resource_details, 'title', ''),
+                            'content': getattr(resource_details, 'content', ''),
+                            'href': getattr(resource_details, 'href', ''),
+                            'status_code': getattr(resource_details, 'status_code', '')
+                        }
+                        issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
+                    logger.debug(f"Added {len(consolidated_resources)} consolidated resources for issue {issue.id} type {issue_type}")
                 else:
-                    # Add fallback resource data for issues without detailed resource info
-                    fallback_resource = {
-                        'page_url': page_url,
-                        'resource_url': page_url,
-                        'resource_type': 'page',
-                        'file_size': '',
-                        'load_time': '',
-                        'blocking_type': '',
-                        'optimization': issue.description or 'Fix this issue',
-                        'mime_type': 'text/html',
-                        'alt_text': '',
-                        'title': issue.description or f'{issue_type} issue',
-                        'content': issue.description or '',
-                        'href': page_url,
-                        'status_code': ''
-                    }
-                    issues_hierarchy[severity][issue_type]['resource_details'].append(fallback_resource)
-                    logger.debug(f"Added fallback resource for issue {issue.id} type {issue_type}")
+                    # Prova come issue singolo
+                    resource_details = IssueFactory.extract_resource_details(issue_dict)
+                    if resource_details:
+                        resource_data = {
+                            'page_url': page_url,
+                            'resource_url': getattr(resource_details, 'resource_url', ''),
+                            'resource_type': getattr(resource_details, 'resource_type', ''),
+                            'file_size': getattr(resource_details, 'file_size', ''),
+                            'load_time': getattr(resource_details, 'load_time', ''),
+                            'blocking_type': getattr(resource_details, 'blocking_type', ''),
+                            'optimization': getattr(resource_details, 'optimization', ''),
+                            'mime_type': getattr(resource_details, 'mime_type', ''),
+                            'alt_text': getattr(resource_details, 'alt_text', ''),
+                            'title': getattr(resource_details, 'title', ''),
+                            'content': getattr(resource_details, 'content', ''),
+                            'href': getattr(resource_details, 'href', ''),
+                            'status_code': getattr(resource_details, 'status_code', '')
+                        }
+                        issues_hierarchy[severity][issue_type]['resource_details'].append(resource_data)
+                        logger.debug(f"Added resource details for issue {issue.id} type {issue_type}")
+                    else:
+                        # Logica intelligente per fallback: solo per issue types che non dovrebbero avere risorse specifiche
+                        resource_based_issues = {
+                            'blocking_css_resource', 'risorsa_css_bloccante',
+                            'blocking_js_resource', 'risorsa_js_bloccante', 
+                            'image_missing_alt', 'immagine_senza_alt',
+                            'image_oversized', 'immagine_sovradimensionata',
+                            'too_many_images', 'troppe_immagini',
+                            'image_bad_filename', 'immagine_nome_file_cattivo',
+                            'large_image', 'immagine_grande',
+                            'missing_meta_description', 'meta_description_mancante',
+                            'h1_mancante', 'missing_h1',
+                            'canonical_mancante', 'missing_canonical',
+                            'missing_schema_markup', 'schema_markup_mancante'
+                        }
+                        
+                        if issue_type not in resource_based_issues:
+                            # Issue types come title, meta description, contenuto, ecc. che non hanno risorse specifiche
+                            # Creiamo dettagli specifici basati sul tipo di issue
+                            optimization_text = issue.description or 'Risolvi questo problema'
+                            resource_type = 'pagina'
+                            
+                            # Personalizza in base al tipo di issue
+                            if 'meta_desc' in issue_type or 'meta_description' in issue_type:
+                                resource_type = 'meta-description'
+                                if 'too_long' in issue_type or 'troppo_lunga' in issue_type:
+                                    optimization_text = f"Meta description troppo lunga. {issue.description or ''}"
+                                elif 'too_short' in issue_type or 'troppo_corta' in issue_type:
+                                    optimization_text = f"Meta description troppo corta. {issue.description or ''}"
+                            elif 'title' in issue_type:
+                                resource_type = 'title-tag'
+                                if 'too_long' in issue_type or 'troppo_lungo' in issue_type:
+                                    optimization_text = f"Title tag troppo lungo. {issue.description or ''}"
+                                elif 'too_short' in issue_type or 'troppo_corto' in issue_type:
+                                    optimization_text = f"Title tag troppo corto. {issue.description or ''}"
+                            elif 'content' in issue_type or 'contenuto' in issue_type:
+                                resource_type = 'contenuto'
+                            
+                            fallback_resource = {
+                                'page_url': page_url,
+                                'resource_url': '',  # Vuoto per indicare che è a livello pagina
+                                'resource_type': resource_type,
+                                'file_size': '',
+                                'load_time': '',
+                                'blocking_type': '',
+                                'optimization': optimization_text,
+                                'mime_type': '',
+                                'alt_text': '',
+                                'title': optimization_text,
+                                'content': issue.description or '',
+                                'href': page_url,
+                                'status_code': ''
+                            }
+                            issues_hierarchy[severity][issue_type]['resource_details'].append(fallback_resource)
+                            logger.debug(f"Added page-level fallback for issue {issue.id} type {issue_type}")
+                        else:
+                            # Issue types basati su risorse: se non abbiamo details granulari, è un problema
+                            logger.debug(f"No granular resource details for resource-based issue {issue.id} type {issue_type}")
             except Exception as e:
                 logger.error(f"Error processing resource details for issue {issue.id}: {e}")
-                # Add a basic fallback even if there's an error
-                fallback_resource = {
-                    'page_url': page_url,
-                    'resource_url': page_url,
-                    'resource_type': 'page',
-                    'file_size': '',
-                    'load_time': '',
-                    'blocking_type': '',
-                    'optimization': 'Review this issue',
-                    'mime_type': 'text/html',
-                    'alt_text': '',
-                    'title': f'{issue_type} issue',
-                    'content': issue.description or '',
-                    'href': page_url,
-                    'status_code': ''
-                }
-                issues_hierarchy[severity][issue_type]['resource_details'].append(fallback_resource)
+                # Non creiamo fallback resource quando c'è un errore - meglio nessun dato che dati falsi
                 continue
         
         # Calculate performance overview
@@ -370,8 +478,8 @@ async def scan_results_handler(
                 "total_pages_analyzed": len(all_pages),
                 "pages_with_performance_data": len(performance_scores),
                 "pages_with_technical_data": len(technical_scores),
-                "avg_load_time": 2.3,  # Mock data - replace with real calculation
-                "avg_page_size": 1024000,  # Mock data - replace with real calculation
+                "avg_load_time": _calculate_avg_load_time(all_pages),
+                "avg_page_size": _calculate_avg_page_size(all_pages),
                 "optimization_score": round(avg_performance, 0)
             },
             "pagination": {

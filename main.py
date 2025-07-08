@@ -9,6 +9,7 @@ import os
 from app.core.config import settings
 from app.database import init_db, close_db
 from app.routers import clients, websites, scans, scheduler, schedules, templates, htmx
+from app.routers.api import issue_registry
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +48,7 @@ app.add_middleware(
 app.include_router(clients.router, prefix="/api/v1")
 app.include_router(websites.router, prefix="/api/v1")
 app.include_router(scans.router, prefix="/api/v1")
+app.include_router(issue_registry.router)  # Already has /api/v1 prefix
 app.include_router(schedules.router)
 app.include_router(scheduler.router)
 app.include_router(templates.router)

@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 import logging
 import re
 from app.core.config import seo_config
+from app.core.issue_registry import IssueRegistry
+from app.core.issue_migration import IssueMigrationUtility
 from .core.resource_details import ResourceDetailsBuilder, IssueFactory
 from .performance_analyzer import PerformanceAnalyzer
 from .severity_calculator import SeverityCalculator
@@ -13,6 +15,59 @@ class IssueDetector:
     
     def __init__(self):
         self.performance_analyzer = PerformanceAnalyzer()
+    
+    def _create_issue_from_registry(self, issue_type: str, context: Dict[str, Any] = None, 
+                                   custom_description: str = None, custom_recommendation: str = None) -> Dict[str, Any]:
+        """
+        Create an issue using the centralized registry (NEW PREFERRED METHOD)
+        
+        Args:
+            issue_type: The issue type identifier (will be migrated to Italian if needed)
+            context: Context data for severity calculation and escalation
+            custom_description: Custom description to override registry default
+            custom_recommendation: Custom recommendation to override registry default
+            
+        Returns:
+            Issue dictionary with all required fields
+        """
+        if context is None:
+            context = {}
+        
+        # Migrate to new Italian issue type
+        migrated_type = IssueMigrationUtility.migrate_issue_type(issue_type)
+        
+        # Get issue definition from registry
+        issue_def = IssueRegistry.get_issue(migrated_type)
+        if not issue_def:
+            logger.warning(f"Issue type '{migrated_type}' not found in registry, falling back to legacy method")
+            # Fallback to old method if needed
+            severity = SeverityCalculator.calculate_severity(issue_type, context)
+            return {
+                'type': issue_type,
+                'category': 'technical_seo',  # Default category
+                'severity': severity,
+                'title': issue_type.replace('_', ' ').title(),
+                'description': custom_description or f'Issue detected: {issue_type}',
+                'recommendation': custom_recommendation or 'Please review this issue',
+                'score_impact': SeverityCalculator.get_severity_score(severity)
+            }
+        
+        # Calculate severity using registry
+        severity = SeverityCalculator.calculate_severity_from_registry(migrated_type, context)
+        
+        # Build issue dictionary
+        issue = {
+            'type': migrated_type,  # Use migrated Italian type
+            'category': issue_def.category.value,
+            'severity': severity,
+            'title': issue_def.name_it,
+            'description': custom_description or issue_def.description_it,
+            'recommendation': custom_recommendation or '; '.join(issue_def.recommendations),
+            'score_impact': SeverityCalculator.get_severity_score_from_registry(migrated_type, context)
+        }
+        
+        logger.debug(f"Created issue '{migrated_type}' with severity '{severity}' from registry")
+        return issue
     
     def detect_all_issues(self, crawl_result, page_id: int) -> List[Dict[str, Any]]:
         """Detect all SEO issues for a page"""
@@ -79,40 +134,28 @@ class IssueDetector:
         issues = []
         
         if not title:
-            severity = SeverityCalculator.calculate_severity('missing_title')
-            issues.append({
-                'type': 'missing_title',
-                'category': 'on_page',
-                'severity': severity,
-                'title': 'Missing Title Tag',
-                'description': 'Page is missing a title tag',
-                'recommendation': 'Add a descriptive title tag of 50-60 characters',
-                'score_impact': SeverityCalculator.get_severity_score(severity)
-            })
+            context = {'page_type': 'general'}
+            issues.append(self._create_issue_from_registry(
+                'missing_title',
+                context=context,
+                custom_description='La pagina non ha un tag title definito'
+            ))
         elif len(title) < seo_config.title_min_length:
             context = {'length': len(title)}
-            severity = SeverityCalculator.calculate_severity('title_too_short', context)
-            issues.append({
-                'type': 'title_too_short',
-                'category': 'on_page',
-                'severity': severity,
-                'title': 'Title Too Short',
-                'description': f'Title is too short ({len(title)} chars)',
-                'recommendation': f'Extend title to {seo_config.title_min_length}-{seo_config.title_max_length} characters - longer titles perform better in 2024+',
-                'score_impact': SeverityCalculator.get_severity_score(severity)
-            })
+            issues.append(self._create_issue_from_registry(
+                'title_too_short',
+                context=context,
+                custom_description=f'Il tag title è troppo corto ({len(title)} caratteri)',
+                custom_recommendation=f'Estendi il title a {seo_config.title_min_length}-{seo_config.title_max_length} caratteri'
+            ))
         elif len(title) > seo_config.title_max_length:
             context = {'length': len(title)}
-            severity = SeverityCalculator.calculate_severity('title_too_long', context)
-            issues.append({
-                'type': 'title_too_long',
-                'category': 'on_page',
-                'severity': severity,
-                'title': 'Title Too Long',
-                'description': f'Title is too long ({len(title)} chars)',
-                'recommendation': f'Shorten title to {seo_config.title_min_length}-{seo_config.title_max_length} characters',
-                'score_impact': SeverityCalculator.get_severity_score(severity)
-            })
+            issues.append(self._create_issue_from_registry(
+                'title_too_long',
+                context=context,
+                custom_description=f'Il tag title è troppo lungo ({len(title)} caratteri)',
+                custom_recommendation=f'Riduci il title a {seo_config.title_min_length}-{seo_config.title_max_length} caratteri'
+            ))
         
         return issues
     
@@ -160,25 +203,21 @@ class IssueDetector:
             )
             issues.append(issue)
         elif len(meta_desc) < seo_config.meta_desc_min_length:
-            issues.append({
-                'type': 'meta_desc_too_short',
-                'category': 'on_page',
-                'severity': 'medium',
-                'title': 'Meta Description Too Short',
-                'description': f'Meta description is too short ({len(meta_desc)} chars)',
-                'recommendation': f'Extend to {seo_config.meta_desc_min_length}-{seo_config.meta_desc_max_length} characters',
-                'score_impact': seo_config.scoring_weights['meta_desc_too_short']
-            })
+            context = {'length': len(meta_desc)}
+            issues.append(self._create_issue_from_registry(
+                'meta_desc_too_short',
+                context=context,
+                custom_description=f'La meta description è troppo corta ({len(meta_desc)} caratteri)',
+                custom_recommendation=f'Estendi a {seo_config.meta_desc_min_length}-{seo_config.meta_desc_max_length} caratteri'
+            ))
         elif len(meta_desc) > seo_config.meta_desc_max_length:
-            issues.append({
-                'type': 'meta_desc_too_long',
-                'category': 'on_page',
-                'severity': 'medium',
-                'title': 'Meta Description Too Long',
-                'description': f'Meta description is too long ({len(meta_desc)} chars)',
-                'recommendation': f'Shorten to {seo_config.meta_desc_min_length}-{seo_config.meta_desc_max_length} characters',
-                'score_impact': seo_config.scoring_weights['meta_desc_too_long']
-            })
+            context = {'length': len(meta_desc)}
+            issues.append(self._create_issue_from_registry(
+                'meta_desc_too_long',
+                context=context,
+                custom_description=f'La meta description è troppo lunga ({len(meta_desc)} caratteri)',
+                custom_recommendation=f'Riduci a {seo_config.meta_desc_min_length}-{seo_config.meta_desc_max_length} caratteri'
+            ))
         
         return issues
     
@@ -188,16 +227,12 @@ class IssueDetector:
         
         if word_count < seo_config.min_word_count:
             context = {'word_count': word_count}
-            severity = SeverityCalculator.calculate_severity('contenuto_scarso', context)
-            issues.append({
-                'type': 'contenuto_scarso',
-                'category': 'content',
-                'severity': severity,
-                'title': 'Contenuto Scarso',
-                'description': f'La pagina ha contenuto scarso ({word_count} parole)',
-                'recommendation': f'Aggiungi contenuto più approfondito (minimo {seo_config.min_word_count} parole)',
-                'score_impact': SeverityCalculator.get_severity_score(severity)
-            })
+            issues.append(self._create_issue_from_registry(
+                'contenuto_scarso',
+                context=context,
+                custom_description=f'La pagina ha contenuto scarso ({word_count} parole)',
+                custom_recommendation=f'Aggiungi contenuto più approfondito (minimo {seo_config.min_word_count} parole)'
+            ))
         
         return issues
     
@@ -731,8 +766,8 @@ class IssueDetector:
                     page_context=page_context
                 )
                 
-                severity = SeverityCalculator.calculate_severity('canonical_mancante')
-                score_impact = SeverityCalculator.get_severity_score(severity)
+                severity = SeverityCalculator.calculate_severity_from_registry('canonical_mancante')
+                score_impact = SeverityCalculator.get_severity_score_from_registry('canonical_mancante')
                 
                 issue = IssueFactory.create_granular_issue(
                     issue_type='canonical_mancante',

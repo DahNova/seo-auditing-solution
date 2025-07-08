@@ -1,0 +1,173 @@
+<!-- Issue Edit Modal - Form for editing issue properties -->
+<div class="modal fade" id="issueEditModal" tabindex="-1" aria-labelledby="issueEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="issueEditModalLabel">
+                    <i class="bi bi-pencil me-2"></i>
+                    Modifica Issue
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="issueEditForm">
+                <div class="modal-body">
+                    <!-- Loading state -->
+                    <div id="issueEditLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Caricamento dati issue...</p>
+                    </div>
+                    
+                    <!-- Form Content -->
+                    <div id="issueEditContent" style="display: none;">
+                        <input type="hidden" id="editIssueType" name="issue_type">
+                        
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="mb-3">
+                                    <label for="editIssueName" class="form-label fw-bold">
+                                        Nome Issue <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="editIssueName" name="name_it" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editIssueIcon" class="form-label fw-bold">
+                                        Icona Bootstrap
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i id="editIssueIconPreview" class="bi bi-question-circle"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="editIssueIcon" name="icon" 
+                                               placeholder="bi-exclamation-triangle" onkeyup="updateIconPreview()">
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Bootstrap Icons (es: bi-gear)
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo Issue (Read-only)</label>
+                                    <input type="text" class="form-control bg-light" readonly id="editIssueTypeDisplay">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editIssueCategory" class="form-label fw-bold">
+                                        Categoria <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="editIssueCategory" name="category" required>
+                                        <option value="">Seleziona categoria</option>
+                                        <option value="technical_seo">Technical SEO</option>
+                                        <option value="on_page">On Page</option>
+                                        <option value="content">Content</option>
+                                        <option value="accessibility">Accessibility</option>
+                                        <option value="performance">Performance</option>
+                                        <option value="mobile">Mobile</option>
+                                        <option value="social">Social</option>
+                                        <option value="security">Security</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editIssueSeverity" class="form-label fw-bold">
+                                        Severità <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="editIssueSeverity" name="severity" required>
+                                        <option value="">Seleziona severità</option>
+                                        <option value="critical">Critical (-25 punti)</option>
+                                        <option value="high">High (-15 punti)</option>
+                                        <option value="medium">Medium (-8 punti)</option>
+                                        <option value="low">Low (-3 punti)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editIssueFormat" class="form-label fw-bold">
+                                        Formato
+                                    </label>
+                                    <select class="form-select" id="editIssueFormat" name="format_type">
+                                        <option value="granular">Granular (Preferito)</option>
+                                        <option value="consolidated">Consolidated</option>
+                                        <option value="legacy">Legacy (Deprecato)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editIssueDescription" class="form-label fw-bold">
+                                Descrizione <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="editIssueDescription" name="description_it" 
+                                      rows="3" required placeholder="Descrizione dettagliata del problema SEO..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editIssueRecommendations" class="form-label fw-bold">
+                                Raccomandazioni
+                            </label>
+                            <div id="recommendationsContainer">
+                                <!-- Recommendations will be added dynamically -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRecommendation()">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Aggiungi Raccomandazione
+                            </button>
+                        </div>
+                        
+                        <!-- Advanced: Escalation Rules -->
+                        <div class="card">
+                            <div class="card-header" id="escalationHeader">
+                                <h6 class="mb-0">
+                                    <button class="btn btn-link p-0 text-decoration-none" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#escalationCollapse">
+                                        <i class="bi bi-chevron-right me-2" id="escalationChevron"></i>
+                                        Regole di Escalation (Avanzato)
+                                    </button>
+                                </h6>
+                            </div>
+                            <div id="escalationCollapse" class="collapse">
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Le regole di escalation definiscono quando aumentare automaticamente la severità.
+                                        Formato JSON. Esempio: {"file_size_threshold": 1000000, "frequency_threshold": 5}
+                                    </div>
+                                    <textarea class="form-control font-monospace" id="editEscalationRules" 
+                                              name="escalation_rules" rows="4" 
+                                              placeholder='{"context": "rules_here"}'></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error state -->
+                    <div id="issueEditError" style="display: none;" class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <span id="issueEditErrorMessage">Errore nel caricamento dei dati</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Annulla
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveIssueBtn">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

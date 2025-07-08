@@ -1,9 +1,12 @@
 """
 Severity Calculator
 Standardizes severity assignment across all SEO analyzers
+Now integrated with centralized issue registry
 """
 from typing import Dict, Any, Optional
 import logging
+from app.core.issue_registry import IssueRegistry, IssueSeverity
+from app.core.issue_migration import IssueMigrationUtility
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +167,76 @@ class SeverityCalculator:
             logger.warning(f"Unknown severity level: {current_severity}")
         
         return current_severity
+    
+    @classmethod
+    def calculate_severity_from_registry(cls, issue_type: str, context: Dict[str, Any] = None) -> str:
+        """
+        Calculate severity using the centralized issue registry (NEW PREFERRED METHOD)
+        
+        Args:
+            issue_type: The issue type identifier
+            context: Context data for escalation rules
+            
+        Returns:
+            The calculated severity string
+        """
+        if context is None:
+            context = {}
+        
+        # Migrate to new issue type if needed
+        migrated_type = IssueMigrationUtility.migrate_issue_type(issue_type)
+        
+        # Get base severity from registry
+        issue_def = IssueRegistry.get_issue(migrated_type)
+        if not issue_def:
+            logger.warning(f"Issue type '{migrated_type}' not found in registry, using legacy method")
+            return cls.calculate_severity(issue_type, context)
+        
+        base_severity = issue_def.severity.value
+        
+        # Check for escalation rules from registry
+        escalated_severity = IssueRegistry.should_escalate(migrated_type, context)
+        if escalated_severity:
+            logger.debug(f"Escalating '{migrated_type}' from '{base_severity}' to '{escalated_severity.value}'")
+            return escalated_severity.value
+        
+        return base_severity
+    
+    @classmethod
+    def get_severity_score_from_registry(cls, issue_type: str, context: Dict[str, Any] = None) -> float:
+        """
+        Get numerical severity score using centralized registry (NEW PREFERRED METHOD)
+        
+        Args:
+            issue_type: The issue type identifier
+            context: Context data for escalation rules
+            
+        Returns:
+            The numerical severity score
+        """
+        severity_str = cls.calculate_severity_from_registry(issue_type, context)
+        severity_enum = IssueSeverity(severity_str)
+        return IssueRegistry.get_severity_score(severity_enum)
+    
+    @classmethod
+    def is_granular_preferred(cls, issue_type: str) -> bool:
+        """
+        Check if an issue type should use granular format
+        
+        Args:
+            issue_type: The issue type identifier
+            
+        Returns:
+            True if granular format is preferred
+        """
+        preferred_type = IssueMigrationUtility.get_preferred_issue_type(issue_type)
+        issue_def = IssueRegistry.get_issue(preferred_type)
+        
+        if issue_def:
+            from app.core.issue_registry import IssueFormat
+            return issue_def.format_type in [IssueFormat.GRANULAR, IssueFormat.CONSOLIDATED]
+        
+        return False
     
     @classmethod
     def get_severity_score(cls, severity: str) -> float:

@@ -1,0 +1,145 @@
+<!-- Issue View Modal - Read-only details -->
+<div class="modal fade" id="issueViewModal" tabindex="-1" aria-labelledby="issueViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="issueViewModalLabel">
+                    <i class="bi bi-eye me-2"></i>
+                    Dettagli Issue
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Loading state -->
+                <div id="issueViewLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Caricamento dettagli issue...</p>
+                </div>
+                
+                <!-- Content -->
+                <div id="issueViewContent" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Informazioni Generali
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Tipo Issue:</label>
+                                        <p class="mb-0 font-monospace small" id="viewIssueType">-</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Nome:</label>
+                                        <p class="mb-0" id="viewIssueName">-</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Icona:</label>
+                                        <div id="viewIssueIcon">
+                                            <i class="bi bi-question-circle me-2" style="font-size: 1.2rem;"></i>
+                                            <span id="viewIssueIconName" class="font-monospace small text-muted">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-tags me-2"></i>
+                                        Classificazione
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Categoria:</label><br>
+                                        <span id="viewIssueCategory" class="badge bg-secondary fs-6">-</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Severità:</label><br>
+                                        <span id="viewIssueSeverity" class="badge fs-6">-</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Formato:</label><br>
+                                        <span id="viewIssueFormat" class="badge bg-info fs-6">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-card-text me-2"></i>
+                                        Descrizione
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p id="viewIssueDescription" class="mb-0">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-lightbulb me-2"></i>
+                                        Raccomandazioni
+                                        <span id="viewRecommendationsCount" class="badge bg-primary ms-2">0</span>
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul id="viewIssueRecommendations" class="list-group list-group-flush">
+                                        <!-- Recommendations will be populated here -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Escalation Rules (if any) -->
+                    <div class="row mt-3" id="viewEscalationSection" style="display: none;">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-arrow-up-circle me-2"></i>
+                                        Regole di Escalation
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <pre id="viewEscalationRules" class="bg-light p-3 rounded"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error state -->
+                <div id="issueViewError" style="display: none;" class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="issueViewErrorMessage">Errore nel caricamento dei dettagli</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Chiudi
+                </button>
+                <button type="button" class="btn btn-primary" id="editIssueFromView">
+                    <i class="bi bi-pencil me-2"></i>
+                    Modifica Issue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

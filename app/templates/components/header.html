@@ -53,6 +53,12 @@
                                 Scheduler
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="/templated/issue-management" class="nav-link {% if current_section == 'issue_management' %}active{% endif %}" data-section="issue_management">
+                                <i class="bi bi-gear-fill"></i>
+                                Gestione Issue
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </div>
@@ -91,6 +97,9 @@
             </a>
             <a href="/templated/scheduler" class="mobile-nav-link {% if current_section == 'scheduler' %}active{% endif %}" data-section="scheduler">
                 <i class="bi bi-clock-history"></i> Scheduler
+            </a>
+            <a href="/templated/issue-management" class="mobile-nav-link {% if current_section == 'issue_management' %}active{% endif %}" data-section="issue_management">
+                <i class="bi bi-gear-fill"></i> Gestione Issue
             </a>
         </div>
     </div>

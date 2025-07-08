@@ -6,6 +6,8 @@ from typing import Dict, List, Any, Optional
 import logging
 import re
 from urllib.parse import urlparse
+from app.core.issue_registry import IssueRegistry
+from app.core.issue_migration import IssueMigrationUtility
 from .core.resource_details import ResourceDetailsBuilder, IssueFactory
 from .severity_calculator import SeverityCalculator
 from app.services.url_utils import clean_url
@@ -444,8 +446,8 @@ class PerformanceAnalyzer:
                         'resource_type': 'css',
                         'resource_count': len(css_resources)
                     }
-                    severity = SeverityCalculator.calculate_severity('blocking_css_resource', severity_context)
-                    score_impact = SeverityCalculator.get_severity_score(severity) * len(css_resources)
+                    severity = SeverityCalculator.calculate_severity_from_registry('blocking_css_resource', severity_context)
+                    score_impact = SeverityCalculator.get_severity_score_from_registry('blocking_css_resource', severity_context) * len(css_resources)
                     
                     # Create single consolidated issue with all CSS resources
                     issue = IssueFactory.create_consolidated_issue(
@@ -494,8 +496,8 @@ class PerformanceAnalyzer:
                     'resource_type': 'javascript',
                     'resource_count': len(js_matches)
                 }
-                severity = SeverityCalculator.calculate_severity('blocking_js_resource', severity_context)
-                score_impact = SeverityCalculator.get_severity_score(severity) * len(js_matches)
+                severity = SeverityCalculator.calculate_severity_from_registry('blocking_js_resource', severity_context)
+                score_impact = SeverityCalculator.get_severity_score_from_registry('blocking_js_resource', severity_context) * len(js_matches)
                 
                 # Create single consolidated issue with all JS resources
                 issue = IssueFactory.create_consolidated_issue(

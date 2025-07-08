@@ -17,6 +17,7 @@ from app.services.seo_analyzer.core.resource_details import IssueFactory
 from app.models import Client, Website, Scan, Issue, Page, Schedule
 from app.core.celery_app import celery_app
 from .scan_results import scan_results_handler
+from .issue_management import issue_management_handler
 
 logger = logging.getLogger(__name__)
 
@@ -613,6 +614,11 @@ async def scans_section(request: Request, db: AsyncSession = Depends(get_db)):
 async def scan_results(request: Request, scan_id: int, page: int = 1, per_page: int = 50, db: AsyncSession = Depends(get_db)):
     """Serve Scan Results page - Optimized modular version"""
     return await scan_results_handler(request, scan_id, page, per_page, db)
+
+@router.get("/issue-management", response_class=HTMLResponse)
+async def issue_management(request: Request):
+    """Serve Issue Management page - Administrative interface for issue registry"""
+    return await issue_management_handler(request)
 
 @router.get("/comparison", response_class=HTMLResponse)
 async def template_comparison(request: Request):

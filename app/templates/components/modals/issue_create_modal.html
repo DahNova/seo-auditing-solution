@@ -1,0 +1,190 @@
+<!-- Issue Create Modal - Form for creating new issue -->
+<div class="modal fade" id="issueCreateModal" tabindex="-1" aria-labelledby="issueCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="issueCreateModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Crea Nuova Issue
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="issueCreateForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Attenzione:</strong> Il tipo di issue deve essere univoco. Usa convenzioni italiane come "nome_problema".
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="createIssueType" class="form-label fw-bold">
+                                    Tipo Issue (ID) <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="createIssueType" name="issue_type" required
+                                       placeholder="es: meta_keywords_mancanti" pattern="[a-z_]+" 
+                                       title="Solo lettere minuscole e underscore">
+                                <small class="form-text text-muted">
+                                    ID univoco: solo lettere minuscole e underscore
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="mb-3">
+                                <label for="createIssueName" class="form-label fw-bold">
+                                    Nome Visualizzato <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="createIssueName" name="name_it" required
+                                       placeholder="es: Meta Keywords Mancanti" onkeyup="updateCreateIconPreview()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Anteprima</label>
+                                <div class="border rounded p-2 text-center bg-light">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <i id="createIssueIconLarge" class="bi bi-exclamation-triangle me-2" style="font-size: 1.2rem;"></i>
+                                        <small id="createIssueNamePreview" class="fw-bold">Nome Issue</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="createIssueCategory" class="form-label fw-bold">
+                                    Categoria <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="createIssueCategory" name="category" required>
+                                    <option value="">Seleziona categoria</option>
+                                    <option value="technical_seo">Technical SEO</option>
+                                    <option value="on_page">On Page</option>
+                                    <option value="content">Content</option>
+                                    <option value="accessibility">Accessibility</option>
+                                    <option value="performance">Performance</option>
+                                    <option value="mobile">Mobile</option>
+                                    <option value="social">Social</option>
+                                    <option value="security">Security</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="createIssueSeverity" class="form-label fw-bold">
+                                    Severità <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="createIssueSeverity" name="severity" required>
+                                    <option value="">Seleziona severità</option>
+                                    <option value="critical">Critical (-25 punti)</option>
+                                    <option value="high">High (-15 punti)</option>
+                                    <option value="medium">Medium (-8 punti)</option>
+                                    <option value="low">Low (-3 punti)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="createIssueFormat" class="form-label fw-bold">
+                                    Formato
+                                </label>
+                                <select class="form-select" id="createIssueFormat" name="format_type">
+                                    <option value="granular" selected>Granular (Preferito)</option>
+                                    <option value="consolidated">Consolidated</option>
+                                    <option value="legacy">Legacy (Sconsigliato)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createIssueIcon" class="form-label fw-bold">
+                                    Icona Bootstrap
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i id="createIssueIconPreview" class="bi bi-exclamation-triangle"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="createIssueIcon" name="icon" 
+                                           value="bi-exclamation-triangle" onkeyup="updateCreateIconPreview()">
+                                </div>
+                                <small class="form-text text-muted">
+                                    Usa nomi di icone Bootstrap Icons (es: bi-gear, bi-warning)
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createIssueDescription" class="form-label fw-bold">
+                                    Descrizione <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="createIssueDescription" name="description_it" 
+                                          rows="3" required placeholder="Descrizione dettagliata del problema SEO..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="createIssueRecommendations" class="form-label fw-bold">
+                            Raccomandazioni
+                        </label>
+                        <div id="createRecommendationsContainer">
+                            <!-- Initial recommendation field -->
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">1</span>
+                                <input type="text" class="form-control" name="recommendations[]" 
+                                       placeholder="Prima raccomandazione...">
+                                <button type="button" class="btn btn-outline-danger" onclick="IssueManagement.removeCreateRecommendation(this)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCreateRecommendation()">
+                            <i class="bi bi-plus-circle me-1"></i>
+                            Aggiungi Raccomandazione
+                        </button>
+                    </div>
+                    
+                    <!-- Advanced: Escalation Rules -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <button class="btn btn-link p-0 text-decoration-none" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#createEscalationCollapse">
+                                    <i class="bi bi-chevron-right me-2" id="createEscalationChevron"></i>
+                                    Regole di Escalation (Opzionale)
+                                </button>
+                            </h6>
+                        </div>
+                        <div id="createEscalationCollapse" class="collapse">
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Le regole di escalation definiscono quando aumentare automaticamente la severità.
+                                    Formato JSON. Esempio: {"file_size_threshold": 1000000, "frequency_threshold": 5}
+                                </div>
+                                <textarea class="form-control font-monospace" id="createEscalationRules" 
+                                          name="escalation_rules" rows="4" 
+                                          placeholder='{"context": "rules_here"}'></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Annulla
+                    </button>
+                    <button type="submit" class="btn btn-success" id="createIssueBtn">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Crea Issue
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

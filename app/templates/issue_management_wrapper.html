@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+        :root {
+            --primary-color: #0066cc;
+            --secondary-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+        
+        .issue-management-header {
+            background: linear-gradient(135deg, var(--primary-color), #004d99);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .category-section {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .category-header {
+            background: var(--secondary-color);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .issue-table {
+            margin: 0;
+        }
+        
+        .issue-table th {
+            background: var(--secondary-color);
+            border-top: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .severity-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .format-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .recommendations-count {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        .action-buttons {
+            white-space: nowrap;
+        }
+        
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            margin-right: 0.25rem;
+        }
+        
+        .filter-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .search-box {
+            max-width: 300px;
+        }
+        
+        /* Issue Management Modal Specific Styles */
+        #issueViewModal .modal-dialog,
+        #issueEditModal .modal-dialog,
+        #issueCreateModal .modal-dialog,
+        #issueDeleteModal .modal-dialog {
+            max-width: 90vw;
+        }
+        
+        #issueViewModal .modal-content,
+        #issueEditModal .modal-content,
+        #issueCreateModal .modal-content {
+            width: 100%;
+            min-width: 800px;
+        }
+        
+        /* Ensure proper spacing on smaller screens */
+        @media (max-width: 992px) {
+            #issueViewModal .modal-dialog,
+            #issueEditModal .modal-dialog,
+            #issueCreateModal .modal-dialog {
+                max-width: 95vw;
+            }
+            
+            #issueViewModal .modal-content,
+            #issueEditModal .modal-content,
+            #issueCreateModal .modal-content {
+                min-width: auto;
+            }
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+    
+    <!-- Header -->
+    <div class="issue-management-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="bi bi-gear-fill me-3"></i>
+                        Gestione Issue Registry
+                    </h1>
+                    <p class="mb-0 opacity-75">
+                        Amministrazione centralizzata delle tipologie di problemi SEO monitorate dalla piattaforma
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <button class="btn btn-light btn-lg" onclick="showAddIssueModal()">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Nuova Issue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Statistics Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stats-number">{{ total_issues }}</div>
+                            <div class="text-muted">Issue Totali</div>
+                        </div>
+                        <i class="bi bi-list-check text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stats-number">{{ categories|length }}</div>
+                            <div class="text-muted">Categorie</div>
+                        </div>
+                        <i class="bi bi-tags text-info" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stats-number">{{ format_stats.get('granular', 0) }}</div>
+                            <div class="text-muted">Issue Granulari</div>
+                        </div>
+                        <i class="bi bi-zoom-in text-success" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stats-number">{{ severity_stats.get('critical', 0) }}</div>
+                            <div class="text-muted">Issue Critiche</div>
+                        </div>
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="filter-section">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group search-box">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="searchIssues" placeholder="Cerca issue..." onkeyup="filterIssues()">
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="d-flex gap-3">
+                        <select class="form-select" id="filterCategory" onchange="filterIssues()" style="max-width: 200px;">
+                            <option value="">Tutte le categorie</option>
+                            {% for category in categories %}
+                            <option value="{{ category.value }}">{{ category.label }} ({{ category.count }})</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <select class="form-select" id="filterSeverity" onchange="filterIssues()" style="max-width: 200px;">
+                            <option value="">Tutte le severità</option>
+                            {% for severity in severities %}
+                            <option value="{{ severity.value }}">{{ severity.label }} ({{ severity.count }})</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <select class="form-select" id="filterFormat" onchange="filterIssues()" style="max-width: 200px;">
+                            <option value="">Tutti i formati</option>
+                            {% for format in formats %}
+                            <option value="{{ format.value }}">{{ format.label }} ({{ format.count }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issues by Category -->
+        {% for category, issues in issues_by_category.items() %}
+        <div class="category-section" data-category="{{ category }}">
+            <div class="category-header">
+                <div class="d-flex align-items-center">
+                    <i class="bi {{ category_icons.get(category, 'bi-folder') }} me-3" style="font-size: 1.25rem;"></i>
+                    <h4 class="mb-0">{{ category.replace('_', ' ').title() }}</h4>
+                    <span class="badge bg-primary ms-3">{{ issues|length }} issue</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="toggleCategory('{{ category }}')">
+                    <i class="bi bi-chevron-down" id="chevron-{{ category }}"></i>
+                </button>
+            </div>
+            
+            <div class="table-responsive" id="content-{{ category }}">
+                <table class="table issue-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 23%;">Nome Issue</th>
+                            <th style="width: 32%;">Descrizione</th>
+                            <th style="width: 10%;">Severità</th>
+                            <th style="width: 10%;">Formato</th>
+                            <th style="width: 10%;">Raccomandazioni</th>
+                            <th style="width: 15%;">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in issues %}
+                        <tr data-issue-type="{{ issue.issue_type }}" data-severity="{{ issue.severity }}" data-format="{{ issue.format_type }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi {{ issue.icon }} me-2 text-muted"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ issue.name_it }}</div>
+                                        <small class="text-muted">{{ issue.issue_type }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-truncate" title="{{ issue.description_it }}">
+                                    {{ issue.description_it }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ severity_colors.get(issue.severity, 'secondary') }} severity-badge">
+                                    {{ issue.severity.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if issue.format_type == 'granular' else 'secondary' }} format-badge">
+                                    <i class="bi {{ format_icons.get(issue.format_type, 'bi-question') }} me-1"></i>
+                                    {{ issue.format_type.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="recommendations-count">
+                                    <i class="bi bi-lightbulb me-1"></i>
+                                    {{ issue.recommendation_count }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewIssue('{{ issue.issue_type }}')" title="Visualizza">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="editIssue('{{ issue.issue_type }}')" title="Modifica">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteIssue('{{ issue.issue_type }}')" title="Elimina">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Issue Management Modals -->
+    {% include 'components/modals/issue_view_modal.html' %}
+    {% include 'components/modals/issue_edit_modal.html' %}
+    {% include 'components/modals/issue_create_modal.html' %}
+    {% include 'components/modals/issue_delete_modal.html' %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/issue-management.js"></script>
+<script>
+        // Category toggle functionality
+        function toggleCategory(categoryId) {
+            const content = document.getElementById(`content-${categoryId}`);
+            const chevron = document.getElementById(`chevron-${categoryId}`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                chevron.className = 'bi bi-chevron-down';
+            } else {
+                content.style.display = 'none';
+                chevron.className = 'bi bi-chevron-right';
+            }
+        }
+
+        // Filter functionality
+        function filterIssues() {
+            const searchTerm = document.getElementById('searchIssues').value.toLowerCase();
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const severityFilter = document.getElementById('filterSeverity').value;
+            const formatFilter = document.getElementById('filterFormat').value;
+            
+            const allRows = document.querySelectorAll('tbody tr[data-issue-type]');
+            const allCategories = document.querySelectorAll('.category-section');
+            
+            allRows.forEach(row => {
+                const issueType = row.getAttribute('data-issue-type').toLowerCase();
+                const issueName = row.querySelector('.fw-bold').textContent.toLowerCase();
+                const issueDesc = row.querySelector('.text-truncate').textContent.toLowerCase();
+                const severity = row.getAttribute('data-severity');
+                const format = row.getAttribute('data-format');
+                
+                const matchesSearch = !searchTerm || 
+                    issueType.includes(searchTerm) || 
+                    issueName.includes(searchTerm) || 
+                    issueDesc.includes(searchTerm);
+                
+                const matchesCategory = !categoryFilter || 
+                    row.closest('.category-section').getAttribute('data-category') === categoryFilter;
+                
+                const matchesSeverity = !severityFilter || severity === severityFilter;
+                const matchesFormat = !formatFilter || format === formatFilter;
+                
+                const shouldShow = matchesSearch && matchesCategory && matchesSeverity && matchesFormat;
+                row.style.display = shouldShow ? '' : 'none';
+            });
+            
+            // Hide categories with no visible rows
+            allCategories.forEach(category => {
+                const visibleRows = category.querySelectorAll('tbody tr[data-issue-type]:not([style*="display: none"])');
+                category.style.display = visibleRows.length > 0 ? '' : 'none';
+            });
+        }
+
+        // Placeholder functions are now implemented in issue-management.js
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Issue Management page loaded');
+        });
+</script>
+{% endblock %}

@@ -3,74 +3,28 @@
     <table class="sr-clean-table">
         <thead>
             <tr>
-                <th style="width: 40%;">Pagina</th>
-                <th style="width: 30%;">Risorsa</th>
-                <th style="width: 15%;">Tipo</th>
-                <th style="width: 15%;">Dettagli</th>
+                <th style="width: 60%;">Pagina</th>
+                <th style="width: 40%;">Risorsa</th>
             </tr>
         </thead>
         <tbody>
             {% for resource in resources %}
             <tr>
                 <td>
-                    <a href="{{ resource.page_url }}" target="_blank" class="text-decoration-none">
-                        {{ resource.page_url | truncate(50) }}
+                    <a href="{{ resource.page_url }}" target="_blank" class="text-decoration-none" 
+                       title="{{ resource.page_url }}" style="font-size: 0.75rem; line-height: 1.2;">
+                        {{ resource.page_url | truncate(130) }}
                     </a>
                 </td>
                 <td>
-                    {% if resource.resource_url %}
-                        <span class="text-monospace" style="font-size: 0.65rem;">
-                            {{ resource.resource_url | truncate(40) }}
+                    {% if resource.resource_url and resource.resource_url != resource.page_url %}
+                        <span class="text-monospace" style="font-size: 0.7rem; line-height: 1.2;" 
+                              title="{{ resource.resource_url }}">
+                            {{ resource.resource_url | truncate(80) }}
                         </span>
                     {% else %}
-                        <span class="text-muted">-</span>
+                        <span class="text-muted" style="font-style: italic; font-size: 0.75rem;">Problema a livello pagina</span>
                     {% endif %}
-                </td>
-                <td>
-                    {% if resource.resource_type %}
-                        <span class="badge bg-secondary" style="font-size: 0.6rem;">
-                            {{ resource.resource_type }}
-                        </span>
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div style="font-size: 0.65rem; max-height: 60px; overflow-y: auto;">
-                        {% if resource.file_size %}
-                            <div><strong>Dimensione:</strong> {{ resource.file_size }}</div>
-                        {% endif %}
-                        {% if resource.load_time %}
-                            <div><strong>Caricamento:</strong> {{ resource.load_time }}ms</div>
-                        {% endif %}
-                        {% if resource.blocking_type %}
-                            <div><strong>Blocco:</strong> {{ resource.blocking_type }}</div>
-                        {% endif %}
-                        {% if resource.optimization %}
-                            <div><strong>Ottimizzazione:</strong> {{ resource.optimization }}</div>
-                        {% endif %}
-                        {% if resource.mime_type %}
-                            <div><strong>MIME:</strong> {{ resource.mime_type }}</div>
-                        {% endif %}
-                        {% if resource.alt_text %}
-                            <div><strong>Alt:</strong> {{ resource.alt_text | truncate(30) }}</div>
-                        {% endif %}
-                        {% if resource.title %}
-                            <div><strong>Titolo:</strong> {{ resource.title | truncate(30) }}</div>
-                        {% endif %}
-                        {% if resource.content %}
-                            <div><strong>Contenuto:</strong> {{ resource.content | truncate(40) }}</div>
-                        {% endif %}
-                        {% if resource.href %}
-                            <div><strong>Link:</strong> {{ resource.href | truncate(30) }}</div>
-                        {% endif %}
-                        {% if resource.status_code %}
-                            <div><strong>Status:</strong> {{ resource.status_code }}</div>
-                        {% endif %}
-                        {% if not (resource.file_size or resource.load_time or resource.blocking_type or resource.optimization or resource.mime_type or resource.alt_text or resource.title or resource.content or resource.href or resource.status_code) %}
-                            <span class="text-muted">Nessun dettaglio</span>
-                        {% endif %}
-                    </div>
                 </td>
             </tr>
             {% endfor %}
